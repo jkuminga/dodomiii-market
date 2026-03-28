@@ -33,9 +33,12 @@ export function MobileHeader() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const isDetailPage = location.pathname.startsWith('/products/');
+  const detailMatch = location.pathname.match(/^\/products\/([^/]+)$/);
+  const orderMatch = location.pathname.match(/^\/products\/([^/]+)\/order$/);
+  const isDetailPage = !!detailMatch;
+  const isOrderPage = !!orderMatch;
   const isLoginPage = location.pathname === '/admin/login';
-  const showBackButton = isDetailPage || isLoginPage;
+  const showBackButton = isDetailPage || isOrderPage || isLoginPage;
 
   useEffect(() => {
     setMenuOpen(false);
@@ -64,6 +67,11 @@ export function MobileHeader() {
   }, [menuOpen]);
 
   const handleBack = () => {
+    if (isOrderPage) {
+      navigate(`/products/${orderMatch[1]}`, { replace: false });
+      return;
+    }
+
     navigate(isDetailPage ? '/products' : '/', { replace: false });
   };
 
@@ -137,6 +145,10 @@ export function MobileHeader() {
           <Link className="m-menu-link" to="/products?sort=latest">
             <span>신상품</span>
             <small>가장 최근에 등록된 컬렉션</small>
+          </Link>
+          <Link className="m-menu-link" to="/orders">
+            <span>주문 조회</span>
+            <small>주문번호로 입금과 배송 상태 확인</small>
           </Link>
         </nav>
       </aside>

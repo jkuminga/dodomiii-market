@@ -18,6 +18,7 @@ export function ProductDetailPage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<DetailTab>('story');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedOrderOptionId, setSelectedOrderOptionId] = useState('');
 
   useEffect(() => {
     if (!productId) {
@@ -40,6 +41,7 @@ export function ProductDetailPage() {
         setProduct(result);
         setSelectedImageIndex(0);
         setActiveTab('story');
+        setSelectedOrderOptionId('');
       } catch (caught) {
         if (!cancelled) {
           setError(caught instanceof Error ? caught.message : '상품 상세 조회 중 오류가 발생했습니다.');
@@ -97,6 +99,16 @@ export function ProductDetailPage() {
     return left.sortOrder - right.sortOrder;
   });
   const activeImage = orderedImages[selectedImageIndex] ?? orderedImages[0];
+  const activeOptions = [...product.options]
+    .filter((option) => option.isActive)
+    .sort((left, right) => left.sortOrder - right.sortOrder);
+  const orderParams = new URLSearchParams();
+
+  if (selectedOrderOptionId) {
+    orderParams.set('optionId', selectedOrderOptionId);
+  }
+
+  const orderHref = `/products/${product.id}/order${orderParams.toString() ? `?${orderParams.toString()}` : ''}`;
 
   return (
     <main className="m-page detail-page with-fixed-bar">
@@ -158,6 +170,40 @@ export function ProductDetailPage() {
         </div>
       </section>
 
+      <section className="surface-card detail-order-card">
+        <div className="section-head">
+          <div>
+            <p className="section-kicker">Quick Order</p>
+            <h2 className="section-subtitle">주문서로 이어서 입력</h2>
+            <p className="section-copy section-copy-compact">상품은 고정하고, 옵션만 골라 주문서로 바로 이동할 수 있게 정리했습니다.</p>
+          </div>
+          <Link className="button-text" to={orderHref}>
+            주문서 열기
+          </Link>
+        </div>
+
+        {activeOptions.length > 0 ? (
+          <label className="field">
+            <span>주문서에 미리 담을 옵션</span>
+            <select value={selectedOrderOptionId} onChange={(event) => setSelectedOrderOptionId(event.target.value)}>
+              <option value="">주문서에서 선택</option>
+              {activeOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.optionGroupName} / {option.optionValue}
+                  {option.extraPrice > 0 ? ` (+${formatCurrency(option.extraPrice)})` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <p className="feedback-copy">추가 옵션이 없는 상품입니다. 주문서에서 수량과 배송지 정보만 입력하면 됩니다.</p>
+        )}
+
+        {product.consultationRequired ? (
+          <p className="feedback-copy">주문 접수 뒤 상담 확인이 이어질 수 있습니다.</p>
+        ) : null}
+      </section>
+
       <section className="surface-card">
         <div className="tab-bar" role="tablist" aria-label="상품 세부 정보">
           <button
@@ -197,22 +243,19 @@ export function ProductDetailPage() {
           ) : null}
 
           {activeTab === 'options' ? (
-            product.options.length === 0 ? (
+            activeOptions.length === 0 ? (
               <p className="feedback-copy">등록된 옵션이 없습니다.</p>
             ) : (
               <ul className="option-list">
-                {product.options
-                  .filter((option) => option.isActive)
-                  .sort((left, right) => left.sortOrder - right.sortOrder)
-                  .map((option) => (
-                    <li className="option-item" key={option.id}>
-                      <div>
-                        <strong>{option.optionGroupName}</strong>
-                        <p>{option.optionValue}</p>
-                      </div>
-                      <span>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '추가 금액 없음'}</span>
-                    </li>
-                  ))}
+                {activeOptions.map((option) => (
+                  <li className="option-item" key={option.id}>
+                    <div>
+                      <strong>{option.optionGroupName}</strong>
+                      <p>{option.optionValue}</p>
+                    </div>
+                    <span>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '추가 금액 없음'}</span>
+                  </li>
+                ))}
               </ul>
             )
           ) : null}
@@ -231,9 +274,15 @@ export function ProductDetailPage() {
           <p>기본가</p>
           <strong>{formatCurrency(product.basePrice)}</strong>
         </div>
-        <Link className="button" to="/products">
-          다른 상품 보기
-        </Link>
+        {product.isSoldOut ? (
+          <button className="button" type="button" disabled>
+            품절 상품
+          </button>
+        ) : (
+          <Link className="button" to={orderHref}>
+            주문서 작성
+          </Link>
+        )}
       </div>
     </main>
   );

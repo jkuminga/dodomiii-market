@@ -18,9 +18,20 @@ function SearchIcon() {
   );
 }
 
+function ReceiptIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 4h10v16l-2-1.5L12 20l-3-1.5L7 20V4Z" />
+      <path d="M10 9h4" />
+      <path d="M10 13h4" />
+    </svg>
+  );
+}
+
 const navItems = [
   { to: '/', label: '홈', Icon: HomeIcon },
   { to: '/products', label: '상품', Icon: SearchIcon },
+  { to: '/orders', label: '주문조회', Icon: ReceiptIcon },
 ];
 
 export function BottomNav() {

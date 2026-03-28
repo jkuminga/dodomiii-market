@@ -7,6 +7,8 @@ import { MobileHeader } from './components/mobile/MobileHeader';
 import { ProductArtwork } from './components/store/ProductArtwork';
 import { apiClient, CategoryTreeNode, ProductListItem } from './lib/api';
 import { CatalogPage } from './pages/store/CatalogPage';
+import { OrderLookupPage } from './pages/store/OrderLookupPage';
+import { OrderPage } from './pages/store/OrderPage';
 import { ProductDetailPage } from './pages/store/ProductDetailPage';
 
 function formatCurrency(value: number): string {
@@ -395,8 +397,10 @@ export function App() {
         <MobileHeader />
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/orders" element={<OrderLookupPage />} />
           <Route path="/products" element={<CatalogPage />} />
           <Route path="/products/:productId" element={<ProductDetailPage />} />
+          <Route path="/products/:productId/order" element={<OrderPage />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminDashboardPage />} />
           <Route path="*" element={<NotFoundPage />} />

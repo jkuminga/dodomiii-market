@@ -85,6 +85,144 @@ export type ProductDetail = {
   };
 };
 
+export type StoreOrderStatus =
+  | 'PENDING_PAYMENT'
+  | 'PAYMENT_REQUESTED'
+  | 'PAYMENT_CONFIRMED'
+  | 'PREPARING'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'CANCELLED'
+  | 'EXPIRED';
+
+export type StoreDepositStatus = 'WAITING' | 'REQUESTED' | 'CONFIRMED' | 'REJECTED';
+export type StoreShipmentStatus = 'READY' | 'SHIPPED' | 'DELIVERED';
+
+export type StoreOrderCreateRequest = {
+  items: Array<{
+    productId: number;
+    productOptionId?: number;
+    quantity: number;
+  }>;
+  contact: {
+    buyerName: string;
+    buyerPhone: string;
+    receiverName: string;
+    receiverPhone: string;
+    zipcode: string;
+    address1: string;
+    address2?: string;
+  };
+  customerRequest?: string;
+};
+
+export type StoreOrderCreateResponse = {
+  orderId: number;
+  orderNumber: string;
+  orderStatus: StoreOrderStatus;
+  items?: Array<{
+    productId: number;
+    productOptionId: number | null;
+    productNameSnapshot: string;
+    optionNameSnapshot: string | null;
+    optionValueSnapshot: string | null;
+    unitPrice: number;
+    quantity: number;
+    lineTotalPrice: number;
+  }>;
+  pricing: {
+    totalProductPrice: number;
+    shippingFee: number;
+    finalTotalPrice: number;
+  };
+  depositInfo: {
+    bankName: string;
+    accountHolder: string;
+    accountNumber: string;
+    expectedAmount: number;
+    depositStatus: StoreDepositStatus;
+    depositDeadlineAt: string | null;
+  };
+  createdAt?: string;
+};
+
+export type StoreOrderLookupResponse = {
+  orderNumber: string;
+  orderStatus: StoreOrderStatus;
+  items: Array<{
+    productNameSnapshot: string;
+    optionNameSnapshot: string | null;
+    optionValueSnapshot: string | null;
+    unitPrice: number;
+    quantity: number;
+    lineTotalPrice: number;
+  }>;
+  contact: {
+    buyerName: string;
+    buyerPhone: string;
+    receiverName: string;
+    receiverPhone: string;
+    zipcode: string;
+    address1: string;
+    address2: string | null;
+  };
+  pricing: {
+    totalProductPrice: number;
+    shippingFee: number;
+    finalTotalPrice: number;
+  };
+  deposit: {
+    depositStatus: StoreDepositStatus;
+    bankName?: string | null;
+    accountHolder?: string | null;
+    accountNumber?: string | null;
+    expectedAmount?: number | null;
+    depositorName?: string | null;
+    requestedAt: string | null;
+    confirmedAt: string | null;
+    adminMemo?: string | null;
+  };
+  shipment: {
+    shipmentStatus: StoreShipmentStatus;
+    courierName: string | null;
+    trackingNumber: string | null;
+    trackingUrl?: string | null;
+    shippedAt: string | null;
+    deliveredAt: string | null;
+  };
+  statusHistories?: Array<{
+    orderStatusHistoryId: number;
+    previousStatus: StoreOrderStatus | null;
+    newStatus: StoreOrderStatus;
+    changeReason: string | null;
+    changedByAdminId: number | null;
+    createdAt: string;
+  }>;
+  createdAt?: string;
+  updatedAt: string;
+};
+
+export type StoreDepositRequestPayload = {
+  depositorName?: string;
+  memo?: string;
+};
+
+export type StoreDepositRequestResponse = {
+  orderNumber: string;
+  depositStatus: StoreDepositStatus;
+  requestedAt: string | null;
+};
+
+export type StoreOrderTrackingResponse = {
+  orderNumber: string;
+  shipmentStatus: StoreShipmentStatus;
+  courierName: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+};
+
 export const apiClient = {
   login: (loginId: string, password: string) =>
     request<{ admin: { adminId: string; loginId: string; name: string; role: 'SUPER' | 'STAFF' } }>(
@@ -163,4 +301,22 @@ export const apiClient = {
 
   getProductById: (productId: string) =>
     request<ProductDetail>(`/store/products/${productId}`),
+
+  createOrder: (payload: StoreOrderCreateRequest) =>
+    request<StoreOrderCreateResponse>('/store/orders', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  getOrderByNumber: (orderNumber: string) =>
+    request<StoreOrderLookupResponse>(`/store/orders/${encodeURIComponent(orderNumber)}`),
+
+  requestDeposit: (orderNumber: string, payload?: StoreDepositRequestPayload) =>
+    request<StoreDepositRequestResponse>(`/store/orders/${encodeURIComponent(orderNumber)}/deposit-requests`, {
+      method: 'POST',
+      body: JSON.stringify(payload ?? {}),
+    }),
+
+  getOrderTracking: (orderNumber: string) =>
+    request<StoreOrderTrackingResponse>(`/store/orders/${encodeURIComponent(orderNumber)}/tracking`),
 };

@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationError, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import session from 'express-session';
@@ -8,6 +8,15 @@ import pinoHttp from 'pino-http';
 
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+
+function flattenValidationErrors(errors: ValidationError[]): string[] {
+  return errors.flatMap((error) => {
+    const messages = error.constraints ? Object.values(error.constraints) : [];
+    const childMessages = error.children?.length ? flattenValidationErrors(error.children) : [];
+
+    return [...messages, ...childMessages];
+  });
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -48,6 +57,11 @@ async function bootstrap() {
       whitelist: true,
       transform: true,
       forbidNonWhitelisted: true,
+      exceptionFactory: (errors) =>
+        new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: flattenValidationErrors(errors).join(', ') || '요청값이 올바르지 않습니다.',
+        }),
     }),
   );
 

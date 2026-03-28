@@ -19,8 +19,8 @@
 - [x] M02 DB 마이그레이션/스키마 반영
 - [x] M03 관리자 인증(세션)
 - [x] M04 스토어 카탈로그 조회 API
-- [ ] M05 스토어 주문 생성 API
-- [ ] M06 스토어 주문 조회/입금요청 API
+- [x] M05 스토어 주문 생성 API
+- [x] M06 스토어 주문 조회/입금요청 API
 - [ ] M07 관리자 카테고리/상품 관리 API
 - [ ] M08 관리자 주문/상태/배송 관리 API
 - [ ] M09 커스텀 주문 링크 API
@@ -32,7 +32,7 @@
 - [x] F01 프론트 베이스 라우팅/레이아웃
 - [x] F03 관리자 인증 UI (M03 연동)
 - [x] F04 스토어 카탈로그 UI (M04 연동)
-- [ ] F05 스토어 주문 UI (M05~M06 연동)
+- [x] F05 스토어 주문 UI (M05~M06 연동)
 - [ ] F07 관리자 운영 UI (M07~M09 연동)
 - [ ] F11 프론트 테스트/배포 점검
 
@@ -100,23 +100,33 @@
 
 ### M05 스토어 주문 생성 API
 
-- 상태: `TODO`
-- 완료일: `-`
-- 비고: `-`
+- 상태: `DONE`
+- 완료일: `2026-03-29`
+- 비고: `POST /store/orders 구현, 주문번호 생성(DMYYYYMMDD-####) 및 주문/주문상품/연락처/입금 트랜잭션 반영, 검증: backend build OK`
 - 완료 조건:
-  - [ ] `POST /store/orders`
-  - [ ] 주문번호 생성 규칙 반영
-  - [ ] 주문/주문상품/연락처/입금정보 트랜잭션 반영
+  - [x] `POST /store/orders`
+  - [x] 주문번호 생성 규칙 반영
+  - [x] 주문/주문상품/연락처/입금정보 트랜잭션 반영
 
 ### M06 스토어 주문 조회/입금요청 API
 
-- 상태: `TODO`
-- 완료일: `-`
-- 비고: `-`
+- 상태: `DONE`
+- 완료일: `2026-03-29`
+- 비고: `주문번호 기반 조회/입금확인요청/트래킹 API 구현, 상태전이/멱등 처리 반영, 검증: backend build OK`
 - 완료 조건:
-  - [ ] `GET /store/orders/{orderNumber}`
-  - [ ] `POST /store/orders/{orderNumber}/deposit-requests`
-  - [ ] `GET /store/orders/{orderNumber}/tracking`
+  - [x] `GET /store/orders/{orderNumber}`
+  - [x] `POST /store/orders/{orderNumber}/deposit-requests`
+  - [x] `GET /store/orders/{orderNumber}/tracking`
+
+### F05 스토어 주문 UI (M05~M06 연동)
+
+- 상태: `DONE`
+- 완료일: `2026-03-29`
+- 비고: `주문서 생성 + 주문번호 조회(/orders) + 입금확인요청 + 트래킹 타임라인 UI 연동 완료, 검증: frontend build OK`
+- 완료 조건:
+  - [x] 상품 상세 -> 주문서 이동 흐름
+  - [x] 주문서 입력/검증/주문 생성 API 연동
+  - [x] 주문번호 조회/입금확인요청/트래킹 연동
 
 ### M07 관리자 카테고리/상품 관리 API
 
