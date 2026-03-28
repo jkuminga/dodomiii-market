@@ -15,8 +15,8 @@
 ## 전체 진행 현황
 
 - [x] M01 프로젝트 베이스 셋업
-- [ ] M02 DB 마이그레이션/스키마 반영
-- [ ] M03 관리자 인증(세션)
+- [x] M02 DB 마이그레이션/스키마 반영
+- [x] M03 관리자 인증(세션)
 - [ ] M04 스토어 카탈로그 조회 API
 - [ ] M05 스토어 주문 생성 API
 - [ ] M06 스토어 주문 조회/입금요청 API
@@ -40,23 +40,23 @@
 
 ### M02 DB 마이그레이션/스키마 반영
 
-- 상태: `TODO`
-- 완료일: `-`
-- 비고: `-`
+- 상태: `DONE`
+- 완료일: `2026-03-29`
+- 비고: `Prisma 스키마/마이그레이션 추가, Supabase 배포 적용 완료, 주문 상태 전이 검증 초안 추가`
 - 완료 조건:
-  - [ ] `categories` ~ `admins`까지 핵심 테이블 반영
-  - [ ] FK/UNIQUE/INDEX 반영
-  - [ ] 주문 상태 enum 및 전이 검증 레이어 초안 반영
+  - [x] `categories` ~ `admins`까지 핵심 테이블 반영
+  - [x] FK/UNIQUE/INDEX 반영
+  - [x] 주문 상태 enum 및 전이 검증 레이어 초안 반영
 
 ### M03 관리자 인증(세션)
 
-- 상태: `TODO`
-- 완료일: `-`
-- 비고: `-`
+- 상태: `DONE`
+- 완료일: `2026-03-29`
+- 비고: `세션 기반 관리자 인증 모듈 구현, login/logout/me API 추가, AdminSessionGuard 추가, bcrypt 검증 적용`
 - 완료 조건:
-  - [ ] `POST /admin/auth/login`
-  - [ ] `POST /admin/auth/logout`
-  - [ ] `GET /admin/auth/me`
+  - [x] `POST /admin/auth/login`
+  - [x] `POST /admin/auth/logout`
+  - [x] `GET /admin/auth/me`
 
 ### M04 스토어 카탈로그 조회 API
 
@@ -143,4 +143,4 @@
 
 ## 추가 작업
 
-- (없음)
+- `DIRECT_URL`을 direct host 대신 pooler로 임시 설정한 상태이므로, 추후 direct 연결 재검증 필요

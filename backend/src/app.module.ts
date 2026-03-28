@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
 import envConfig from './common/config/env.config';
+import { PrismaModule } from './common/prisma/prisma.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
 
 @Module({
@@ -11,6 +13,8 @@ import { HealthModule } from './modules/health/health.module';
       cache: true,
       load: [envConfig],
     }),
+    PrismaModule,
+    AuthModule,
     HealthModule,
   ],
 })
