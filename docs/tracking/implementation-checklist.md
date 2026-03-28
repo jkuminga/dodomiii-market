@@ -11,13 +11,14 @@
 - 각 모듈 구현 완료 시 체크박스를 `[x]`로 변경한다.
 - 체크 시 `완료일`과 `비고`를 함께 작성한다.
 - 구현 도중 스코프 변경이 생기면 `추가 작업` 섹션에 즉시 기록한다.
+- 모듈 테스트 절차는 `docs/reference/module-test-playbook.md`를 기준으로 수행한다.
 
 ## 전체 진행 현황
 
 - [x] M01 프로젝트 베이스 셋업
 - [x] M02 DB 마이그레이션/스키마 반영
 - [x] M03 관리자 인증(세션)
-- [ ] M04 스토어 카탈로그 조회 API
+- [x] M04 스토어 카탈로그 조회 API
 - [ ] M05 스토어 주문 생성 API
 - [ ] M06 스토어 주문 조회/입금요청 API
 - [ ] M07 관리자 카테고리/상품 관리 API
@@ -25,6 +26,15 @@
 - [ ] M09 커스텀 주문 링크 API
 - [ ] M10 내부 알림 연동 API
 - [ ] M11 테스트/검증/문서 동기화
+
+## 프론트 진행 현황
+
+- [x] F01 프론트 베이스 라우팅/레이아웃
+- [x] F03 관리자 인증 UI (M03 연동)
+- [x] F04 스토어 카탈로그 UI (M04 연동)
+- [ ] F05 스토어 주문 UI (M05~M06 연동)
+- [ ] F07 관리자 운영 UI (M07~M09 연동)
+- [ ] F11 프론트 테스트/배포 점검
 
 ## 모듈 상세
 
@@ -58,15 +68,35 @@
   - [x] `POST /admin/auth/logout`
   - [x] `GET /admin/auth/me`
 
+### F03 관리자 인증 UI (M03 연동)
+
+- 상태: `DONE`
+- 완료일: `2026-03-29`
+- 비고: `admin/login, admin 대시보드 라우트 추가, login/logout/me API 연동, 세션 기반 보호 흐름 반영`
+- 완료 조건:
+  - [x] `/admin/login` 로그인 화면
+  - [x] `/admin` 세션 확인(me) 기반 보호 화면
+  - [x] 로그아웃 동작 및 에러 처리
+
 ### M04 스토어 카탈로그 조회 API
 
-- 상태: `TODO`
-- 완료일: `-`
-- 비고: `-`
+- 상태: `DONE`
+- 완료일: `2026-03-29`
+- 비고: `store 모듈 추가, categories/products/products/:id API 구현, 필터/정렬/페이지네이션/노출조건 반영, 검증: backend build OK`
 - 완료 조건:
-  - [ ] `GET /store/categories`
-  - [ ] `GET /store/products`
-  - [ ] `GET /store/products/{productId}`
+  - [x] `GET /store/categories`
+  - [x] `GET /store/products`
+  - [x] `GET /store/products/{productId}`
+
+### F04 스토어 카탈로그 UI (M04 연동)
+
+- 상태: `DONE`
+- 완료일: `2026-03-29`
+- 비고: `상품 목록(/products), 상세(/products/:productId), 검색/정렬/카테고리 필터/페이지네이션 UI 추가, 검증: frontend build OK`
+- 완료 조건:
+  - [x] 상품 목록 화면
+  - [x] 상품 상세 화면
+  - [x] 카테고리/검색/정렬/페이지네이션 연동
 
 ### M05 스토어 주문 생성 API
 

@@ -1,0 +1,11 @@
+{
+  "name": "dodomiii-market-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "./scripts/dev.sh",
+    "dev:backend": "npm --prefix backend run start:dev",
+    "dev:frontend": "npm --prefix frontend run dev -- --host localhost --port 5173",
+    "check": "npm --prefix backend run build && npm --prefix frontend run build"
+  }
+}
