@@ -395,6 +395,49 @@ export type StoreOrderTrackingResponse = {
   deliveredAt: string | null;
 };
 
+export type AdminCustomOrderLinkCreatePayload = {
+  finalTotalPrice: number;
+  shippingFee: number;
+  note?: string;
+  expiresAt: string;
+};
+
+export type AdminCustomOrderLinkSummary = {
+  linkId: number;
+  token: string;
+  checkoutUrl: string;
+  finalTotalPrice: number;
+  shippingFee: number;
+  expiresAt: string;
+  createdAt: string;
+};
+
+export type AdminCustomOrderLinkDetail = AdminCustomOrderLinkSummary & {
+  isUsed: boolean;
+  usedOrderId: number | null;
+};
+
+export type StoreCustomCheckoutLink = {
+  token: string;
+  productName: string;
+  finalTotalPrice: number;
+  expiresAt: string;
+  isExpired: boolean;
+};
+
+export type StoreCustomCheckoutOrderCreateRequest = {
+  contact: {
+    buyerName: string;
+    buyerPhone: string;
+    receiverName: string;
+    receiverPhone: string;
+    zipcode: string;
+    address1: string;
+    address2?: string;
+  };
+  customerRequest?: string;
+};
+
 export type AdminOrderListQuery = {
   q?: string;
   orderStatus?: StoreOrderStatus;
@@ -568,9 +611,34 @@ type AdminOrderDetailResponse = {
   updatedAt?: string | null;
 };
 
+type AdminCustomOrderLinkResponse = {
+  linkId?: number | string;
+  id?: number | string;
+  token?: string | null;
+  checkoutUrl?: string | null;
+  finalTotalPrice?: number | string | null;
+  shippingFee?: number | string | null;
+  isUsed?: boolean | null;
+  usedOrderId?: number | string | null;
+  expiresAt?: string | null;
+  createdAt?: string | null;
+};
+
+type StoreCustomCheckoutLinkResponse = {
+  token?: string | null;
+  productName?: string | null;
+  finalTotalPrice?: number | string | null;
+  expiresAt?: string | null;
+  isExpired?: boolean | null;
+};
+
 function normalizeNumber(value: number | string | null | undefined, fallback = 0): number {
   const normalized = Number(value);
   return Number.isFinite(normalized) ? normalized : fallback;
+}
+
+function normalizeBoolean(value: unknown, fallback = false): boolean {
+  return typeof value === 'boolean' ? value : fallback;
 }
 
 function normalizeOrderStatus(value: unknown): StoreOrderStatus {
@@ -733,6 +801,72 @@ function normalizeAdminOrderDetail(raw: AdminOrderDetailResponse): AdminOrderDet
   };
 }
 
+function normalizeAdminCustomOrderLinkSummary(raw: AdminCustomOrderLinkResponse): AdminCustomOrderLinkSummary {
+  const identifier = raw.linkId ?? raw.id;
+
+  if (identifier === undefined || identifier === null) {
+    throw new Error('커스텀 주문 링크 식별자가 응답에 없습니다.');
+  }
+
+  const linkId = normalizeNumber(identifier, Number.NaN);
+
+  if (!Number.isFinite(linkId) || linkId <= 0) {
+    throw new Error('커스텀 주문 링크 식별자 형식이 올바르지 않습니다.');
+  }
+
+  const token = raw.token?.trim();
+  const checkoutUrl = raw.checkoutUrl?.trim();
+
+  if (!token) {
+    throw new Error('커스텀 주문 링크 토큰이 응답에 없습니다.');
+  }
+
+  if (!checkoutUrl) {
+    throw new Error('커스텀 주문 체크아웃 URL이 응답에 없습니다.');
+  }
+
+  return {
+    linkId,
+    token,
+    checkoutUrl,
+    finalTotalPrice: normalizeNumber(raw.finalTotalPrice, 0),
+    shippingFee: normalizeNumber(raw.shippingFee, 0),
+    expiresAt: raw.expiresAt ?? '',
+    createdAt: raw.createdAt ?? '',
+  };
+}
+
+function normalizeAdminCustomOrderLinkDetail(raw: AdminCustomOrderLinkResponse): AdminCustomOrderLinkDetail {
+  const summary = normalizeAdminCustomOrderLinkSummary(raw);
+  const normalizedUsedOrderId =
+    raw.usedOrderId === null || raw.usedOrderId === undefined ? null : normalizeNumber(raw.usedOrderId, Number.NaN);
+
+  return {
+    ...summary,
+    isUsed: normalizeBoolean(raw.isUsed, false),
+    usedOrderId:
+      normalizedUsedOrderId !== null && Number.isFinite(normalizedUsedOrderId) && normalizedUsedOrderId > 0
+        ? normalizedUsedOrderId
+        : null,
+  };
+}
+
+function normalizeStoreCustomCheckoutLink(raw: StoreCustomCheckoutLinkResponse): StoreCustomCheckoutLink {
+  const token = raw.token?.trim();
+
+  if (!token) {
+    throw new Error('커스텀 체크아웃 토큰이 응답에 없습니다.');
+  }
+
+  return {
+    token,
+    productName: raw.productName?.trim() || '커스텀 주문',
+    finalTotalPrice: normalizeNumber(raw.finalTotalPrice, 0),
+    expiresAt: raw.expiresAt ?? '',
+    isExpired: normalizeBoolean(raw.isExpired, false),
+  };
+}
+
 export const apiClient = {
   login: (loginId: string, password: string) =>
     request<{ admin: { adminId: number | string; loginId: string; name: string; role: AdminRole } }>('/admin/auth/login', {
@@ -870,8 +1004,35 @@ export const apiClient = {
       body: JSON.stringify(payload),
     }),
 
+  createAdminCustomOrderLink: async (payload: AdminCustomOrderLinkCreatePayload) => {
+    const result = await request<AdminCustomOrderLinkResponse>('/admin/custom-orders/links', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    return normalizeAdminCustomOrderLinkSummary(result);
+  },
+
+  getAdminCustomOrderLinkById: async (linkId: string | number) => {
+    const result = await request<AdminCustomOrderLinkResponse>(`/admin/custom-orders/links/${linkId}`);
+
+    return normalizeAdminCustomOrderLinkDetail(result);
+  },
+
   createOrder: (payload: StoreOrderCreateRequest) =>
     request<StoreOrderCreateResponse>('/store/orders', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  getCustomCheckoutLinkByToken: async (token: string) => {
+    const result = await request<StoreCustomCheckoutLinkResponse>(`/store/custom-checkout/${encodeURIComponent(token)}`);
+
+    return normalizeStoreCustomCheckoutLink(result);
+  },
+
+  createCustomCheckoutOrder: (token: string, payload: StoreCustomCheckoutOrderCreateRequest) =>
+    request<StoreOrderCreateResponse>(`/store/custom-checkout/${encodeURIComponent(token)}/orders`, {
       method: 'POST',
       body: JSON.stringify(payload),
     }),

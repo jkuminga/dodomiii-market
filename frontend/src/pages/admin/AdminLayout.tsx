@@ -34,6 +34,12 @@ const adminPrimaryNavItems: AdminNavItem[] = [
     icon: ProductIcon,
   },
   {
+    label: '커스텀 주문',
+    description: '개별 링크 생성과 사용 상태 확인',
+    to: '/admin/custom-orders',
+    icon: CustomOrderIcon,
+  },
+  {
     label: '주문 관리',
     description: '주문 상태, 입금, 배송 운영',
     to: '/admin/orders',
@@ -86,6 +92,18 @@ function OrderIcon(props: AdminIconProps) {
       <path d="M8.5 9h7" />
       <path d="M8.5 12h7" />
       <path d="M8.5 15h4.5" />
+    </SidebarIcon>
+  );
+}
+
+function CustomOrderIcon(props: AdminIconProps) {
+  return (
+    <SidebarIcon {...props}>
+      <path d="M6 7.5A2.5 2.5 0 0 1 8.5 5h7A2.5 2.5 0 0 1 18 7.5v9A2.5 2.5 0 0 1 15.5 19h-7A2.5 2.5 0 0 1 6 16.5z" />
+      <path d="M9 9.5h6" />
+      <path d="M9 13h4" />
+      <path d="M15.5 4.5v4" />
+      <path d="M13.5 6.5h4" />
     </SidebarIcon>
   );
 }

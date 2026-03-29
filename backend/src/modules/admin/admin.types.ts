@@ -210,3 +210,26 @@ export type AdminOrderDetailResponse = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type AdminCustomOrderLinkResponse = {
+  linkId: number;
+  token: string;
+  checkoutUrl: string;
+  productName: string;
+  note: string | null;
+  totalProductPrice: number;
+  shippingFee: number;
+  finalTotalPrice: number;
+  isActive: boolean;
+  isExpired: boolean;
+  isAvailable: boolean;
+  isUsed: boolean;
+  usageCount: number;
+  usedAt: string | null;
+  usedOrderId: number | null;
+  usedOrderNumber: string | null;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};

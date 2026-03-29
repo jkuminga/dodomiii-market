@@ -1237,6 +1237,17 @@ img {
   flex: 1 1 180px;
 }
 
+.custom-checkout-page {
+  display: grid;
+  gap: 16px;
+}
+
+.custom-checkout-summary-card,
+.custom-checkout-result-card {
+  display: grid;
+  gap: 16px;
+}
+
 .order-deposit-note {
   margin-top: 0;
 }
@@ -2013,6 +2024,81 @@ img {
   font-weight: 700;
 }
 
+.custom-order-admin-grid {
+  align-items: start;
+}
+
+.custom-link-lookup-form,
+.custom-link-list,
+.custom-link-detail-grid,
+.custom-link-copy-box {
+  display: grid;
+  gap: 12px;
+}
+
+.custom-link-list-card {
+  gap: 14px;
+}
+
+.custom-link-list-card.is-selected {
+  border-color: rgba(172, 84, 63, 0.24);
+  box-shadow:
+    0 18px 30px rgba(71, 48, 34, 0.08),
+    inset 0 0 0 1px rgba(172, 84, 63, 0.06);
+}
+
+.custom-link-list-grid {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.custom-link-card-actions .button,
+.custom-link-card-actions .button-secondary,
+.custom-link-card-actions .button-ghost {
+  flex: 1 1 160px;
+}
+
+.custom-order-estimate-card,
+.custom-link-detail-block,
+.custom-detail-note {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(172, 84, 63, 0.09);
+  background: rgba(255, 251, 247, 0.78);
+}
+
+.custom-order-estimate-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.custom-order-estimate-row span {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.custom-order-estimate-row strong {
+  text-align: right;
+  line-height: 1.5;
+}
+
+.custom-order-estimate-row.is-total {
+  padding-top: 10px;
+  border-top: 1px solid rgba(172, 84, 63, 0.12);
+}
+
+.custom-order-estimate-row.is-total strong {
+  color: var(--primary-deep);
+}
+
 .admin-list-card {
   width: 100%;
   display: grid;
@@ -2637,6 +2723,15 @@ button.admin-list-card {
   }
 
   .admin-order-detail-grid .admin-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .custom-link-lookup-form {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .custom-link-detail-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

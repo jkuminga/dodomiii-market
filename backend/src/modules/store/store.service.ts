@@ -6,14 +6,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomBytes } from 'crypto';
 import { DepositStatus, Prisma, ShipmentStatus } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { assertOrderStatusTransition } from '../orders/domain/order-status-transition';
+import { CreateCustomCheckoutOrderDto } from './dto/create-custom-checkout-order.dto';
 import { CreateDepositRequestDto } from './dto/create-deposit-request.dto';
-import { CreateOrderDto, CreateOrderItemDto } from './dto/create-order.dto';
+import { CreateOrderContactDto, CreateOrderDto, CreateOrderItemDto } from './dto/create-order.dto';
 import { GetProductsQueryDto } from './dto/get-products.query.dto';
 import {
+  StoreCustomCheckoutResponse,
   StoreDepositRequestResponse,
   StoreOrderDetailResponse,
   StoreOrderTrackingResponse,
@@ -46,12 +49,80 @@ type DepositAccountInfo = {
   accountNumber: string;
 };
 
+type OrderPricingSnapshot = {
+  totalProductPrice: number;
+  shippingFee: number;
+  finalTotalPrice: number;
+};
+
+type StoreCreatedOrderItem = {
+  productId: number;
+  productOptionId: number | null;
+  productNameSnapshot: string;
+  optionNameSnapshot: string | null;
+  optionValueSnapshot: string | null;
+  unitPrice: number;
+  quantity: number;
+  lineTotalPrice: number;
+};
+
+type StoreCreatedOrderResponse = {
+  orderId: number;
+  orderNumber: string;
+  orderStatus: string;
+  items: StoreCreatedOrderItem[];
+  pricing: OrderPricingSnapshot;
+  depositInfo: {
+    bankName: string;
+    accountHolder: string;
+    accountNumber: string;
+    expectedAmount: number;
+    depositStatus: DepositStatus;
+    depositDeadlineAt: string;
+  };
+  createdAt: string;
+};
+
+type CustomOrderLinkCreateInput = {
+  finalTotalPrice: number;
+  shippingFee: number;
+  note?: string;
+  expiresAt: string;
+};
+
+type AdminCustomOrderLinkView = {
+  linkId: number;
+  token: string;
+  checkoutUrl: string;
+  productName: string;
+  note: string | null;
+  totalProductPrice: number;
+  shippingFee: number;
+  finalTotalPrice: number;
+  isActive: boolean;
+  isExpired: boolean;
+  isAvailable: boolean;
+  isUsed: boolean;
+  usageCount: number;
+  usedAt: string | null;
+  usedOrderId: number | null;
+  usedOrderNumber: string | null;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
 const ORDER_NUMBER_PREFIX = 'DM';
 const ORDER_NUMBER_RETRY_LIMIT = 3;
+const CUSTOM_ORDER_LINK_RETRY_LIMIT = 5;
 const KST_OFFSET_HOURS = 9;
 const ORDER_NUMBER_SEQUENCE_WIDTH = 4;
 const TRACKING_BASE_URL = 'https://tracker.example.com';
 const DEPOSIT_REQUEST_REASON = '입금 요청 접수';
+const CUSTOM_ORDER_PRODUCT_NAME = '커스텀 주문';
+const CUSTOM_ORDER_TOKEN_PREFIX = 'cus_';
+const CUSTOM_ORDER_TOKEN_BYTES = 24;
 
 const storeOrderDetailArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
   select: {
@@ -140,6 +211,34 @@ const depositRequestOrderArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
 });
 
 type DepositRequestOrderRecord = Prisma.OrderGetPayload<typeof depositRequestOrderArgs>;
+
+const customOrderLinkArgs = Prisma.validator<Prisma.CustomOrderLinkDefaultArgs>()({
+  select: {
+    id: true,
+    token: true,
+    productName: true,
+    note: true,
+    totalProductPrice: true,
+    shippingFee: true,
+    finalTotalPrice: true,
+    isActive: true,
+    usageCount: true,
+    expiresAt: true,
+    usedAt: true,
+    usedOrderId: true,
+    createdAt: true,
+    updatedAt: true,
+    deletedAt: true,
+    usedOrder: {
+      select: {
+        id: true,
+        orderNumber: true,
+      },
+    },
+  },
+});
+
+type CustomOrderLinkRecord = Prisma.CustomOrderLinkGetPayload<typeof customOrderLinkArgs>;
 
 @Injectable()
 export class StoreService {
@@ -391,99 +490,135 @@ export class StoreService {
             const now = new Date();
             const orderNumber = await this.generateOrderNumber(tx, now);
             const resolvedItems = await this.resolveOrderItems(tx, dto.items);
-            const totalProductPrice = resolvedItems.reduce(
-              (sum, item) => sum + item.lineTotalPrice,
-              0,
-            );
-            const shippingFee = this.getShippingFee();
-            const finalTotalPrice = totalProductPrice + shippingFee;
-            const depositDeadlineAt = this.getDepositDeadlineAt(now);
-            const depositInfo = this.getDepositAccountInfo();
+            const pricing = this.buildOrderPricingFromItems(resolvedItems);
 
-            const order = await tx.order.create({
-              data: {
-                orderNumber,
-                orderStatus: 'PENDING_PAYMENT',
-                totalProductPrice,
-                shippingFee,
-                finalTotalPrice,
-                customerRequest: dto.customerRequest ?? null,
-                depositDeadlineAt,
-              },
+            return this.createOrderRecord(tx, {
+              orderNumber,
+              resolvedItems,
+              contact: dto.contact,
+              customerRequest: dto.customerRequest,
+              pricing,
+              now,
             });
-
-            await tx.orderItem.createMany({
-              data: resolvedItems.map((item) => ({
-                orderId: order.id,
-                productId: item.productId,
-                productOptionId: item.productOptionId,
-                productNameSnapshot: item.productNameSnapshot,
-                optionNameSnapshot: item.optionNameSnapshot,
-                optionValueSnapshot: item.optionValueSnapshot,
-                unitPrice: item.unitPrice,
-                quantity: item.quantity,
-                lineTotalPrice: item.lineTotalPrice,
-              })),
-            });
-
-            await tx.orderContact.create({
-              data: {
-                orderId: order.id,
-                buyerName: dto.contact.buyerName,
-                buyerPhone: dto.contact.buyerPhone,
-                receiverName: dto.contact.receiverName,
-                receiverPhone: dto.contact.receiverPhone,
-                zipcode: dto.contact.zipcode,
-                address1: dto.contact.address1,
-                address2: dto.contact.address2 ?? null,
-              },
-            });
-
-            await tx.deposit.create({
-              data: {
-                orderId: order.id,
-                bankName: depositInfo.bankName,
-                accountHolder: depositInfo.accountHolder,
-                accountNumber: depositInfo.accountNumber,
-                expectedAmount: finalTotalPrice,
-                depositStatus: 'WAITING',
-              },
-            });
-
-            return {
-              orderId: Number(order.id),
-              orderNumber: order.orderNumber,
-              orderStatus: order.orderStatus,
-              items: resolvedItems.map((item) => ({
-                productId: Number(item.productId),
-                productOptionId: item.productOptionId ? Number(item.productOptionId) : null,
-                productNameSnapshot: item.productNameSnapshot,
-                optionNameSnapshot: item.optionNameSnapshot,
-                optionValueSnapshot: item.optionValueSnapshot,
-                unitPrice: item.unitPrice,
-                quantity: item.quantity,
-                lineTotalPrice: item.lineTotalPrice,
-              })),
-              pricing: {
-                totalProductPrice,
-                shippingFee,
-                finalTotalPrice,
-              },
-              depositInfo: {
-                bankName: depositInfo.bankName,
-                accountHolder: depositInfo.accountHolder,
-                accountNumber: depositInfo.accountNumber,
-                expectedAmount: finalTotalPrice,
-                depositStatus: 'WAITING',
-                depositDeadlineAt: depositDeadlineAt.toISOString(),
-              },
-              createdAt: order.createdAt.toISOString(),
-            };
           },
           {
             isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
           },
         );
+      } catch (error) {
+        if (attempt < ORDER_NUMBER_RETRY_LIMIT && this.isRetryableOrderCreationError(error)) {
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw new InternalServerErrorException({
+      code: 'INTERNAL_ERROR',
+      message: '주문 생성에 실패했습니다. 다시 시도해주세요.',
+    });
+  }
+
+  async createCustomOrderLink(
+    adminId: number,
+    dto: CustomOrderLinkCreateInput,
+  ): Promise<AdminCustomOrderLinkView> {
+    const expiresAt = this.parseCustomOrderLinkExpiresAt(dto.expiresAt);
+    const pricing = this.buildCustomOrderPricing(dto.finalTotalPrice, dto.shippingFee);
+
+    for (let attempt = 1; attempt <= CUSTOM_ORDER_LINK_RETRY_LIMIT; attempt += 1) {
+      try {
+        const link = await this.prisma.customOrderLink.create({
+          data: {
+            token: this.generateCustomOrderToken(),
+            productName: CUSTOM_ORDER_PRODUCT_NAME,
+            note: dto.note?.trim() || null,
+            totalProductPrice: pricing.totalProductPrice,
+            shippingFee: pricing.shippingFee,
+            finalTotalPrice: pricing.finalTotalPrice,
+            expiresAt,
+            createdByAdminId: BigInt(adminId),
+          },
+          ...customOrderLinkArgs,
+        });
+
+        return this.mapAdminCustomOrderLink(link);
+      } catch (error) {
+        if (attempt < CUSTOM_ORDER_LINK_RETRY_LIMIT && this.isRetryableCustomOrderLinkError(error)) {
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw new InternalServerErrorException({
+      code: 'INTERNAL_ERROR',
+      message: '커스텀 주문 링크 생성에 실패했습니다. 다시 시도해주세요.',
+    });
+  }
+
+  async getAdminCustomOrderLink(linkId: number): Promise<AdminCustomOrderLinkView> {
+    const link = await this.prisma.customOrderLink.findUnique({
+      where: { id: BigInt(linkId) },
+      ...customOrderLinkArgs,
+    });
+
+    if (!link) {
+      throw this.createCustomOrderLinkNotFoundException();
+    }
+
+    return this.mapAdminCustomOrderLink(link);
+  }
+
+  async getCustomCheckout(token: string): Promise<StoreCustomCheckoutResponse> {
+    const link = await this.findCustomOrderLinkByTokenOrThrow(token);
+
+    return this.mapStoreCustomCheckout(link);
+  }
+
+  async createCustomCheckoutOrder(token: string, dto: CreateCustomCheckoutOrderDto) {
+    for (let attempt = 1; attempt <= ORDER_NUMBER_RETRY_LIMIT; attempt += 1) {
+      try {
+        const result = await this.prisma.$transaction(
+          async (tx) => {
+            const now = new Date();
+            const link = await this.findCustomOrderLinkByTokenOrThrow(tx, token);
+
+            this.assertCustomOrderLinkAvailable(link, now);
+            await this.reserveCustomOrderLink(tx, link.id, now);
+
+            const order = await this.createOrderRecord(tx, {
+              orderNumber: await this.generateOrderNumber(tx, now),
+              resolvedItems: [],
+              contact: dto.contact,
+              customerRequest: dto.customerRequest,
+              pricing: {
+                totalProductPrice: link.totalProductPrice,
+                shippingFee: link.shippingFee,
+                finalTotalPrice: link.finalTotalPrice,
+              },
+              now,
+            });
+
+            await tx.customOrderLink.update({
+              where: { id: link.id },
+              data: {
+                usedOrderId: BigInt(order.orderId),
+              },
+            });
+
+            return order;
+          },
+          {
+            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          },
+        );
+
+        const { items: _items, ...data } = result;
+
+        return data;
       } catch (error) {
         if (attempt < ORDER_NUMBER_RETRY_LIMIT && this.isRetryableOrderCreationError(error)) {
           continue;
@@ -769,6 +904,127 @@ export class StoreService {
     return new Date(now.getTime() + KST_OFFSET_HOURS * 60 * 60 * 1000);
   }
 
+  private buildOrderPricingFromItems(items: ResolvedOrderItem[]): OrderPricingSnapshot {
+    const totalProductPrice = items.reduce((sum, item) => sum + item.lineTotalPrice, 0);
+    const shippingFee = this.getShippingFee();
+
+    return {
+      totalProductPrice,
+      shippingFee,
+      finalTotalPrice: totalProductPrice + shippingFee,
+    };
+  }
+
+  private buildCustomOrderPricing(finalTotalPrice: number, shippingFee: number): OrderPricingSnapshot {
+    const totalProductPrice = finalTotalPrice - shippingFee;
+
+    if (totalProductPrice < 0) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: '최종 결제 금액은 배송비보다 작을 수 없습니다.',
+      });
+    }
+
+    return {
+      totalProductPrice,
+      shippingFee,
+      finalTotalPrice,
+    };
+  }
+
+  private async createOrderRecord(
+    tx: Prisma.TransactionClient,
+    params: {
+      orderNumber: string;
+      resolvedItems: ResolvedOrderItem[];
+      contact: CreateOrderContactDto;
+      customerRequest?: string;
+      pricing: OrderPricingSnapshot;
+      now: Date;
+    },
+  ): Promise<StoreCreatedOrderResponse> {
+    const depositDeadlineAt = this.getDepositDeadlineAt(params.now);
+    const depositInfo = this.getDepositAccountInfo();
+
+    const order = await tx.order.create({
+      data: {
+        orderNumber: params.orderNumber,
+        orderStatus: 'PENDING_PAYMENT',
+        totalProductPrice: params.pricing.totalProductPrice,
+        shippingFee: params.pricing.shippingFee,
+        finalTotalPrice: params.pricing.finalTotalPrice,
+        customerRequest: params.customerRequest ?? null,
+        depositDeadlineAt,
+      },
+    });
+
+    if (params.resolvedItems.length > 0) {
+      await tx.orderItem.createMany({
+        data: params.resolvedItems.map((item) => ({
+          orderId: order.id,
+          productId: item.productId,
+          productOptionId: item.productOptionId,
+          productNameSnapshot: item.productNameSnapshot,
+          optionNameSnapshot: item.optionNameSnapshot,
+          optionValueSnapshot: item.optionValueSnapshot,
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+          lineTotalPrice: item.lineTotalPrice,
+        })),
+      });
+    }
+
+    await tx.orderContact.create({
+      data: {
+        orderId: order.id,
+        buyerName: params.contact.buyerName,
+        buyerPhone: params.contact.buyerPhone,
+        receiverName: params.contact.receiverName,
+        receiverPhone: params.contact.receiverPhone,
+        zipcode: params.contact.zipcode,
+        address1: params.contact.address1,
+        address2: params.contact.address2 ?? null,
+      },
+    });
+
+    await tx.deposit.create({
+      data: {
+        orderId: order.id,
+        bankName: depositInfo.bankName,
+        accountHolder: depositInfo.accountHolder,
+        accountNumber: depositInfo.accountNumber,
+        expectedAmount: params.pricing.finalTotalPrice,
+        depositStatus: 'WAITING',
+      },
+    });
+
+    return {
+      orderId: Number(order.id),
+      orderNumber: order.orderNumber,
+      orderStatus: order.orderStatus,
+      items: params.resolvedItems.map((item) => ({
+        productId: Number(item.productId),
+        productOptionId: item.productOptionId ? Number(item.productOptionId) : null,
+        productNameSnapshot: item.productNameSnapshot,
+        optionNameSnapshot: item.optionNameSnapshot,
+        optionValueSnapshot: item.optionValueSnapshot,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        lineTotalPrice: item.lineTotalPrice,
+      })),
+      pricing: params.pricing,
+      depositInfo: {
+        bankName: depositInfo.bankName,
+        accountHolder: depositInfo.accountHolder,
+        accountNumber: depositInfo.accountNumber,
+        expectedAmount: params.pricing.finalTotalPrice,
+        depositStatus: 'WAITING',
+        depositDeadlineAt: depositDeadlineAt.toISOString(),
+      },
+      createdAt: order.createdAt.toISOString(),
+    };
+  }
+
   private getShippingFee(): number {
     return Number(this.configService.get<number>('ORDER_SHIPPING_FEE', 3000));
   }
@@ -805,6 +1061,194 @@ export class StoreService {
       : [];
 
     return target.includes('order_number') || target.includes('orderNumber');
+  }
+
+  private isRetryableCustomOrderLinkError(error: unknown): boolean {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+      return false;
+    }
+
+    if (error.code !== 'P2002') {
+      return false;
+    }
+
+    const target = Array.isArray(error.meta?.target)
+      ? error.meta.target.map((value) => String(value))
+      : [];
+
+    return target.includes('token');
+  }
+
+  private parseCustomOrderLinkExpiresAt(value: string): Date {
+    const expiresAt = new Date(value);
+
+    if (Number.isNaN(expiresAt.getTime())) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: '만료 시각 형식이 올바르지 않습니다.',
+      });
+    }
+
+    if (expiresAt.getTime() <= Date.now()) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: '만료 시각은 현재 시각 이후여야 합니다.',
+      });
+    }
+
+    return expiresAt;
+  }
+
+  private generateCustomOrderToken(): string {
+    return `${CUSTOM_ORDER_TOKEN_PREFIX}${randomBytes(CUSTOM_ORDER_TOKEN_BYTES).toString('base64url')}`;
+  }
+
+  private getCustomCheckoutBaseUrl(): string {
+    return this.configService
+      .get<string>('CUSTOM_CHECKOUT_BASE_URL', 'http://localhost:5173/custom-checkout')
+      .replace(/\/+$/, '');
+  }
+
+  private buildCustomCheckoutUrl(token: string): string {
+    return `${this.getCustomCheckoutBaseUrl()}/${encodeURIComponent(token)}`;
+  }
+
+  private async findCustomOrderLinkByTokenOrThrow(
+    tokenOrTx: string | Prisma.TransactionClient,
+    maybeToken?: string,
+  ): Promise<CustomOrderLinkRecord> {
+    const tx = typeof tokenOrTx === 'string' ? this.prisma : tokenOrTx;
+    const token = typeof tokenOrTx === 'string' ? tokenOrTx : maybeToken;
+
+    if (!token) {
+      throw this.createCustomOrderLinkNotFoundException();
+    }
+
+    const link = await tx.customOrderLink.findFirst({
+      where: {
+        token,
+        deletedAt: null,
+      },
+      ...customOrderLinkArgs,
+    });
+
+    if (!link) {
+      throw this.createCustomOrderLinkNotFoundException();
+    }
+
+    return link;
+  }
+
+  private async reserveCustomOrderLink(
+    tx: Prisma.TransactionClient,
+    linkId: bigint,
+    now: Date,
+  ): Promise<void> {
+    const updated = await tx.customOrderLink.updateMany({
+      where: {
+        id: linkId,
+        isActive: true,
+        deletedAt: null,
+        usedAt: null,
+        usedOrderId: null,
+        expiresAt: {
+          gt: now,
+        },
+      },
+      data: {
+        usedAt: now,
+        usageCount: {
+          increment: 1,
+        },
+      },
+    });
+
+    if (updated.count === 1) {
+      return;
+    }
+
+    const link = await tx.customOrderLink.findUnique({
+      where: { id: linkId },
+      ...customOrderLinkArgs,
+    });
+
+    if (!link || link.deletedAt) {
+      throw this.createCustomOrderLinkNotFoundException();
+    }
+
+    this.assertCustomOrderLinkAvailable(link, now);
+    throw new ConflictException({
+      code: 'CUSTOM_ORDER_LINK_UNAVAILABLE',
+      message: '사용할 수 없는 커스텀 주문 링크입니다.',
+    });
+  }
+
+  private mapAdminCustomOrderLink(link: CustomOrderLinkRecord): AdminCustomOrderLinkView {
+    const now = new Date();
+    const isExpired = link.expiresAt.getTime() <= now.getTime();
+    const isUsed = Boolean(link.usedOrderId);
+
+    return {
+      linkId: Number(link.id),
+      token: link.token,
+      checkoutUrl: this.buildCustomCheckoutUrl(link.token),
+      productName: link.productName,
+      note: link.note,
+      totalProductPrice: link.totalProductPrice,
+      shippingFee: link.shippingFee,
+      finalTotalPrice: link.finalTotalPrice,
+      isActive: link.isActive,
+      isExpired,
+      isAvailable: link.isActive && !isExpired && !link.deletedAt && !isUsed,
+      isUsed,
+      usageCount: link.usageCount,
+      usedAt: this.toIsoString(link.usedAt),
+      usedOrderId: link.usedOrderId ? Number(link.usedOrderId) : null,
+      usedOrderNumber: link.usedOrder?.orderNumber ?? null,
+      expiresAt: link.expiresAt.toISOString(),
+      createdAt: link.createdAt.toISOString(),
+      updatedAt: link.updatedAt.toISOString(),
+      deletedAt: this.toIsoString(link.deletedAt),
+    };
+  }
+
+  private mapStoreCustomCheckout(link: CustomOrderLinkRecord): StoreCustomCheckoutResponse {
+    const now = new Date();
+    const isExpired = link.expiresAt.getTime() <= now.getTime();
+
+    return {
+      token: link.token,
+      productName: link.productName,
+      totalProductPrice: link.totalProductPrice,
+      shippingFee: link.shippingFee,
+      finalTotalPrice: link.finalTotalPrice,
+      expiresAt: link.expiresAt.toISOString(),
+      isExpired,
+      isAvailable: link.isActive && !isExpired && !link.usedOrderId,
+    };
+  }
+
+  private assertCustomOrderLinkAvailable(link: CustomOrderLinkRecord, now: Date): void {
+    if (!link.isActive) {
+      throw new ConflictException({
+        code: 'CUSTOM_ORDER_LINK_INACTIVE',
+        message: '비활성화된 커스텀 주문 링크입니다.',
+      });
+    }
+
+    if (link.expiresAt.getTime() <= now.getTime()) {
+      throw new ConflictException({
+        code: 'CUSTOM_ORDER_LINK_EXPIRED',
+        message: '만료된 커스텀 주문 링크입니다.',
+      });
+    }
+
+    if (link.usedAt || link.usedOrderId) {
+      throw new ConflictException({
+        code: 'CUSTOM_ORDER_LINK_ALREADY_USED',
+        message: '이미 사용된 커스텀 주문 링크입니다.',
+      });
+    }
   }
 
   private async findOrderDetailByOrderNumberOrThrow(
@@ -1034,6 +1478,13 @@ export class StoreService {
     return new ConflictException({
       code: 'INVALID_STATUS_TRANSITION',
       message: '입금 요청을 처리할 수 없는 주문 상태입니다.',
+    });
+  }
+
+  private createCustomOrderLinkNotFoundException(): NotFoundException {
+    return new NotFoundException({
+      code: 'CUSTOM_ORDER_LINK_NOT_FOUND',
+      message: '커스텀 주문 링크를 찾을 수 없습니다.',
     });
   }
 }

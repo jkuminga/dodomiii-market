@@ -89,3 +89,14 @@ export type StoreOrderTrackingResponse = {
   deliveredAt: string | null;
   events: StoreTrackingEvent[];
 };
+
+export type StoreCustomCheckoutResponse = {
+  token: string;
+  productName: string;
+  totalProductPrice: number;
+  shippingFee: number;
+  finalTotalPrice: number;
+  expiresAt: string;
+  isExpired: boolean;
+  isAvailable: boolean;
+};

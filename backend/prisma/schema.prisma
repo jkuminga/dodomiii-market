@@ -140,6 +140,7 @@ model Order {
   deposit         Deposit?
   shipment        Shipment?
   statusHistories OrderStatusHistory[]
+  customOrderLinkUsed CustomOrderLink? @relation("CustomOrderLinkUsedOrder")
 
   @@index([orderStatus, createdAt], map: "idx_orders_status_created_at")
   @@map("orders")
@@ -249,8 +250,36 @@ model Admin {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  statusHistories OrderStatusHistory[]
+  statusHistories       OrderStatusHistory[]
+  createdCustomOrderLinks CustomOrderLink[]
 
   @@index([isActive], map: "idx_admins_active")
   @@map("admins")
+}
+
+model CustomOrderLink {
+  id                BigInt   @id @default(autoincrement()) @map("custom_order_link_id")
+  token             String   @unique @db.VarChar(80)
+  productName       String   @map("product_name") @db.VarChar(150)
+  note              String?  @db.VarChar(500)
+  totalProductPrice Int      @default(0) @map("total_product_price")
+  shippingFee       Int      @default(0) @map("shipping_fee")
+  finalTotalPrice   Int      @default(0) @map("final_total_price")
+  isActive          Boolean  @default(true) @map("is_active")
+  usageCount        Int      @default(0) @map("usage_count")
+  expiresAt         DateTime @map("expires_at")
+  usedAt            DateTime? @map("used_at")
+  usedOrderId       BigInt?  @unique @map("used_order_id")
+  createdByAdminId  BigInt?  @map("created_by_admin_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  usedOrder      Order? @relation("CustomOrderLinkUsedOrder", fields: [usedOrderId], references: [id], onDelete: SetNull)
+  createdByAdmin Admin? @relation(fields: [createdByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([expiresAt], map: "idx_custom_order_links_expires_at")
+  @@index([isActive, deletedAt], map: "idx_custom_order_links_active_deleted")
+  @@index([createdByAdminId], map: "idx_custom_order_links_created_by_admin_id")
+  @@map("custom_order_links")
 }

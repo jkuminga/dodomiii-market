@@ -7,6 +7,7 @@ import { MobileHeader } from './components/mobile/MobileHeader';
 import { ProductArtwork } from './components/store/ProductArtwork';
 import { apiClient, CategoryTreeNode, ProductListItem } from './lib/api';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
+import { AdminCustomOrdersPage } from './pages/admin/AdminCustomOrdersPage';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { AdminOrderDetailPage } from './pages/admin/AdminOrderDetailPage';
@@ -14,6 +15,7 @@ import { AdminOrdersPage } from './pages/admin/AdminOrdersPage';
 import { AdminProductEditorPage } from './pages/admin/AdminProductEditorPage';
 import { AdminProductsPage } from './pages/admin/AdminProductsPage';
 import { CatalogPage } from './pages/store/CatalogPage';
+import { CustomCheckoutPage } from './pages/store/CustomCheckoutPage';
 import { OrderLookupPage } from './pages/store/OrderLookupPage';
 import { OrderPage } from './pages/store/OrderPage';
 import { ProductDetailPage } from './pages/store/ProductDetailPage';
@@ -249,10 +251,12 @@ function AppFrame() {
         <Route path="/products" element={<CatalogPage />} />
         <Route path="/products/:productId" element={<ProductDetailPage />} />
         <Route path="/products/:productId/order" element={<OrderPage />} />
+        <Route path="/custom-checkout/:token" element={<CustomCheckoutPage />} />
         <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="categories" replace />} />
           <Route path="categories" element={<AdminCategoriesPage />} />
+          <Route path="custom-orders" element={<AdminCustomOrdersPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="orders/:orderId" element={<AdminOrderDetailPage />} />
           <Route path="products" element={<AdminProductsPage />} />

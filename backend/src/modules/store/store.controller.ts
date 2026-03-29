@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 
 import { CreateDepositRequestDto } from './dto/create-deposit-request.dto';
+import { CreateCustomCheckoutOrderDto } from './dto/create-custom-checkout-order.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { CustomCheckoutTokenParamDto } from './dto/custom-checkout-token-param.dto';
 import { GetProductsQueryDto } from './dto/get-products.query.dto';
 import { OrderNumberParamDto } from './dto/order-number-param.dto';
 import { StoreService } from './store.service';
@@ -46,6 +48,29 @@ export class StoreController {
   @Post('orders')
   async createOrder(@Body() body: CreateOrderDto) {
     const data = await this.storeService.createOrder(body);
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  @Get('custom-checkout/:token')
+  async getCustomCheckout(@Param() params: CustomCheckoutTokenParamDto) {
+    const data = await this.storeService.getCustomCheckout(params.token);
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  @Post('custom-checkout/:token/orders')
+  async createCustomCheckoutOrder(
+    @Param() params: CustomCheckoutTokenParamDto,
+    @Body() body: CreateCustomCheckoutOrderDto,
+  ) {
+    const data = await this.storeService.createCustomCheckoutOrder(params.token, body);
 
     return {
       success: true,
