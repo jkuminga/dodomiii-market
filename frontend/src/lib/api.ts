@@ -395,6 +395,344 @@ export type StoreOrderTrackingResponse = {
   deliveredAt: string | null;
 };
 
+export type AdminOrderListQuery = {
+  q?: string;
+  orderStatus?: StoreOrderStatus;
+  page?: number;
+  size?: number;
+};
+
+export type AdminOrderListItem = {
+  id: number;
+  orderNumber: string;
+  orderStatus: StoreOrderStatus;
+  depositStatus: StoreDepositStatus;
+  shipmentStatus: StoreShipmentStatus;
+  buyerName: string;
+  buyerPhone: string;
+  receiverName: string;
+  receiverPhone: string;
+  finalTotalPrice: number;
+  itemCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminOrderDetail = {
+  id: number;
+  orderNumber: string;
+  orderStatus: StoreOrderStatus;
+  customerRequest: string | null;
+  items: Array<{
+    productId?: number | null;
+    productOptionId?: number | null;
+    productNameSnapshot: string;
+    optionNameSnapshot: string | null;
+    optionValueSnapshot: string | null;
+    unitPrice: number;
+    quantity: number;
+    lineTotalPrice: number;
+  }>;
+  contact: {
+    buyerName: string;
+    buyerPhone: string;
+    receiverName: string;
+    receiverPhone: string;
+    zipcode: string;
+    address1: string;
+    address2: string | null;
+  };
+  pricing: {
+    totalProductPrice: number;
+    shippingFee: number;
+    finalTotalPrice: number;
+  };
+  deposit: {
+    depositStatus: StoreDepositStatus;
+    bankName: string | null;
+    accountHolder: string | null;
+    accountNumber: string | null;
+    expectedAmount: number | null;
+    depositorName: string | null;
+    requestedAt: string | null;
+    confirmedAt: string | null;
+    depositDeadlineAt: string | null;
+    adminMemo: string | null;
+  };
+  shipment: {
+    shipmentStatus: StoreShipmentStatus;
+    courierName: string | null;
+    trackingNumber: string | null;
+    trackingUrl: string | null;
+    shippedAt: string | null;
+    deliveredAt: string | null;
+  };
+  statusHistories: Array<{
+    orderStatusHistoryId: number;
+    previousStatus: StoreOrderStatus | null;
+    newStatus: StoreOrderStatus;
+    changeReason: string | null;
+    changedByAdminId: number | null;
+    createdAt: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminOrderStatusUpdatePayload = {
+  orderStatus: StoreOrderStatus;
+  changeReason?: string;
+};
+
+export type AdminOrderShipmentUpdatePayload = {
+  courierName?: string | null;
+  trackingNumber?: string | null;
+  shipmentStatus: StoreShipmentStatus;
+};
+
+const STORE_ORDER_STATUSES = [
+  'PENDING_PAYMENT',
+  'PAYMENT_REQUESTED',
+  'PAYMENT_CONFIRMED',
+  'PREPARING',
+  'SHIPPED',
+  'DELIVERED',
+  'CANCELLED',
+  'EXPIRED',
+] as const satisfies readonly StoreOrderStatus[];
+
+const STORE_DEPOSIT_STATUSES = ['WAITING', 'REQUESTED', 'CONFIRMED', 'REJECTED'] as const satisfies readonly StoreDepositStatus[];
+const STORE_SHIPMENT_STATUSES = ['READY', 'SHIPPED', 'DELIVERED'] as const satisfies readonly StoreShipmentStatus[];
+
+type AdminOrderDetailResponse = {
+  id?: number | string;
+  orderId?: number | string;
+  orderNumber?: string | null;
+  orderStatus?: StoreOrderStatus;
+  customerRequest?: string | null;
+  items?: Array<{
+    productId?: number | string | null;
+    productOptionId?: number | string | null;
+    productNameSnapshot?: string | null;
+    optionNameSnapshot?: string | null;
+    optionValueSnapshot?: string | null;
+    unitPrice?: number | null;
+    quantity?: number | null;
+    lineTotalPrice?: number | null;
+  }> | null;
+  contact?: {
+    buyerName?: string | null;
+    buyerPhone?: string | null;
+    receiverName?: string | null;
+    receiverPhone?: string | null;
+    zipcode?: string | null;
+    address1?: string | null;
+    address2?: string | null;
+  } | null;
+  pricing?: {
+    totalProductPrice?: number | null;
+    shippingFee?: number | null;
+    finalTotalPrice?: number | null;
+  } | null;
+  deposit?: {
+    depositStatus?: StoreDepositStatus;
+    bankName?: string | null;
+    accountHolder?: string | null;
+    accountNumber?: string | null;
+    expectedAmount?: number | null;
+    depositorName?: string | null;
+    requestedAt?: string | null;
+    confirmedAt?: string | null;
+    depositDeadlineAt?: string | null;
+    adminMemo?: string | null;
+  } | null;
+  shipment?: {
+    shipmentStatus?: StoreShipmentStatus;
+    courierName?: string | null;
+    trackingNumber?: string | null;
+    trackingUrl?: string | null;
+    shippedAt?: string | null;
+    deliveredAt?: string | null;
+  } | null;
+  statusHistories?: Array<{
+    orderStatusHistoryId?: number | string;
+    id?: number | string;
+    previousStatus?: StoreOrderStatus | null;
+    newStatus?: StoreOrderStatus;
+    changeReason?: string | null;
+    changedByAdminId?: number | string | null;
+    adminId?: number | string | null;
+    createdAt?: string | null;
+  }> | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+function normalizeNumber(value: number | string | null | undefined, fallback = 0): number {
+  const normalized = Number(value);
+  return Number.isFinite(normalized) ? normalized : fallback;
+}
+
+function normalizeOrderStatus(value: unknown): StoreOrderStatus {
+  return typeof value === 'string' && STORE_ORDER_STATUSES.includes(value as StoreOrderStatus)
+    ? (value as StoreOrderStatus)
+    : 'PENDING_PAYMENT';
+}
+
+function normalizeDepositStatus(value: unknown): StoreDepositStatus {
+  return typeof value === 'string' && STORE_DEPOSIT_STATUSES.includes(value as StoreDepositStatus)
+    ? (value as StoreDepositStatus)
+    : 'WAITING';
+}
+
+function normalizeShipmentStatus(value: unknown): StoreShipmentStatus {
+  return typeof value === 'string' && STORE_SHIPMENT_STATUSES.includes(value as StoreShipmentStatus)
+    ? (value as StoreShipmentStatus)
+    : 'READY';
+}
+
+function normalizeAdminOrderListItem(raw: {
+  id?: number | string;
+  orderId?: number | string;
+  orderNumber: string;
+  orderStatus: StoreOrderStatus;
+  depositStatus?: StoreDepositStatus;
+  shipmentStatus?: StoreShipmentStatus;
+  buyerName?: string;
+  buyerPhone?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  finalTotalPrice?: number;
+  itemCount?: number;
+  createdAt: string;
+  updatedAt: string;
+  contact?: {
+    buyerName?: string;
+    buyerPhone?: string;
+    receiverName?: string;
+    receiverPhone?: string;
+  };
+  pricing?: {
+    finalTotalPrice?: number;
+  };
+  deposit?: {
+    depositStatus?: StoreDepositStatus;
+  };
+  shipment?: {
+    shipmentStatus?: StoreShipmentStatus;
+  };
+  items?: unknown[];
+}): AdminOrderListItem {
+  const id = raw.id ?? raw.orderId;
+
+  if (id === undefined) {
+    throw new Error('주문 식별자가 응답에 없습니다.');
+  }
+
+  return {
+    id: Number(id),
+    orderNumber: raw.orderNumber,
+    orderStatus: normalizeOrderStatus(raw.orderStatus),
+    depositStatus: normalizeDepositStatus(raw.depositStatus ?? raw.deposit?.depositStatus),
+    shipmentStatus: normalizeShipmentStatus(raw.shipmentStatus ?? raw.shipment?.shipmentStatus),
+    buyerName: raw.buyerName ?? raw.contact?.buyerName ?? '-',
+    buyerPhone: raw.buyerPhone ?? raw.contact?.buyerPhone ?? '',
+    receiverName: raw.receiverName ?? raw.contact?.receiverName ?? '-',
+    receiverPhone: raw.receiverPhone ?? raw.contact?.receiverPhone ?? '',
+    finalTotalPrice: raw.finalTotalPrice ?? raw.pricing?.finalTotalPrice ?? 0,
+    itemCount: raw.itemCount ?? raw.items?.length ?? 0,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  };
+}
+
+function normalizeAdminOrderDetail(raw: AdminOrderDetailResponse): AdminOrderDetail {
+  const identifier = raw.id ?? raw.orderId;
+
+  if (identifier === undefined || identifier === null) {
+    throw new Error('주문 식별자가 응답에 없습니다.');
+  }
+
+  const id = normalizeNumber(identifier, Number.NaN);
+
+  if (!Number.isFinite(id) || id <= 0) {
+    throw new Error('주문 식별자 형식이 올바르지 않습니다.');
+  }
+
+  return {
+    id,
+    orderNumber: raw.orderNumber?.trim() || `주문 #${id}`,
+    orderStatus: normalizeOrderStatus(raw.orderStatus),
+    customerRequest: raw.customerRequest ?? null,
+    items: Array.isArray(raw.items)
+      ? raw.items.map((item, index) => ({
+          productId: item.productId === null || item.productId === undefined ? null : normalizeNumber(item.productId, 0),
+          productOptionId:
+            item.productOptionId === null || item.productOptionId === undefined
+              ? null
+              : normalizeNumber(item.productOptionId, 0),
+          productNameSnapshot: item.productNameSnapshot?.trim() || `상품 ${index + 1}`,
+          optionNameSnapshot: item.optionNameSnapshot ?? null,
+          optionValueSnapshot: item.optionValueSnapshot ?? null,
+          unitPrice: normalizeNumber(item.unitPrice, 0),
+          quantity: normalizeNumber(item.quantity, 0),
+          lineTotalPrice: normalizeNumber(item.lineTotalPrice, 0),
+        }))
+      : [],
+    contact: {
+      buyerName: raw.contact?.buyerName?.trim() || '-',
+      buyerPhone: raw.contact?.buyerPhone ?? '',
+      receiverName: raw.contact?.receiverName?.trim() || '-',
+      receiverPhone: raw.contact?.receiverPhone ?? '',
+      zipcode: raw.contact?.zipcode?.trim() || '',
+      address1: raw.contact?.address1?.trim() || '',
+      address2: raw.contact?.address2?.trim() || null,
+    },
+    pricing: {
+      totalProductPrice: normalizeNumber(raw.pricing?.totalProductPrice, 0),
+      shippingFee: normalizeNumber(raw.pricing?.shippingFee, 0),
+      finalTotalPrice: normalizeNumber(raw.pricing?.finalTotalPrice, 0),
+    },
+    deposit: {
+      depositStatus: normalizeDepositStatus(raw.deposit?.depositStatus),
+      bankName: raw.deposit?.bankName ?? null,
+      accountHolder: raw.deposit?.accountHolder ?? null,
+      accountNumber: raw.deposit?.accountNumber ?? null,
+      expectedAmount: raw.deposit?.expectedAmount ?? null,
+      depositorName: raw.deposit?.depositorName ?? null,
+      requestedAt: raw.deposit?.requestedAt ?? null,
+      confirmedAt: raw.deposit?.confirmedAt ?? null,
+      depositDeadlineAt: raw.deposit?.depositDeadlineAt ?? null,
+      adminMemo: raw.deposit?.adminMemo ?? null,
+    },
+    shipment: {
+      shipmentStatus: normalizeShipmentStatus(raw.shipment?.shipmentStatus),
+      courierName: raw.shipment?.courierName ?? null,
+      trackingNumber: raw.shipment?.trackingNumber ?? null,
+      trackingUrl: raw.shipment?.trackingUrl ?? null,
+      shippedAt: raw.shipment?.shippedAt ?? null,
+      deliveredAt: raw.shipment?.deliveredAt ?? null,
+    },
+    statusHistories: Array.isArray(raw.statusHistories)
+      ? raw.statusHistories.map((history) => ({
+          orderStatusHistoryId: normalizeNumber(history.orderStatusHistoryId ?? history.id, 0),
+          previousStatus: history.previousStatus ? normalizeOrderStatus(history.previousStatus) : null,
+          newStatus: normalizeOrderStatus(history.newStatus ?? raw.orderStatus),
+          changeReason: history.changeReason ?? null,
+          changedByAdminId:
+            history.changedByAdminId === null || history.changedByAdminId === undefined
+              ? history.adminId === null || history.adminId === undefined
+                ? null
+                : normalizeNumber(history.adminId, 0)
+              : normalizeNumber(history.changedByAdminId, 0),
+          createdAt: history.createdAt ?? '',
+        }))
+      : [],
+    createdAt: raw.createdAt ?? '',
+    updatedAt: raw.updatedAt ?? '',
+  };
+}
+
 export const apiClient = {
   login: (loginId: string, password: string) =>
     request<{ admin: { adminId: number | string; loginId: string; name: string; role: AdminRole } }>('/admin/auth/login', {
@@ -490,6 +828,46 @@ export const apiClient = {
   deleteAdminProduct: (productId: string | number) =>
     request<{ deleted: boolean; deletedAt: string }>(`/admin/products/${productId}`, {
       method: 'DELETE',
+    }),
+
+  getAdminOrders: async (query: AdminOrderListQuery) => {
+    const result = await requestWithMeta<{ items: Array<Parameters<typeof normalizeAdminOrderListItem>[0]> }, PaginationMeta>(
+      `/admin/orders${buildQueryString({
+        q: query.q,
+        orderStatus: query.orderStatus,
+        page: query.page,
+        size: query.size,
+      })}`,
+    );
+
+    return {
+      data: {
+        items: result.data.items.map(normalizeAdminOrderListItem),
+      },
+      meta: result.meta,
+    };
+  },
+
+  getAdminOrderById: async (orderId: string | number) => {
+    const result = await request<AdminOrderDetailResponse | null>(`/admin/orders/${orderId}`);
+
+    if (!result || typeof result !== 'object') {
+      throw new Error('주문 상세 응답 형식이 올바르지 않습니다.');
+    }
+
+    return normalizeAdminOrderDetail(result);
+  },
+
+  updateAdminOrderStatus: (orderId: string | number, payload: AdminOrderStatusUpdatePayload) =>
+    request<{ id?: number; orderId?: number; updatedAt?: string }>(`/admin/orders/${orderId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  updateAdminOrderShipment: (orderId: string | number, payload: AdminOrderShipmentUpdatePayload) =>
+    request<{ id?: number; orderId?: number; updatedAt?: string }>(`/admin/orders/${orderId}/shipment`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
     }),
 
   createOrder: (payload: StoreOrderCreateRequest) =>

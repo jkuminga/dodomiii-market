@@ -21,8 +21,8 @@
 - [x] M04 스토어 카탈로그 조회 API
 - [x] M05 스토어 주문 생성 API
 - [x] M06 스토어 주문 조회/입금요청 API
-- [ ] M07 관리자 카테고리/상품 관리 API
-- [ ] M08 관리자 주문/상태/배송 관리 API
+- [x] M07 관리자 카테고리/상품 관리 API
+- [x] M08 관리자 주문/상태/배송 관리 API
 - [ ] M09 커스텀 주문 링크 API
 - [ ] M10 내부 알림 연동 API
 - [ ] M11 테스트/검증/문서 동기화
@@ -33,7 +33,7 @@
 - [x] F03 관리자 인증 UI (M03 연동)
 - [x] F04 스토어 카탈로그 UI (M04 연동)
 - [x] F05 스토어 주문 UI (M05~M06 연동)
-- [ ] F07 관리자 운영 UI (M07~M09 연동)
+- [ ] F07 관리자 운영 UI (M07~M09 연동, 2차(M08) 완료)
 - [ ] F11 프론트 테스트/배포 점검
 
 ## 모듈 상세
@@ -130,25 +130,36 @@
 
 ### M07 관리자 카테고리/상품 관리 API
 
-- 상태: `TODO`
-- 완료일: `-`
-- 비고: `-`
+- 상태: `DONE`
+- 완료일: `2026-03-29`
+- 비고: `AdminModule 추가, 카테고리/상품 관리자 CRUD 구현, 상품 soft delete(deletedAt) 반영, 검증: backend build OK`
 - 완료 조건:
-  - [ ] 카테고리 CRUD (`/admin/categories`)
-  - [ ] 상품 CRUD (`/admin/products`)
-  - [ ] 상품 soft delete 정책 반영
+  - [x] 카테고리 CRUD (`/admin/categories`)
+  - [x] 상품 CRUD (`/admin/products`)
+  - [x] 상품 soft delete 정책 반영
+
+### F07 관리자 운영 UI (M07~M09 연동)
+
+- 상태: `IN_PROGRESS`
+- 완료일: `2026-03-29 (2차)`
+- 비고: `관리자 대시보드/사이드바, 카테고리 트리형 관리 UI, 상품 목록/편집 UX + 주문 목록/상세/상태변경/배송수정 UI 반영. 현재 M07~M08 연동 완료, M09 연동 대기`
+- 완료 조건:
+  - [x] 관리자 카테고리 관리 UI (`/admin/categories`) + M07 연동
+  - [x] 관리자 상품 관리 UI (`/admin/products`, `/admin/products/new`, `/admin/products/:productId`) + M07 연동
+  - [x] 관리자 주문/상태/배송 운영 UI (M08 연동)
+  - [ ] 커스텀 주문 링크 운영 UI (M09 연동)
 
 ### M08 관리자 주문/상태/배송 관리 API
 
-- 상태: `TODO`
-- 완료일: `-`
-- 비고: `-`
+- 상태: `DONE`
+- 완료일: `2026-03-29`
+- 비고: `관리자 주문 목록/상세 조회, 상태 변경, 배송 정보 수정 API 구현. 상태전이 검증 + 상태이력 기록 + 알림 훅(placeholder) 반영, 검증: backend build OK`
 - 완료 조건:
-  - [ ] `GET /admin/orders`
-  - [ ] `GET /admin/orders/{orderId}`
-  - [ ] `PATCH /admin/orders/{orderId}/status`
-  - [ ] `PATCH /admin/orders/{orderId}/shipment`
-  - [ ] 상태변경 이력 기록 + 알림 큐 트리거
+  - [x] `GET /admin/orders`
+  - [x] `GET /admin/orders/{orderId}`
+  - [x] `PATCH /admin/orders/{orderId}/status`
+  - [x] `PATCH /admin/orders/{orderId}/shipment`
+  - [x] 상태변경 이력 기록 + 알림 큐 트리거
 
 ### M09 커스텀 주문 링크 API
 

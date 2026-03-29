@@ -33,6 +33,12 @@ const adminPrimaryNavItems: AdminNavItem[] = [
     to: '/admin/products',
     icon: ProductIcon,
   },
+  {
+    label: '주문 관리',
+    description: '주문 상태, 입금, 배송 운영',
+    to: '/admin/orders',
+    icon: OrderIcon,
+  },
 ];
 
 function SidebarIcon({ children, className }: { children: ReactNode; className?: string }) {
@@ -69,6 +75,17 @@ function ProductIcon(props: AdminIconProps) {
       <path d="M12 3.8l7 3.6v9.2l-7 3.6-7-3.6V7.4z" />
       <path d="M12 3.8v16.4" />
       <path d="M5 7.4l7 3.7 7-3.7" />
+    </SidebarIcon>
+  );
+}
+
+function OrderIcon(props: AdminIconProps) {
+  return (
+    <SidebarIcon {...props}>
+      <path d="M7 5.5h10a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z" />
+      <path d="M8.5 9h7" />
+      <path d="M8.5 12h7" />
+      <path d="M8.5 15h4.5" />
     </SidebarIcon>
   );
 }

@@ -1,4 +1,10 @@
-import { AdminCategoryItem, AdminSession } from '../../lib/api';
+import {
+  AdminCategoryItem,
+  AdminSession,
+  StoreDepositStatus,
+  StoreOrderStatus,
+  StoreShipmentStatus,
+} from '../../lib/api';
 
 export type AdminToastTone = 'success' | 'error' | 'info';
 
@@ -47,6 +53,90 @@ export function formatAdminDateTime(value?: string | null): string {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date);
+}
+
+export function formatAdminPhone(value?: string | null): string {
+  if (!value) {
+    return '-';
+  }
+
+  const digits = value.replace(/\D/g, '');
+
+  if (digits.length === 11) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  }
+
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+
+  return value;
+}
+
+export function getOrderStatusLabel(status: StoreOrderStatus): string {
+  switch (status) {
+    case 'PENDING_PAYMENT':
+      return '입금 대기';
+    case 'PAYMENT_REQUESTED':
+      return '입금 요청 확인 중';
+    case 'PAYMENT_CONFIRMED':
+      return '입금 확인 완료';
+    case 'PREPARING':
+      return '제작 및 출고 준비';
+    case 'SHIPPED':
+      return '배송 중';
+    case 'DELIVERED':
+      return '배송 완료';
+    case 'CANCELLED':
+      return '주문 취소';
+    case 'EXPIRED':
+      return '입금 기한 만료';
+    default:
+      return status;
+  }
+}
+
+export function getDepositStatusLabel(status: StoreDepositStatus): string {
+  switch (status) {
+    case 'WAITING':
+      return '입금 대기';
+    case 'REQUESTED':
+      return '입금 확인 요청 접수';
+    case 'CONFIRMED':
+      return '입금 확인 완료';
+    case 'REJECTED':
+      return '입금 재확인 필요';
+    default:
+      return status;
+  }
+}
+
+export function getShipmentStatusLabel(status: StoreShipmentStatus): string {
+  switch (status) {
+    case 'READY':
+      return '배송 준비 중';
+    case 'SHIPPED':
+      return '배송 중';
+    case 'DELIVERED':
+      return '배송 완료';
+    default:
+      return status;
+  }
+}
+
+const ADMIN_ALLOWED_NEXT_ORDER_STATUSES: Record<StoreOrderStatus, StoreOrderStatus[]> = {
+  PENDING_PAYMENT: ['PAYMENT_REQUESTED', 'EXPIRED', 'CANCELLED'],
+  PAYMENT_REQUESTED: ['PAYMENT_CONFIRMED', 'CANCELLED'],
+  PAYMENT_CONFIRMED: ['PREPARING', 'CANCELLED'],
+  PREPARING: ['SHIPPED', 'CANCELLED'],
+  SHIPPED: ['DELIVERED'],
+  DELIVERED: [],
+  CANCELLED: [],
+  EXPIRED: [],
+};
+
+export function getAllowedNextOrderStatuses(status: StoreOrderStatus): StoreOrderStatus[] {
+  return [...ADMIN_ALLOWED_NEXT_ORDER_STATUSES[status]];
 }
 
 function buildCategoryPath(id: number, itemsById: Map<number, AdminCategoryItem>, visited = new Set<number>()): string {

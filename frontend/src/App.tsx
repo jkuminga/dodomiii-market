@@ -9,6 +9,8 @@ import { apiClient, CategoryTreeNode, ProductListItem } from './lib/api';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
+import { AdminOrderDetailPage } from './pages/admin/AdminOrderDetailPage';
+import { AdminOrdersPage } from './pages/admin/AdminOrdersPage';
 import { AdminProductEditorPage } from './pages/admin/AdminProductEditorPage';
 import { AdminProductsPage } from './pages/admin/AdminProductsPage';
 import { CatalogPage } from './pages/store/CatalogPage';
@@ -251,6 +253,8 @@ function AppFrame() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="categories" replace />} />
           <Route path="categories" element={<AdminCategoriesPage />} />
+          <Route path="orders" element={<AdminOrdersPage />} />
+          <Route path="orders/:orderId" element={<AdminOrderDetailPage />} />
           <Route path="products" element={<AdminProductsPage />} />
           <Route path="products/new" element={<AdminProductEditorPage />} />
           <Route path="products/:productId" element={<AdminProductEditorPage />} />
