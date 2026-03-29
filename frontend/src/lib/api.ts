@@ -8,7 +8,12 @@ type ApiErrorShape = {
   };
 };
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+type ApiEnvelope<T, M = undefined> = ApiErrorShape & {
+  data?: T;
+  meta?: M;
+};
+
+async function requestEnvelope<T, M = undefined>(path: string, init?: RequestInit): Promise<ApiEnvelope<T, M>> {
   const response = await fetch(`${BASE_URL}${path}`, {
     ...init,
     credentials: 'include',
@@ -18,18 +23,66 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
 
-  const body = (await response.json().catch(() => ({}))) as ApiErrorShape & { data?: T };
+  const body = (await response.json().catch(() => ({}))) as ApiEnvelope<T, M>;
 
   if (!response.ok || body.success === false) {
     throw new Error(body.error?.message ?? '요청 처리 중 오류가 발생했습니다.');
   }
 
-  if (!body.data) {
+  return body;
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const body = await requestEnvelope<T>(path, init);
+
+  if (body.data === undefined) {
     throw new Error('응답 데이터가 비어 있습니다.');
   }
 
   return body.data;
 }
+
+async function requestWithMeta<T, M>(path: string, init?: RequestInit): Promise<{ data: T; meta: M }> {
+  const body = await requestEnvelope<T, M>(path, init);
+
+  if (body.data === undefined) {
+    throw new Error('응답 데이터가 비어 있습니다.');
+  }
+
+  if (body.meta === undefined) {
+    throw new Error('응답 메타 데이터가 비어 있습니다.');
+  }
+
+  return {
+    data: body.data,
+    meta: body.meta,
+  };
+}
+
+function buildQueryString(query: Record<string, string | number | boolean | undefined | null>): string {
+  const params = new URLSearchParams();
+
+  Object.entries(query).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+
+    params.set(key, String(value));
+  });
+
+  const queryString = params.toString();
+  return queryString ? `?${queryString}` : '';
+}
+
+export type AdminRole = 'SUPER' | 'STAFF';
+
+export type AdminSession = {
+  adminId: number | string;
+  loginId: string;
+  name: string;
+  role: AdminRole;
+  isActive: boolean;
+};
 
 export type CategoryTreeNode = {
   id: number;
@@ -38,6 +91,25 @@ export type CategoryTreeNode = {
   slug: string;
   sortOrder: number;
   children: CategoryTreeNode[];
+};
+
+export type AdminCategoryItem = {
+  id: number;
+  parentId: number | null;
+  name: string;
+  slug: string;
+  sortOrder: number;
+  isVisible: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminCategoryPayload = {
+  parentId: number | null;
+  name: string;
+  slug: string;
+  sortOrder: number;
+  isVisible: boolean;
 };
 
 export type ProductListItem = {
@@ -83,6 +155,106 @@ export type ProductDetail = {
     shippingInfo: string;
     refundInfo: string;
   };
+};
+
+export type AdminProductListItem = {
+  id: number;
+  categoryId: number;
+  name: string;
+  slug: string;
+  basePrice: number;
+  isVisible: boolean;
+  isSoldOut: boolean;
+  consultationRequired: boolean;
+  stockQuantity: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminProductImageInput = {
+  imageType: 'THUMBNAIL' | 'DETAIL';
+  imageUrl: string;
+  sortOrder: number;
+};
+
+export type AdminProductOptionInput = {
+  optionGroupName: string;
+  optionValue: string;
+  extraPrice: number;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+export type AdminProductPayload = {
+  categoryId: number;
+  name: string;
+  slug: string;
+  shortDescription: string | null;
+  description: string | null;
+  basePrice: number;
+  isVisible: boolean;
+  isSoldOut: boolean;
+  consultationRequired: boolean;
+  stockQuantity: number | null;
+  images: AdminProductImageInput[];
+  options: AdminProductOptionInput[];
+};
+
+export type AdminProductDetail = {
+  id: number;
+  category: {
+    id: number;
+    name: string;
+    slug: string;
+    parentId: number | null;
+    isVisible: boolean;
+  };
+  name: string;
+  slug: string;
+  shortDescription: string | null;
+  description: string | null;
+  basePrice: number;
+  isVisible: boolean;
+  isSoldOut: boolean;
+  consultationRequired: boolean;
+  stockQuantity: number | null;
+  images: Array<{
+    id: number;
+    imageType: 'THUMBNAIL' | 'DETAIL';
+    imageUrl: string;
+    sortOrder: number;
+    createdAt: string;
+  }>;
+  options: Array<{
+    id: number;
+    optionGroupName: string;
+    optionValue: string;
+    extraPrice: number;
+    isActive: boolean;
+    sortOrder: number;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+  orderItemCount: number;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
+export type PaginationMeta = {
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
+};
+
+export type AdminProductListQuery = {
+  categoryId?: number;
+  q?: string;
+  isVisible?: boolean;
+  isSoldOut?: boolean;
+  page?: number;
+  size?: number;
 };
 
 export type StoreOrderStatus =
@@ -225,13 +397,10 @@ export type StoreOrderTrackingResponse = {
 
 export const apiClient = {
   login: (loginId: string, password: string) =>
-    request<{ admin: { adminId: string; loginId: string; name: string; role: 'SUPER' | 'STAFF' } }>(
-      '/admin/auth/login',
-      {
-        method: 'POST',
-        body: JSON.stringify({ loginId, password }),
-      },
-    ),
+    request<{ admin: { adminId: number | string; loginId: string; name: string; role: AdminRole } }>('/admin/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ loginId, password }),
+    }),
 
   logout: () =>
     request<{ loggedOut: boolean }>('/admin/auth/logout', {
@@ -239,68 +408,89 @@ export const apiClient = {
       body: JSON.stringify({}),
     }),
 
-  me: () =>
-    request<{
-      adminId: string;
-      loginId: string;
-      name: string;
-      role: 'SUPER' | 'STAFF';
-      isActive: boolean;
-    }>('/admin/auth/me'),
+  me: () => request<AdminSession>('/admin/auth/me'),
 
-  getCategories: () =>
-    request<{ items: CategoryTreeNode[] }>('/store/categories'),
+  getCategories: () => request<{ items: CategoryTreeNode[] }>('/store/categories'),
 
-  getProducts: (query: { categorySlug?: string; q?: string; sort?: string; page?: number; size?: number }) => {
-    const params = new URLSearchParams();
+  getProducts: (query: { categorySlug?: string; q?: string; sort?: string; page?: number; size?: number }) =>
+    request<{ items: ProductListItem[] } & { meta?: unknown }>(
+      `/store/products${buildQueryString({
+        categorySlug: query.categorySlug,
+        q: query.q,
+        sort: query.sort,
+        page: query.page,
+        size: query.size,
+      })}`,
+    ),
 
-    if (query.categorySlug) params.set('categorySlug', query.categorySlug);
-    if (query.q) params.set('q', query.q);
-    if (query.sort) params.set('sort', query.sort);
-    if (query.page) params.set('page', String(query.page));
-    if (query.size) params.set('size', String(query.size));
-
-    const queryString = params.toString();
-    const suffix = queryString ? `?${queryString}` : '';
-
-    return request<{ items: ProductListItem[] } & { meta?: unknown }>(`/store/products${suffix}`);
-  },
-
-  getProductsWithMeta: async (query: {
+  getProductsWithMeta: (query: {
     categorySlug?: string;
     q?: string;
     sort?: string;
     page?: number;
     size?: number;
-  }) => {
-    const params = new URLSearchParams();
+  }) =>
+    requestWithMeta<{ items: ProductListItem[] }, PaginationMeta>(
+      `/store/products${buildQueryString({
+        categorySlug: query.categorySlug,
+        q: query.q,
+        sort: query.sort,
+        page: query.page,
+        size: query.size,
+      })}`,
+    ),
 
-    if (query.categorySlug) params.set('categorySlug', query.categorySlug);
-    if (query.q) params.set('q', query.q);
-    if (query.sort) params.set('sort', query.sort);
-    if (query.page) params.set('page', String(query.page));
-    if (query.size) params.set('size', String(query.size));
+  getProductById: (productId: string) => request<ProductDetail>(`/store/products/${productId}`),
 
-    const response = await fetch(`${BASE_URL}/store/products?${params.toString()}`, {
-      credentials: 'include',
-    });
+  getAdminCategories: () => request<{ items: AdminCategoryItem[] }>('/admin/categories'),
 
-    const body = (await response.json()) as {
-      success: boolean;
-      data: { items: ProductListItem[] };
-      meta: { page: number; size: number; totalItems: number; totalPages: number };
-      error?: { message?: string };
-    };
+  createAdminCategory: (payload: AdminCategoryPayload) =>
+    request<AdminCategoryItem>('/admin/categories', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
-    if (!response.ok || !body.success) {
-      throw new Error(body.error?.message ?? '상품 목록 조회 중 오류가 발생했습니다.');
-    }
+  updateAdminCategory: (categoryId: number, payload: Partial<AdminCategoryPayload>) =>
+    request<AdminCategoryItem>(`/admin/categories/${categoryId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
 
-    return body;
-  },
+  deleteAdminCategory: (categoryId: number) =>
+    request<{ deleted: boolean }>(`/admin/categories/${categoryId}`, {
+      method: 'DELETE',
+    }),
 
-  getProductById: (productId: string) =>
-    request<ProductDetail>(`/store/products/${productId}`),
+  getAdminProducts: (query: AdminProductListQuery) =>
+    requestWithMeta<{ items: AdminProductListItem[] }, PaginationMeta>(
+      `/admin/products${buildQueryString({
+        categoryId: query.categoryId,
+        q: query.q,
+        isVisible: query.isVisible,
+        isSoldOut: query.isSoldOut,
+        page: query.page,
+        size: query.size,
+      })}`,
+    ),
+
+  getAdminProductById: (productId: string | number) => request<AdminProductDetail>(`/admin/products/${productId}`),
+
+  createAdminProduct: (payload: AdminProductPayload) =>
+    request<{ id: number; createdAt: string; updatedAt: string }>('/admin/products', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  updateAdminProduct: (productId: string | number, payload: Partial<AdminProductPayload>) =>
+    request<{ id: number; updatedAt: string }>(`/admin/products/${productId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteAdminProduct: (productId: string | number) =>
+    request<{ deleted: boolean; deletedAt: string }>(`/admin/products/${productId}`, {
+      method: 'DELETE',
+    }),
 
   createOrder: (payload: StoreOrderCreateRequest) =>
     request<StoreOrderCreateResponse>('/store/orders', {
@@ -308,8 +498,7 @@ export const apiClient = {
       body: JSON.stringify(payload),
     }),
 
-  getOrderByNumber: (orderNumber: string) =>
-    request<StoreOrderLookupResponse>(`/store/orders/${encodeURIComponent(orderNumber)}`),
+  getOrderByNumber: (orderNumber: string) => request<StoreOrderLookupResponse>(`/store/orders/${encodeURIComponent(orderNumber)}`),
 
   requestDeposit: (orderNumber: string, payload?: StoreDepositRequestPayload) =>
     request<StoreDepositRequestResponse>(`/store/orders/${encodeURIComponent(orderNumber)}/deposit-requests`, {

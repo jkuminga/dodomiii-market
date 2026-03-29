@@ -1,11 +1,16 @@
-import { FormEvent, useEffect, useState } from 'react';
-import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 import logoMain from './assets/images/logo_main3.jpg';
 import { BottomNav } from './components/mobile/BottomNav';
 import { MobileHeader } from './components/mobile/MobileHeader';
 import { ProductArtwork } from './components/store/ProductArtwork';
 import { apiClient, CategoryTreeNode, ProductListItem } from './lib/api';
+import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
+import { AdminLayout } from './pages/admin/AdminLayout';
+import { AdminLoginPage } from './pages/admin/AdminLoginPage';
+import { AdminProductEditorPage } from './pages/admin/AdminProductEditorPage';
+import { AdminProductsPage } from './pages/admin/AdminProductsPage';
 import { CatalogPage } from './pages/store/CatalogPage';
 import { OrderLookupPage } from './pages/store/OrderLookupPage';
 import { OrderPage } from './pages/store/OrderPage';
@@ -91,8 +96,6 @@ function HomePage() {
     <main className="m-page home-page">
       <section className="surface-hero hero-stage">
         <div className="hero-copy hero-copy-polished">
-          {/* <p className="hero-badge">Handmade Crochet Studio</p> */}
-
           <div className="hero-art hero-art-prominent" aria-hidden="true">
             <div className="hero-art-blur hero-art-blur-left" />
             <div className="hero-art-blur hero-art-blur-right" />
@@ -100,7 +103,6 @@ function HomePage() {
             <div className="hero-art-ring hero-art-ring-inner" />
             <div className="hero-logo-shadow" />
             <div className="hero-logo-wrap">
-              {/* <div className="hero-logo-glow" /> */}
               <img className="hero-logo-image" src={logoMain} alt="" />
             </div>
             <div className="hero-art-note">DODOMII MARKET</div>
@@ -152,7 +154,7 @@ function HomePage() {
       <section className="promo-card section-rhythm-card">
         <p className="section-kicker">Signature</p>
         <h2 className="section-subtitle">선물용 패키지와 시즌 컬렉션을 한눈에</h2>
-        <p className="section-copy" color='white'>
+        <p className="section-copy">
           가격대와 카테고리 중심으로 정보 구조를 정리해 모바일에서도 빠르게 비교하고 상세 페이지로 자연스럽게 이어지도록
           구성했습니다.
         </p>
@@ -227,186 +229,44 @@ function HomePage() {
   );
 }
 
-type AdminMe = {
-  adminId: string;
-  loginId: string;
-  name: string;
-  role: 'SUPER' | 'STAFF';
-  isActive: boolean;
-};
-
-function AdminLoginPage() {
-  const navigate = useNavigate();
-  const [loginId, setLoginId] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const disabled = loading || !loginId || !password;
-
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      await apiClient.login(loginId, password);
-      navigate('/admin', { replace: true });
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : '로그인 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <main className="m-page page-centered">
-      <section className="surface-hero compact-hero">
-        <p className="section-kicker">Admin Access</p>
-        <h1 className="section-title">운영자 로그인</h1>
-        <p className="section-copy">기존 인증 API를 그대로 사용하면서 모바일에서 읽기 쉬운 입력 흐름으로 재정리했습니다.</p>
-      </section>
-
-      <form className="surface-card form-panel" onSubmit={onSubmit}>
-        <label className="field">
-          <span>아이디</span>
-          <input value={loginId} onChange={(event) => setLoginId(event.target.value)} placeholder="admin" />
-        </label>
-
-        <label className="field">
-          <span>비밀번호</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="비밀번호 입력"
-          />
-        </label>
-
-        {error ? <p className="feedback-copy is-error">{error}</p> : null}
-
-        <button className="button button-block" type="submit" disabled={disabled}>
-          {loading ? '로그인 중...' : '로그인'}
-        </button>
-      </form>
-    </main>
-  );
-}
-
-function AdminDashboardPage() {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [admin, setAdmin] = useState<AdminMe | null>(null);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const run = async () => {
-      try {
-        const me = await apiClient.me();
-        if (!cancelled) {
-          setAdmin(me);
-        }
-      } catch (caught) {
-        if (!cancelled) {
-          setError(caught instanceof Error ? caught.message : '세션 확인에 실패했습니다.');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const onLogout = async () => {
-    await apiClient.logout();
-    navigate('/admin/login', { replace: true });
-  };
-
-  if (loading) {
-    return (
-      <main className="m-page page-centered">
-        <section className="surface-card status-card">
-          <p className="section-kicker">Checking Session</p>
-          <h1 className="section-subtitle">세션 확인 중</h1>
-          <p className="feedback-copy">현재 로그인 상태를 불러오고 있습니다.</p>
-        </section>
-      </main>
-    );
-  }
-
-  if (error || !admin) {
-    return <Navigate to="/admin/login" replace />;
-  }
-
-  return (
-    <main className="m-page page-centered">
-      <section className="surface-hero compact-hero">
-        <p className="section-kicker">Dashboard</p>
-        <h1 className="section-title">관리자 페이지</h1>
-        <p className="section-copy">기능 범위는 유지하면서 현재 로그인 정보를 한 장의 요약 카드로 정돈했습니다.</p>
-      </section>
-
-      <section className="surface-card stacked-card">
-        <div className="stat-row">
-          <span>이름</span>
-          <strong>{admin.name}</strong>
-        </div>
-        <div className="stat-row">
-          <span>아이디</span>
-          <strong>{admin.loginId}</strong>
-        </div>
-        <div className="stat-row">
-          <span>권한</span>
-          <strong>{admin.role}</strong>
-        </div>
-        <div className="stat-row">
-          <span>상태</span>
-          <strong>{admin.isActive ? '활성' : '비활성'}</strong>
-        </div>
-
-        <div className="inline-actions">
-          <Link className="button button-secondary" to="/products">
-            스토어 보기
-          </Link>
-          <button className="button button-ghost" type="button" onClick={onLogout}>
-            로그아웃
-          </button>
-        </div>
-      </section>
-    </main>
-  );
-}
-
 function NotFoundPage() {
   return <Navigate to="/" replace />;
+}
+
+function AppFrame() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  return (
+    <div className={`app-shell ${isAdminRoute ? 'is-admin' : 'is-store'}`}>
+      {isAdminRoute ? null : <MobileHeader />}
+
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/orders" element={<OrderLookupPage />} />
+        <Route path="/products" element={<CatalogPage />} />
+        <Route path="/products/:productId" element={<ProductDetailPage />} />
+        <Route path="/products/:productId/order" element={<OrderPage />} />
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="categories" replace />} />
+          <Route path="categories" element={<AdminCategoriesPage />} />
+          <Route path="products" element={<AdminProductsPage />} />
+          <Route path="products/new" element={<AdminProductEditorPage />} />
+          <Route path="products/:productId" element={<AdminProductEditorPage />} />
+        </Route>
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+
+      {isAdminRoute ? null : <BottomNav />}
+    </div>
+  );
 }
 
 export function App() {
   return (
     <BrowserRouter>
-      <div className="mobile-shell">
-        <MobileHeader />
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/orders" element={<OrderLookupPage />} />
-          <Route path="/products" element={<CatalogPage />} />
-          <Route path="/products/:productId" element={<ProductDetailPage />} />
-          <Route path="/products/:productId/order" element={<OrderPage />} />
-          <Route path="/admin/login" element={<AdminLoginPage />} />
-          <Route path="/admin" element={<AdminDashboardPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-        <BottomNav />
-      </div>
+      <AppFrame />
     </BrowserRouter>
   );
 }
