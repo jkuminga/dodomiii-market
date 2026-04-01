@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 import logoMain from './assets/images/logo_main3.jpg';
+import { LoadingScreen } from './components/common/LoadingScreen';
 import { BottomNav } from './components/mobile/BottomNav';
 import { MobileHeader } from './components/mobile/MobileHeader';
 import { ProductArtwork } from './components/store/ProductArtwork';
@@ -16,7 +17,9 @@ import { AdminProductEditorPage } from './pages/admin/AdminProductEditorPage';
 import { AdminProductsPage } from './pages/admin/AdminProductsPage';
 import { CatalogPage } from './pages/store/CatalogPage';
 import { CustomCheckoutPage } from './pages/store/CustomCheckoutPage';
+import { DepositRequestCompletePage } from './pages/store/DepositRequestCompletePage';
 import { OrderLookupPage } from './pages/store/OrderLookupPage';
+import { OrderPaymentPage } from './pages/store/OrderPaymentPage';
 import { OrderPage } from './pages/store/OrderPage';
 import { ProductDetailPage } from './pages/store/ProductDetailPage';
 
@@ -48,11 +51,20 @@ function collectCategoryLinks(nodes: CategoryTreeNode[]): Array<{ slug: string; 
 }
 
 function HomePage() {
+  const HOME_INTRO_SEEN_KEY = 'dodomi.home.intro.seen';
   const [categories, setCategories] = useState<Array<{ slug: string; name: string }>>([]);
   const [featuredProducts, setFeaturedProducts] = useState<ProductListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
+  const [showIntroLoading, setShowIntroLoading] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return window.sessionStorage.getItem(HOME_INTRO_SEEN_KEY) !== '1';
+  });
+  const [heroReveal, setHeroReveal] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,9 +108,35 @@ function HomePage() {
     };
   }, [reloadKey]);
 
+  useEffect(() => {
+    if (!showIntroLoading || loading) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShowIntroLoading(false);
+      setHeroReveal(true);
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(HOME_INTRO_SEEN_KEY, '1');
+      }
+    }, 220);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [loading, showIntroLoading]);
+
+  if (showIntroLoading) {
+    return (
+      <main className="m-page home-page">
+        <LoadingScreen title="도도미 마켓 준비 중" message="잠시만 기다려 주세요." />
+      </main>
+    );
+  }
+
   return (
     <main className="m-page home-page">
-      <section className="surface-hero hero-stage">
+      <section className={`surface-hero hero-stage ${heroReveal ? 'is-hero-reveal' : ''}`}>
         <div className="hero-copy hero-copy-polished">
           <div className="hero-art hero-art-prominent" aria-hidden="true">
             <div className="hero-art-blur hero-art-blur-left" />
@@ -136,7 +174,7 @@ function HomePage() {
 
         {loading ? (
           <div className="home-status-card" role="status" aria-live="polite">
-            <p className="feedback-copy">카테고리를 준비하고 있습니다.</p>
+            <LoadingScreen mode="inline" title="카테고리 준비 중" message="카테고리를 불러오고 있습니다." />
           </div>
         ) : null}
         {!loading && !error && categories.length === 0 ? (
@@ -183,7 +221,7 @@ function HomePage() {
 
         {loading ? (
           <div className="home-status-card" role="status" aria-live="polite">
-            <p className="feedback-copy">상품을 불러오는 중입니다.</p>
+            <LoadingScreen mode="inline" title="상품 준비 중" message="최근 등록 상품을 불러오고 있습니다." />
           </div>
         ) : null}
         {error ? (
@@ -237,6 +275,30 @@ function NotFoundPage() {
   return <Navigate to="/" replace />;
 }
 
+function NoticePage() {
+  return (
+    <main className="m-page page-centered">
+      <section className="surface-card">
+        <p className="section-kicker">Notice</p>
+        <h1 className="section-title">공지사항</h1>
+        <p className="section-copy">아직 등록된 공지사항이 없습니다.</p>
+      </section>
+    </main>
+  );
+}
+
+function QnaPage() {
+  return (
+    <main className="m-page page-centered">
+      <section className="surface-card">
+        <p className="section-kicker">Q&A</p>
+        <h1 className="section-title">QnA</h1>
+        <p className="section-copy">문의 게시판은 준비 중입니다.</p>
+      </section>
+    </main>
+  );
+}
+
 function AppFrame() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
@@ -247,7 +309,11 @@ function AppFrame() {
 
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/notices" element={<NoticePage />} />
+        <Route path="/qna" element={<QnaPage />} />
         <Route path="/orders" element={<OrderLookupPage />} />
+        <Route path="/orders/:orderNumber/payment" element={<OrderPaymentPage />} />
+        <Route path="/orders/:orderNumber/deposit-request-complete" element={<DepositRequestCompletePage />} />
         <Route path="/products" element={<CatalogPage />} />
         <Route path="/products/:productId" element={<ProductDetailPage />} />
         <Route path="/products/:productId/order" element={<OrderPage />} />

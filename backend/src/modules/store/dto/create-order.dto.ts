@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
+  ArrayUnique,
   IsArray,
   IsDefined,
   IsInt,
@@ -23,6 +24,15 @@ export class CreateOrderItemDto {
   @IsInt()
   @Min(1)
   productOptionId?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayUnique()
+  @Type(() => Number)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  selectedOptionIds?: number[];
 
   @Type(() => Number)
   @IsInt()

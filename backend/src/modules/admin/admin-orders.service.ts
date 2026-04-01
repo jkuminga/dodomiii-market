@@ -298,7 +298,7 @@ export class AdminOrdersService {
       };
     });
 
-    await this.dispatchOrderMutationHooks(result.statusTransitions, result.shipmentEvent);
+    this.dispatchOrderMutationHooks(result.statusTransitions, result.shipmentEvent);
 
     return result.detail;
   }
@@ -405,7 +405,7 @@ export class AdminOrdersService {
       };
     });
 
-    await this.dispatchOrderMutationHooks(result.statusTransitions, result.shipmentEvent);
+    this.dispatchOrderMutationHooks(result.statusTransitions, result.shipmentEvent);
 
     return result.detail;
   }
@@ -953,16 +953,16 @@ export class AdminOrdersService {
     };
   }
 
-  private async dispatchOrderMutationHooks(
+  private dispatchOrderMutationHooks(
     transitions: StatusTransitionEvent[],
     shipmentEvent: ShipmentUpdateEvent | null,
-  ): Promise<void> {
+  ): void {
     for (const transition of transitions) {
-      await this.notifications.notifyOrderStatusChanged(transition);
+      this.notifications.notifyOrderStatusChanged(transition);
     }
 
     if (shipmentEvent) {
-      await this.notifications.notifyOrderShipmentUpdated(shipmentEvent);
+      this.notifications.notifyOrderShipmentUpdated(shipmentEvent);
     }
   }
 

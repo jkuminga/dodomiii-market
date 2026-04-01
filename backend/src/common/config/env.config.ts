@@ -1,3 +1,11 @@
+const parseBoolean = (value: string | undefined, fallback: boolean): boolean => {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  return value.toLowerCase() === 'true';
+};
+
 export default () => ({
   NODE_ENV: process.env.NODE_ENV ?? 'development',
   PORT: Number(process.env.PORT ?? 4000),
@@ -14,5 +22,26 @@ export default () => ({
   ORDER_DEPOSIT_DEADLINE_DAYS: Number(process.env.ORDER_DEPOSIT_DEADLINE_DAYS ?? 1),
   CUSTOM_CHECKOUT_BASE_URL:
     process.env.CUSTOM_CHECKOUT_BASE_URL ?? 'http://localhost:5173/custom-checkout',
+  NOTIFICATIONS_ENABLED: parseBoolean(process.env.NOTIFICATIONS_ENABLED, true),
+  NOTIFICATIONS_DRY_RUN: parseBoolean(process.env.NOTIFICATIONS_DRY_RUN, false),
+  NOTIFICATIONS_ADMIN_STATUS_SUMMARY_ENABLED: parseBoolean(
+    process.env.NOTIFICATIONS_ADMIN_STATUS_SUMMARY_ENABLED,
+    true,
+  ),
+  NOTIFICATIONS_RETRY_ATTEMPTS: Number(process.env.NOTIFICATIONS_RETRY_ATTEMPTS ?? 3),
+  NOTIFICATIONS_RETRY_BASE_DELAY_MS: Number(
+    process.env.NOTIFICATIONS_RETRY_BASE_DELAY_MS ?? 1000,
+  ),
+  SMTP_HOST: process.env.SMTP_HOST ?? '',
+  SMTP_PORT: Number(process.env.SMTP_PORT ?? 587),
+  SMTP_SECURE: parseBoolean(process.env.SMTP_SECURE, false),
+  SMTP_USER: process.env.SMTP_USER ?? '',
+  SMTP_PASS: process.env.SMTP_PASS ?? '',
+  SMTP_FROM_NAME: process.env.SMTP_FROM_NAME ?? 'Dodomi',
+  SMTP_FROM_EMAIL: process.env.SMTP_FROM_EMAIL ?? '',
+  SMTP_CONNECTION_TIMEOUT_MS: Number(process.env.SMTP_CONNECTION_TIMEOUT_MS ?? 10000),
+  SOLAPI_API_KEY: process.env.SOLAPI_API_KEY ?? '',
+  SOLAPI_API_SECRET: process.env.SOLAPI_API_SECRET ?? '',
+  SOLAPI_SENDER: process.env.SOLAPI_SENDER ?? '',
   LOG_LEVEL: process.env.LOG_LEVEL ?? 'info',
 });

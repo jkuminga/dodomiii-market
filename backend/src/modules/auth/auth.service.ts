@@ -1,7 +1,25 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { compare } from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+
+const adminAuthSelect = Prisma.validator<Prisma.AdminSelect>()({
+  id: true,
+  loginId: true,
+  passwordHash: true,
+  name: true,
+  role: true,
+  isActive: true,
+});
+
+const adminSessionSelect = Prisma.validator<Prisma.AdminSelect>()({
+  id: true,
+  loginId: true,
+  name: true,
+  role: true,
+  isActive: true,
+});
 
 @Injectable()
 export class AuthService {
@@ -10,6 +28,7 @@ export class AuthService {
   async validateAdmin(loginId: string, password: string) {
     const admin = await this.prisma.admin.findUnique({
       where: { loginId },
+      select: adminAuthSelect,
     });
 
     if (!admin || !admin.isActive) {
@@ -33,13 +52,7 @@ export class AuthService {
   async getAdminMe(adminId: string) {
     const admin = await this.prisma.admin.findUnique({
       where: { id: BigInt(adminId) },
-      select: {
-        id: true,
-        loginId: true,
-        name: true,
-        role: true,
-        isActive: true,
-      },
+      select: adminSessionSelect,
     });
 
     if (!admin || !admin.isActive) {

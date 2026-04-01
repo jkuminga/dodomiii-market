@@ -1,69 +1,15 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import {
-  apiClient,
-  ProductDetail,
-  StoreDepositStatus,
-  StoreOrderCreateResponse,
-  StoreOrderStatus,
-} from '../../lib/api';
+import { LoadingScreen } from '../../components/common/LoadingScreen';
+import { apiClient, ProductDetail } from '../../lib/api';
 
 function formatCurrency(value: number): string {
   return `${value.toLocaleString('ko-KR')}원`;
 }
 
-function formatDateTime(value: string | null): string {
-  if (!value) {
-    return '미정';
-  }
-
-  return new Intl.DateTimeFormat('ko-KR', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
-
 function normalizePhone(value: string): string {
   return value.replace(/\D/g, '');
-}
-
-function getOrderStatusLabel(status: StoreOrderStatus): string {
-  switch (status) {
-    case 'PENDING_PAYMENT':
-      return '입금 대기';
-    case 'PAYMENT_REQUESTED':
-      return '입금 요청 확인 중';
-    case 'PAYMENT_CONFIRMED':
-      return '입금 확인 완료';
-    case 'PREPARING':
-      return '제작 및 출고 준비';
-    case 'SHIPPED':
-      return '배송 중';
-    case 'DELIVERED':
-      return '배송 완료';
-    case 'CANCELLED':
-      return '주문 취소';
-    case 'EXPIRED':
-      return '입금 기한 만료';
-    default:
-      return status;
-  }
-}
-
-function getDepositStatusLabel(status: StoreDepositStatus): string {
-  switch (status) {
-    case 'WAITING':
-      return '입금 대기';
-    case 'REQUESTED':
-      return '입금 확인 요청';
-    case 'CONFIRMED':
-      return '입금 확인 완료';
-    case 'REJECTED':
-      return '입금 재확인 필요';
-    default:
-      return status;
-  }
 }
 
 type ContactFormState = {
@@ -91,18 +37,30 @@ const INITIAL_CONTACT_FORM: ContactFormState = {
 export function OrderPage() {
   const { productId } = useParams<{ productId: string }>();
   const [searchParams] = useSearchParams();
-  const prefilledOptionId = searchParams.get('optionId') ?? '';
+  const navigate = useNavigate();
+  const prefilledOptionIds = useMemo(() => {
+    const rawMulti = searchParams.get('optionIds');
+    if (rawMulti) {
+      return rawMulti
+        .split(',')
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0);
+    }
+
+    const legacySingle = searchParams.get('optionId');
+    return legacySingle ? [legacySingle] : [];
+  }, [searchParams]);
 
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [contact, setContact] = useState<ContactFormState>(INITIAL_CONTACT_FORM);
-  const [selectedOptionId, setSelectedOptionId] = useState('');
+  const [receiverSameAsBuyer, setReceiverSameAsBuyer] = useState(false);
+  const [selectedOptionByGroup, setSelectedOptionByGroup] = useState<Record<string, string[]>>({});
+  const [expandedOptionGroups, setExpandedOptionGroups] = useState<Record<string, boolean>>({});
   const [quantity, setQuantity] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const [submittedOrder, setSubmittedOrder] = useState<StoreOrderCreateResponse | null>(null);
-  const resultCardRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!productId) {
@@ -114,10 +72,10 @@ export function OrderPage() {
     const run = async () => {
       setLoading(true);
       setError('');
-      setSubmittedOrder(null);
       setSubmitError('');
       setQuantity(1);
       setContact(INITIAL_CONTACT_FORM);
+      setReceiverSameAsBuyer(false);
 
       try {
         const result = await apiClient.getProductById(productId);
@@ -156,33 +114,97 @@ export function OrderPage() {
     [product],
   );
 
+  const optionGroups = useMemo(() => {
+    const grouped = new Map<string, typeof activeOptions>();
+
+    for (const option of activeOptions) {
+      const current = grouped.get(option.optionGroupName) ?? [];
+      current.push(option);
+      grouped.set(option.optionGroupName, current);
+    }
+
+    return [...grouped.entries()].map(([groupName, options]) => ({
+      groupName,
+      options,
+    }));
+  }, [activeOptions]);
+
   useEffect(() => {
     if (!product) {
       return;
     }
 
-    const hasPrefilledOption = activeOptions.some((option) => String(option.id) === prefilledOptionId);
-    const nextOptionId = hasPrefilledOption ? prefilledOptionId : activeOptions.length === 1 ? String(activeOptions[0].id) : '';
+    const nextByGroup: Record<string, string[]> = {};
 
-    setSelectedOptionId(nextOptionId);
-  }, [activeOptions, prefilledOptionId, product]);
+    for (const group of optionGroups) {
+      nextByGroup[group.groupName] = [];
+    }
+
+    for (const prefilledOptionId of prefilledOptionIds) {
+      const prefilledOption = activeOptions.find((option) => String(option.id) === prefilledOptionId);
+      if (prefilledOption) {
+        const groupName = prefilledOption.optionGroupName;
+        const current = nextByGroup[groupName] ?? [];
+        if (!current.includes(String(prefilledOption.id))) {
+          nextByGroup[groupName] = [...current, String(prefilledOption.id)];
+        }
+      }
+    }
+
+    for (const group of optionGroups) {
+      if ((nextByGroup[group.groupName] ?? []).length === 0 && group.options.length === 1) {
+        nextByGroup[group.groupName] = [String(group.options[0].id)];
+      }
+    }
+
+    setSelectedOptionByGroup(nextByGroup);
+    setExpandedOptionGroups((current) => {
+      const nextExpanded: Record<string, boolean> = {};
+      for (const group of optionGroups) {
+        const hasSelected = (nextByGroup[group.groupName] ?? []).length > 0;
+        nextExpanded[group.groupName] = current[group.groupName] ?? (hasSelected || optionGroups.length <= 2);
+      }
+      return nextExpanded;
+    });
+  }, [activeOptions, optionGroups, prefilledOptionIds, product]);
 
   useEffect(() => {
-    if (!submittedOrder || !resultCardRef.current) {
+    if (!receiverSameAsBuyer) {
       return;
     }
 
-    resultCardRef.current.focus();
-  }, [submittedOrder]);
+    setContact((current) => ({
+      ...current,
+      receiverName: current.buyerName,
+      receiverPhone: current.buyerPhone,
+    }));
+  }, [receiverSameAsBuyer, contact.buyerName, contact.buyerPhone]);
 
   if (!productId) {
     return <Navigate to="/products" replace />;
   }
 
-  const selectedOption = activeOptions.find((option) => String(option.id) === selectedOptionId) ?? null;
-  const estimatedUnitPrice = product ? product.basePrice + (selectedOption?.extraPrice ?? 0) : 0;
+  const selectedOptionIds = [
+    ...new Set(
+      optionGroups.flatMap((group) => (selectedOptionByGroup[group.groupName] ?? []).map((value) => Number(value))).filter((value) => Number.isFinite(value)),
+    ),
+  ];
+
+  const selectedOptions = selectedOptionIds
+    .map((optionId) => activeOptions.find((option) => option.id === optionId) ?? null)
+    .filter((option): option is NonNullable<typeof option> => option !== null);
+
+  const selectedOptionExtraTotal = selectedOptions.reduce((sum, option) => sum + option.extraPrice, 0);
+  const estimatedUnitPrice = product
+    ? product.basePrice + selectedOptionExtraTotal
+    : 0;
   const estimatedSubtotal = estimatedUnitPrice * quantity;
-  const requiresOptionSelection = activeOptions.length > 0 && !selectedOptionId;
+  const requiresOptionSelection =
+    optionGroups.length > 0 &&
+    optionGroups.some((group) => {
+      const selectedIds = selectedOptionByGroup[group.groupName] ?? [];
+      return selectedIds.length === 0;
+    });
   const isSubmitDisabled = submitting || !!product?.isSoldOut || requiresOptionSelection;
 
   const onContactChange =
@@ -218,7 +240,7 @@ export function OrderPage() {
         items: [
           {
             productId: product.id,
-            productOptionId: selectedOption ? selectedOption.id : undefined,
+            selectedOptionIds: selectedOptionIds.length > 0 ? selectedOptionIds : undefined,
             quantity,
           },
         ],
@@ -234,7 +256,11 @@ export function OrderPage() {
         customerRequest: contact.customerRequest.trim() || undefined,
       });
 
-      setSubmittedOrder(result);
+      navigate(`/orders/${encodeURIComponent(result.orderNumber)}/payment`, {
+        state: {
+          createdOrder: result,
+        },
+      });
     } catch (caught) {
       setSubmitError(caught instanceof Error ? caught.message : '주문 접수 중 오류가 발생했습니다.');
     } finally {
@@ -245,11 +271,7 @@ export function OrderPage() {
   if (loading) {
     return (
       <main className="m-page order-page">
-        <section className="surface-card status-card" role="status" aria-live="polite">
-          <p className="section-kicker">Loading</p>
-          <h1 className="section-subtitle">주문서를 준비하는 중</h1>
-          <p className="feedback-copy">선택한 상품과 주문 입력 화면을 불러오고 있습니다.</p>
-        </section>
+        <LoadingScreen title="주문서를 준비하는 중" message="선택한 상품과 주문 입력 화면을 불러오고 있습니다." />
       </main>
     );
   }
@@ -275,12 +297,18 @@ export function OrderPage() {
     <main className="m-page order-page">
       <section className="surface-hero compact-hero">
         <p className="section-kicker">Order Form</p>
-        <h1 className="section-title">주문서 작성</h1>
+        <h1 className="section-title order-main-title">주문서 작성</h1>
         <p className="section-copy">
-          선택한 상품 한 건을 바로 접수하는 흐름입니다. 주문자, 수령인, 배송지 정보를 입력하면 주문번호와 입금 안내를
-          즉시 확인할 수 있습니다.
+          주문자, 수령인, 배송지 정보를 입력한 뒤 결제 페이지에서 입금 계좌 확인 및 입금 확인 요청을 진행합니다.
         </p>
       </section>
+
+      {product.consultationRequired ? (
+        <section className="surface-card order-note-card order-consultation-card">
+          <p className="section-kicker">Consultation</p>
+          <p className="feedback-copy">이 상품은 상담이 필요한 상품입니다. 주문 접수 후 추가 확인 연락이 이어질 수 있습니다.</p>
+        </section>
+      ) : null}
 
       <section className="surface-card order-product-card">
         <div className="order-product-head">
@@ -296,15 +324,21 @@ export function OrderPage() {
             <span>기본가</span>
             <strong>{formatCurrency(product.basePrice)}</strong>
           </div>
-          {selectedOption ? (
+          {selectedOptions.length > 0 ? (
             <div className="order-summary-row">
               <span>
                 선택 옵션
-                <small>
-                  {selectedOption.optionGroupName} / {selectedOption.optionValue}
-                </small>
+                {selectedOptions.map((option) => (
+                  <small key={option.id}>
+                    {option.optionGroupName} / {option.optionValue}
+                  </small>
+                ))}
               </span>
-              <strong>{selectedOption.extraPrice > 0 ? `+${formatCurrency(selectedOption.extraPrice)}` : '추가 금액 없음'}</strong>
+              <strong>
+                {selectedOptionExtraTotal > 0
+                  ? `+${formatCurrency(selectedOptionExtraTotal)}`
+                  : '추가 금액 없음'}
+              </strong>
             </div>
           ) : null}
           <div className="order-summary-row">
@@ -314,129 +348,123 @@ export function OrderPage() {
         </div>
 
         <p className="feedback-copy">
-          배송비와 입금 계좌 정보는 주문 접수 후 확정된 결과 카드에서 확인할 수 있습니다.
+          주문 생성 후 결제 페이지에서 최종 금액, 입금 계좌, 입금 기한을 확인할 수 있습니다.
         </p>
       </section>
 
-      {submittedOrder ? (
-        <section
-          ref={resultCardRef}
-          className="surface-card order-result-card"
-          tabIndex={-1}
-          aria-labelledby="order-result-title"
-        >
-          <div className="section-head">
-            <div>
-              <p className="section-kicker">Completed</p>
-              <h2 className="section-subtitle" id="order-result-title">
-                주문이 접수되었습니다
-              </h2>
-            </div>
-            <span className="status-pill">{getOrderStatusLabel(submittedOrder.orderStatus)}</span>
-          </div>
-
-          <div className="order-result-grid">
-            <div className="order-result-block">
-              <h3>주문 정보</h3>
-              <div className="order-summary-row">
-                <span>주문번호</span>
-                <strong>{submittedOrder.orderNumber}</strong>
-              </div>
-              <div className="order-summary-row">
-                <span>현재 상태</span>
-                <strong>{getOrderStatusLabel(submittedOrder.orderStatus)}</strong>
-              </div>
-            </div>
-
-            <div className="order-result-block">
-              <h3>결제 금액</h3>
-              <div className="order-summary-row">
-                <span>상품 금액</span>
-                <strong>{formatCurrency(submittedOrder.pricing.totalProductPrice)}</strong>
-              </div>
-              <div className="order-summary-row">
-                <span>배송비</span>
-                <strong>{formatCurrency(submittedOrder.pricing.shippingFee)}</strong>
-              </div>
-              <div className="order-summary-row is-total">
-                <span>최종 결제 금액</span>
-                <strong>{formatCurrency(submittedOrder.pricing.finalTotalPrice)}</strong>
-              </div>
-            </div>
-
-            <div className="order-result-block">
-              <h3>입금 안내</h3>
-              <div className="order-summary-row">
-                <span>은행</span>
-                <strong>{submittedOrder.depositInfo.bankName}</strong>
-              </div>
-              <div className="order-summary-row">
-                <span>예금주</span>
-                <strong>{submittedOrder.depositInfo.accountHolder}</strong>
-              </div>
-              <div className="order-summary-row">
-                <span>계좌번호</span>
-                <strong>{submittedOrder.depositInfo.accountNumber}</strong>
-              </div>
-              <div className="order-summary-row">
-                <span>입금 예정 금액</span>
-                <strong>{formatCurrency(submittedOrder.depositInfo.expectedAmount)}</strong>
-              </div>
-              <div className="order-summary-row">
-                <span>입금 상태</span>
-                <strong>{getDepositStatusLabel(submittedOrder.depositInfo.depositStatus)}</strong>
-              </div>
-              <p className="feedback-copy order-deposit-note">
-                {getDepositStatusLabel(submittedOrder.depositInfo.depositStatus)} · 입금 기한{' '}
-                {formatDateTime(submittedOrder.depositInfo.depositDeadlineAt)}
-              </p>
-            </div>
-          </div>
-
-          <div className="inline-actions order-inline-actions">
-            <Link
-              className="button"
-              to={`/orders?orderNumber=${encodeURIComponent(submittedOrder.orderNumber)}`}
-              state={{ createdOrder: submittedOrder }}
-            >
-              주문 조회로 확인
-            </Link>
-            <Link className="button button-secondary" to={`/products/${product.id}`}>
-              상품 상세로 돌아가기
-            </Link>
-            <button className="button button-ghost" type="button" onClick={() => setSubmittedOrder(null)}>
-              주문서 다시 보기
-            </button>
-          </div>
-        </section>
-      ) : (
-        <form className="surface-card order-form-card" onSubmit={onSubmit}>
+      <form className="order-form-shell" onSubmit={onSubmit}>
+        <section className="surface-card order-form-card">
           <fieldset className="order-form-section">
             <legend>옵션 및 수량</legend>
 
-            {activeOptions.length > 0 ? (
-              <label className="field">
-                <span>옵션 선택</span>
-                <select
-                  name="productOptionId"
-                  value={selectedOptionId}
-                  onChange={(event) => setSelectedOptionId(event.target.value)}
-                  required
-                >
-                  <option value="">옵션을 선택해 주세요</option>
-                  {activeOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.optionGroupName} / {option.optionValue}
-                      {option.extraPrice > 0 ? ` (+${formatCurrency(option.extraPrice)})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            {optionGroups.length > 0 ? (
+              <div className="order-option-group-list">
+                {optionGroups.map((group) => (
+                  <div className="field order-option-group-field" key={group.groupName}>
+                    <div className="order-option-group-head">
+                      <span>
+                        {group.groupName}
+                        {(selectedOptionByGroup[group.groupName] ?? []).length > 0 ? (
+                          <small className="order-option-selected-flag">선택됨</small>
+                        ) : null}
+                      </span>
+                      <button
+                        type="button"
+                        className="order-option-toggle"
+                        onClick={() =>
+                          setExpandedOptionGroups((current) => ({
+                            ...current,
+                            [group.groupName]: !(current[group.groupName] ?? false),
+                          }))
+                        }
+                        aria-expanded={expandedOptionGroups[group.groupName] ?? false}
+                      >
+                        {expandedOptionGroups[group.groupName] ?? false ? '접기' : '펼치기'}
+                      </button>
+                    </div>
+                    {(expandedOptionGroups[group.groupName] ?? false) ? (
+                      <div className="order-option-multi-list">
+                        {group.options.map((option) => {
+                          const selectedValues = selectedOptionByGroup[group.groupName] ?? [];
+                          const isChecked = selectedValues.includes(String(option.id));
+
+                          return (
+                            <label
+                              className={`order-option-multi-item ${isChecked ? 'is-selected' : ''}`}
+                              key={option.id}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(event) =>
+                                  setSelectedOptionByGroup((current) => {
+                                    const previous = current[group.groupName] ?? [];
+                                    const next = event.target.checked
+                                      ? [...previous, String(option.id)]
+                                      : previous.filter((value) => value !== String(option.id));
+
+                                    return {
+                                      ...current,
+                                      [group.groupName]: [...new Set(next)],
+                                    };
+                                  })
+                                }
+                              />
+                              <span>{option.optionValue}</span>
+                              <strong>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '+0원'}</strong>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             ) : (
               <p className="feedback-copy">추가 옵션이 없는 상품입니다. 수량만 조정해서 바로 주문할 수 있습니다.</p>
             )}
 
-            <div className="field">
+            {optionGroups.length > 0 ? (
+              <section className="order-option-basket" aria-live="polite">
+                <div className="order-option-basket-head">
+                  <strong>선택된 옵션</strong>
+                  <span>{selectedOptions.length}개 담김</span>
+                </div>
+                {selectedOptions.length > 0 ? (
+                  <ul className="order-option-basket-list">
+                    {selectedOptions.map((option) => (
+                      <li key={option.id} className="order-option-basket-item">
+                        <div>
+                          <p>{option.optionGroupName}</p>
+                          <strong>{option.optionValue}</strong>
+                        </div>
+                        <div className="order-option-basket-side">
+                          <span>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '+0원'}</span>
+                          <button
+                            type="button"
+                            className="button-text order-option-remove-button"
+                            onClick={() =>
+                              setSelectedOptionByGroup((current) => ({
+                                ...current,
+                                [option.optionGroupName]: (current[option.optionGroupName] ?? []).filter(
+                                  (value) => value !== String(option.id),
+                                ),
+                              }))
+                            }
+                          >
+                            제거
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="feedback-copy">옵션을 선택하면 이곳에 담깁니다.</p>
+                )}
+              </section>
+            ) : null}
+
+            {/* <div className="field">
               <span>수량</span>
               <div className="quantity-stepper">
                 <button
@@ -461,19 +489,21 @@ export function OrderPage() {
                   +
                 </button>
               </div>
-            </div>
+            </div> */}
           </fieldset>
+        </section>
 
+        <section className="surface-card order-form-card">
           <fieldset className="order-form-section">
             <legend>주문자 정보</legend>
 
             <label className="field">
-              <span>buyerName</span>
+              <span>주문자 이름</span>
               <input value={contact.buyerName} onChange={onContactChange('buyerName')} placeholder="주문자 이름" required />
             </label>
 
             <label className="field">
-              <span>buyerPhone</span>
+              <span>주문자 연락처</span>
               <input
                 value={contact.buyerPhone}
                 onChange={onContactChange('buyerPhone')}
@@ -485,20 +515,47 @@ export function OrderPage() {
           </fieldset>
 
           <fieldset className="order-form-section">
-            <legend>수령인 정보</legend>
+            <legend className="order-section-legend-inline">
+              <span>수령인 정보</span>
+              <label className="order-inline-checkbox">
+                <input
+                  type="checkbox"
+                  checked={receiverSameAsBuyer}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setReceiverSameAsBuyer(checked);
+                    if (checked) {
+                      setContact((current) => ({
+                        ...current,
+                        receiverName: current.buyerName,
+                        receiverPhone: current.buyerPhone,
+                      }));
+                    }
+                  }}
+                />
+                <span>주문자 정보와 동일</span>
+              </label>
+            </legend>
 
             <label className="field">
-              <span>receiverName</span>
-              <input value={contact.receiverName} onChange={onContactChange('receiverName')} placeholder="수령인 이름" required />
+              <span>수령인 이름</span>
+              <input
+                value={contact.receiverName}
+                onChange={onContactChange('receiverName')}
+                placeholder="수령인 이름"
+                disabled={receiverSameAsBuyer}
+                required
+              />
             </label>
 
             <label className="field">
-              <span>receiverPhone</span>
+              <span>수령인 연락처</span>
               <input
                 value={contact.receiverPhone}
                 onChange={onContactChange('receiverPhone')}
                 placeholder="010-1234-5678"
                 inputMode="tel"
+                disabled={receiverSameAsBuyer}
                 required
               />
             </label>
@@ -508,17 +565,17 @@ export function OrderPage() {
             <legend>배송지 정보</legend>
 
             <label className="field">
-              <span>zipcode</span>
+              <span>우편번호</span>
               <input value={contact.zipcode} onChange={onContactChange('zipcode')} placeholder="우편번호" inputMode="numeric" required />
             </label>
 
             <label className="field">
-              <span>address1</span>
+              <span>기본 주소</span>
               <input value={contact.address1} onChange={onContactChange('address1')} placeholder="기본 주소" required />
             </label>
 
             <label className="field">
-              <span>address2</span>
+              <span>상세 주소</span>
               <input value={contact.address2} onChange={onContactChange('address2')} placeholder="상세 주소" />
             </label>
           </fieldset>
@@ -527,7 +584,7 @@ export function OrderPage() {
             <legend>추가 요청</legend>
 
             <label className="field">
-              <span>customerRequest</span>
+              <span>요청사항</span>
               <textarea
                 value={contact.customerRequest}
                 onChange={onContactChange('customerRequest')}
@@ -536,13 +593,6 @@ export function OrderPage() {
               />
             </label>
           </fieldset>
-
-          {product.consultationRequired ? (
-            <div className="order-note-card">
-              <p className="section-kicker">Consultation</p>
-              <p className="feedback-copy">이 상품은 상담이 필요한 상품입니다. 주문 접수 후 추가 확인 연락이 이어질 수 있습니다.</p>
-            </div>
-          ) : null}
 
           {submitError ? (
             <p className="feedback-copy is-error" role="alert">
@@ -555,11 +605,11 @@ export function OrderPage() {
               상품 상세로
             </Link>
             <button className="button" type="submit" disabled={isSubmitDisabled}>
-              {product.isSoldOut ? '품절 상품' : submitting ? '주문 접수 중...' : '주문 접수하기'}
+              {product.isSoldOut ? '품절 상품' : submitting ? '주문 생성 중...' : '결제하기'}
             </button>
           </div>
-        </form>
-      )}
+        </section>
+      </form>
     </main>
   );
 }

@@ -10,6 +10,7 @@ import { randomBytes } from 'crypto';
 import { DepositStatus, Prisma, ShipmentStatus } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { OrderNotificationsService } from '../notifications/order-notifications.service';
 import { assertOrderStatusTransition } from '../orders/domain/order-status-transition';
 import { CreateCustomCheckoutOrderDto } from './dto/create-custom-checkout-order.dto';
 import { CreateDepositRequestDto } from './dto/create-deposit-request.dto';
@@ -140,6 +141,18 @@ const storeOrderDetailArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
       orderBy: [{ id: 'asc' }],
       select: {
         productNameSnapshot: true,
+        product: {
+          select: {
+            images: {
+              where: { imageType: 'THUMBNAIL' },
+              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+              take: 1,
+              select: {
+                imageUrl: true,
+              },
+            },
+          },
+        },
         optionNameSnapshot: true,
         optionValueSnapshot: true,
         unitPrice: true,
@@ -245,6 +258,7 @@ export class StoreService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly orderNotifications: OrderNotificationsService,
   ) {}
 
   async getVisibleCategories() {
@@ -485,7 +499,7 @@ export class StoreService {
   async createOrder(dto: CreateOrderDto) {
     for (let attempt = 1; attempt <= ORDER_NUMBER_RETRY_LIMIT; attempt += 1) {
       try {
-        return await this.prisma.$transaction(
+        const result = await this.prisma.$transaction(
           async (tx) => {
             const now = new Date();
             const orderNumber = await this.generateOrderNumber(tx, now);
@@ -505,6 +519,13 @@ export class StoreService {
             isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
           },
         );
+
+        this.orderNotifications.notifyNewOrderCreated({
+          orderId: result.orderId,
+          orderNumber: result.orderNumber,
+        });
+
+        return result;
       } catch (error) {
         if (attempt < ORDER_NUMBER_RETRY_LIMIT && this.isRetryableOrderCreationError(error)) {
           continue;
@@ -572,6 +593,23 @@ export class StoreService {
     return this.mapAdminCustomOrderLink(link);
   }
 
+  async getAdminCustomOrderLinks(limit = 10): Promise<AdminCustomOrderLinkView[]> {
+    const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(Math.floor(limit), 1), 50) : 10;
+
+    const links = await this.prisma.customOrderLink.findMany({
+      where: {
+        deletedAt: null,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: safeLimit,
+      ...customOrderLinkArgs,
+    });
+
+    return links.map((link) => this.mapAdminCustomOrderLink(link));
+  }
+
   async getCustomCheckout(token: string): Promise<StoreCustomCheckoutResponse> {
     const link = await this.findCustomOrderLinkByTokenOrThrow(token);
 
@@ -616,6 +654,11 @@ export class StoreService {
           },
         );
 
+        this.orderNotifications.notifyNewOrderCreated({
+          orderId: result.orderId,
+          orderNumber: result.orderNumber,
+        });
+
         const { items: _items, ...data } = result;
 
         return data;
@@ -646,7 +689,7 @@ export class StoreService {
   ): Promise<StoreDepositRequestResponse> {
     for (let attempt = 1; attempt <= ORDER_NUMBER_RETRY_LIMIT; attempt += 1) {
       try {
-        return await this.prisma.$transaction(
+        const result = await this.prisma.$transaction(
           async (tx) => {
             const order = await tx.order.findUnique({
               where: { orderNumber },
@@ -665,6 +708,7 @@ export class StoreService {
                 order.orderStatus === 'PAYMENT_REQUESTED')
             ) {
               return {
+                orderId: Number(order.id),
                 orderNumber: order.orderNumber,
                 orderStatus: order.orderStatus,
                 depositStatus: order.deposit.depositStatus,
@@ -728,6 +772,7 @@ export class StoreService {
             }
 
             return {
+              orderId: Number(order.id),
               orderNumber: order.orderNumber,
               orderStatus: nextOrderStatus,
               depositStatus: DepositStatus.REQUESTED,
@@ -740,6 +785,16 @@ export class StoreService {
             isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
           },
         );
+
+        if (result.requestAccepted && result.orderStatus === 'PAYMENT_REQUESTED') {
+          this.orderNotifications.notifyDepositRequested({
+            orderId: result.orderId,
+            orderNumber: result.orderNumber,
+          });
+        }
+
+        const { orderId: _orderId, ...response } = result;
+        return response;
       } catch (error) {
         if (
           attempt < ORDER_NUMBER_RETRY_LIMIT &&
@@ -825,25 +880,51 @@ export class StoreService {
         });
       }
 
-      const option = item.productOptionId
-        ? product.options.find((candidate) => Number(candidate.id) === item.productOptionId)
-        : undefined;
+      const requestedOptionIds =
+        item.selectedOptionIds && item.selectedOptionIds.length > 0
+          ? [...new Set(item.selectedOptionIds)]
+          : item.productOptionId
+            ? [item.productOptionId]
+            : [];
 
-      if (item.productOptionId && !option) {
-        throw new BadRequestException({
-          code: 'VALIDATION_ERROR',
-          message: '유효하지 않은 상품 옵션입니다.',
-        });
+      const selectedOptions = requestedOptionIds.map((optionId) => {
+        const option = product.options.find((candidate) => Number(candidate.id) === optionId);
+
+        if (!option) {
+          throw new BadRequestException({
+            code: 'VALIDATION_ERROR',
+            message: '유효하지 않은 상품 옵션입니다.',
+          });
+        }
+
+        return option;
+      });
+
+      const totalExtraPrice = selectedOptions.reduce((sum, option) => sum + option.extraPrice, 0);
+      const unitPrice = product.basePrice + totalExtraPrice;
+      const optionGroupsSnapshot = new Map<string, string[]>();
+      for (const option of selectedOptions) {
+        const values = optionGroupsSnapshot.get(option.optionGroupName) ?? [];
+        values.push(option.optionValue);
+        optionGroupsSnapshot.set(option.optionGroupName, values);
       }
 
-      const unitPrice = product.basePrice + (option?.extraPrice ?? 0);
+      const optionNameSnapshot =
+        optionGroupsSnapshot.size > 0 ? [...optionGroupsSnapshot.keys()].join(' / ') : null;
+      const optionValueSnapshot =
+        optionGroupsSnapshot.size > 0
+          ? [...optionGroupsSnapshot.entries()]
+              .map(([groupName, values]) => `${groupName}: ${values.join(', ')}`)
+              .join(' / ')
+          : null;
+      const resolvedProductOptionId = selectedOptions.length === 1 ? selectedOptions[0].id : null;
 
       return {
         productId: product.id,
-        productOptionId: option?.id ?? null,
+        productOptionId: resolvedProductOptionId,
         productNameSnapshot: product.name,
-        optionNameSnapshot: option?.optionGroupName ?? null,
-        optionValueSnapshot: option?.optionValue ?? null,
+        optionNameSnapshot,
+        optionValueSnapshot,
         unitPrice,
         quantity: item.quantity,
         lineTotalPrice: unitPrice * item.quantity,
@@ -1281,6 +1362,7 @@ export class StoreService {
       customerRequest: order.customerRequest,
       items: order.items.map((item) => ({
         productNameSnapshot: item.productNameSnapshot,
+        thumbnailImageUrl: item.product.images[0]?.imageUrl ?? null,
         optionNameSnapshot: item.optionNameSnapshot,
         optionValueSnapshot: item.optionValueSnapshot,
         unitPrice: item.unitPrice,

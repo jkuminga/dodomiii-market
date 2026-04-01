@@ -1,15 +1,15 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 
+import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { AdminOrderListItem, PaginationMeta, StoreOrderStatus, apiClient } from '../../lib/api';
 import {
   AdminLayoutContext,
   formatAdminDateTime,
   formatAdminPhone,
   formatCurrency,
-  getDepositStatusLabel,
+  getAllowedNextOrderStatuses,
   getOrderStatusLabel,
-  getShipmentStatusLabel,
 } from './adminUtils';
 
 const DEFAULT_META: PaginationMeta = {
@@ -18,6 +18,18 @@ const DEFAULT_META: PaginationMeta = {
   totalItems: 0,
   totalPages: 0,
 };
+
+const ORDER_STATUS_FILTER_OPTIONS: Array<{ value: 'all' | StoreOrderStatus; label: string }> = [
+  { value: 'all', label: '전체' },
+  { value: 'PENDING_PAYMENT', label: '입금 대기' },
+  { value: 'PAYMENT_REQUESTED', label: '입금 요청 확인 중' },
+  { value: 'PAYMENT_CONFIRMED', label: '입금 확인 완료' },
+  { value: 'PREPARING', label: '제작 및 출고 준비' },
+  { value: 'SHIPPED', label: '배송 중' },
+  { value: 'DELIVERED', label: '배송 완료' },
+  { value: 'CANCELLED', label: '주문 취소' },
+  { value: 'EXPIRED', label: '입금 기한 만료' },
+];
 
 function parseOrderStatusFilter(value: string | null): StoreOrderStatus | undefined {
   if (
@@ -49,6 +61,7 @@ export function AdminOrdersPage() {
   const [meta, setMeta] = useState<PaginationMeta>(DEFAULT_META);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
 
   const q = searchParams.get('q') ?? '';
   const orderStatusParam = searchParams.get('orderStatus') ?? 'all';
@@ -85,14 +98,13 @@ export function AdminOrdersPage() {
 
     const next = new URLSearchParams();
     const nextQuery = String(formData.get('q') ?? '').trim();
-    const nextStatus = String(formData.get('orderStatus') ?? 'all');
 
     if (nextQuery) {
       next.set('q', nextQuery);
     }
 
-    if (nextStatus !== 'all') {
-      next.set('orderStatus', nextStatus);
+    if (orderStatusParam !== 'all') {
+      next.set('orderStatus', orderStatusParam);
     }
 
     next.set('page', '1');
@@ -105,13 +117,47 @@ export function AdminOrdersPage() {
     setSearchParams(next);
   };
 
+  const onSelectOrderStatusFilter = (status: 'all' | StoreOrderStatus) => {
+    const next = new URLSearchParams(searchParams);
+
+    if (status === 'all') {
+      next.delete('orderStatus');
+    } else {
+      next.set('orderStatus', status);
+    }
+
+    next.set('page', '1');
+    setSearchParams(next);
+  };
+
+  const onQuickChangeOrderStatus = async (order: AdminOrderListItem, nextStatus: StoreOrderStatus) => {
+    if (nextStatus === order.orderStatus || updatingOrderId !== null) {
+      return;
+    }
+
+    setUpdatingOrderId(order.id);
+
+    try {
+      await apiClient.updateAdminOrderStatus(order.id, {
+        orderStatus: nextStatus,
+      });
+
+      showToast(`${order.buyerName} 주문 상태를 변경했습니다.`);
+      await loadOrders();
+    } catch (caught) {
+      showToast(caught instanceof Error ? caught.message : '주문 상태 변경에 실패했습니다.', 'error');
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
   return (
     <section className="admin-section">
       <section className="surface-hero compact-hero admin-hero-card">
         <div className="admin-hero-copy">
           <p className="section-kicker">Orders</p>
           <h2 className="section-title admin-section-title">주문 관리</h2>
-          <p className="section-copy">주문 상태와 입금, 배송 진행 상황을 한 화면에서 조회하고 상세 운영 화면으로 연결합니다.</p>
+          {/* <p className="section-copy">주문 상태와 입금, 배송 진행 상황을 한 화면에서 조회하고 상세 운영 화면으로 연결합니다.</p> */}
         </div>
 
         <div className="admin-stat-grid">
@@ -141,6 +187,7 @@ export function AdminOrdersPage() {
           </button>
         </div>
 
+
         <div className="admin-field-grid">
           <label className="field">
             <span>검색어</span>
@@ -151,26 +198,11 @@ export function AdminOrdersPage() {
               autoComplete="off"
             />
           </label>
-
-          <label className="field">
-            <span>주문 상태</span>
-            <select name="orderStatus" defaultValue={orderStatusParam}>
-              <option value="all">전체</option>
-              <option value="PENDING_PAYMENT">입금 대기</option>
-              <option value="PAYMENT_REQUESTED">입금 요청 확인 중</option>
-              <option value="PAYMENT_CONFIRMED">입금 확인 완료</option>
-              <option value="PREPARING">제작 및 출고 준비</option>
-              <option value="SHIPPED">배송 중</option>
-              <option value="DELIVERED">배송 완료</option>
-              <option value="CANCELLED">주문 취소</option>
-              <option value="EXPIRED">입금 기한 만료</option>
-            </select>
-          </label>
         </div>
 
         <div className="inline-actions">
           <button className="button" type="submit">
-            조건 적용
+            검색
           </button>
           <button
             className="button button-secondary"
@@ -184,7 +216,7 @@ export function AdminOrdersPage() {
           </button>
         </div>
       </form>
-
+      
       <section className="surface-card admin-card-stack">
         <div className="admin-section-head">
           <div>
@@ -193,8 +225,23 @@ export function AdminOrdersPage() {
           </div>
           <span className="admin-inline-note">{meta.totalItems}건</span>
         </div>
+        
+        <div className="admin-status-filter-row" role="tablist" aria-label="주문 상태 필터">
+          {ORDER_STATUS_FILTER_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              className={`admin-status-filter-button ${orderStatusParam === option.value ? 'is-active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={orderStatusParam === option.value}
+              onClick={() => onSelectOrderStatusFilter(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
 
-        {loading ? <p className="feedback-copy">주문 목록을 불러오는 중입니다.</p> : null}
+        {loading ? <LoadingScreen mode="inline" title="주문 목록 로딩 중" message="주문 목록을 불러오고 있습니다." /> : null}
         {error ? (
           <p className="feedback-copy is-error" role="alert">
             {error}
@@ -212,19 +259,17 @@ export function AdminOrdersPage() {
           <>
             <div className="admin-list-grid">
               {orders.map((order) => (
-                <Link className="admin-list-card admin-order-list-card" key={order.id} to={`/admin/orders/${order.id}`}>
+                <article className="admin-list-card admin-order-list-card" key={order.id}>
                   <div className="admin-list-card-head">
                     <div>
-                      <strong>{order.orderNumber}</strong>
+                      <strong>
+                        {order.buyerName} · {formatAdminPhone(order.buyerPhone)}
+                      </strong>
                       <p>
-                        주문 생성 {formatAdminDateTime(order.createdAt)} · 최근 변경 {formatAdminDateTime(order.updatedAt)}
+                        수령인 {order.receiverName} · {formatAdminPhone(order.receiverPhone)}
                       </p>
                     </div>
-                    <div className="admin-pill-row">
-                      <span className="status-pill">{getOrderStatusLabel(order.orderStatus)}</span>
-                      <span className="status-pill is-muted">{getDepositStatusLabel(order.depositStatus)}</span>
-                      <span className="status-pill is-muted">{getShipmentStatusLabel(order.shipmentStatus)}</span>
-                    </div>
+                    <span className="status-pill">{getOrderStatusLabel(order.orderStatus)}</span>
                   </div>
 
                   <div className="admin-product-summary">
@@ -233,14 +278,35 @@ export function AdminOrdersPage() {
                   </div>
 
                   <div className="admin-meta-row">
+                    <span>주문번호 {order.orderNumber}</span>
+                    <span>주문 생성 {formatAdminDateTime(order.createdAt)}</span>
+                  </div>
+
+                  <div className="admin-order-card-actions">
+                    <label className="field admin-compact-field">
+                      <span>빠른 상태 변경</span>
+                      <select
+                        value={order.orderStatus}
+                        disabled={updatingOrderId !== null}
+                        onChange={(event) =>
+                          void onQuickChangeOrderStatus(order, event.currentTarget.value as StoreOrderStatus)
+                        }
+                      >
+                        {[order.orderStatus, ...getAllowedNextOrderStatuses(order.orderStatus)].map((status) => (
+                          <option key={status} value={status}>
+                            {getOrderStatusLabel(status)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
                     <span>
-                      구매자 {order.buyerName} · {formatAdminPhone(order.buyerPhone)}
-                    </span>
-                    <span>
-                      수령인 {order.receiverName} · {formatAdminPhone(order.receiverPhone)}
+                      <Link className="button button-ghost" to={`/admin/orders/${order.id}`}>
+                        상세 보기
+                      </Link>
                     </span>
                   </div>
-                </Link>
+                </article>
               ))}
             </div>
 

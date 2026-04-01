@@ -1,28 +1,23 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
+import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { ProductArtwork } from '../../components/store/ProductArtwork';
 import { apiClient, CategoryTreeNode, ProductListItem } from '../../lib/api';
 
-function flattenCategories(nodes: CategoryTreeNode[]): Array<{ slug: string; name: string }> {
-  const result: Array<{ slug: string; name: string }> = [];
-
-  const walk = (items: CategoryTreeNode[], prefix = '') => {
-    for (const item of items) {
-      result.push({
-        slug: item.slug,
-        name: prefix ? `${prefix} / ${item.name}` : item.name,
-      });
-
-      if (item.children.length > 0) {
-        walk(item.children, prefix ? `${prefix} / ${item.name}` : item.name);
+function findCategoryNameBySlug(nodes: CategoryTreeNode[], slug: string): string | null {
+  for (const node of nodes) {
+    if (node.slug === slug) {
+      return node.name;
+    }
+    if (node.children.length > 0) {
+      const found = findCategoryNameBySlug(node.children, slug);
+      if (found) {
+        return found;
       }
     }
-  };
-
-  walk(nodes);
-
-  return result;
+  }
+  return null;
 }
 
 function formatCurrency(value: number): string {
@@ -39,7 +34,6 @@ export function CatalogPage() {
   const [error, setError] = useState('');
 
   const categorySlug = searchParams.get('categorySlug') ?? '';
-  const q = searchParams.get('q') ?? '';
   const sort = searchParams.get('sort') ?? 'latest';
   const page = Number(searchParams.get('page') ?? '1');
 
@@ -55,7 +49,6 @@ export function CatalogPage() {
           apiClient.getCategories(),
           apiClient.getProductsWithMeta({
             categorySlug: categorySlug || undefined,
-            q: q || undefined,
             sort,
             page,
             size: 12,
@@ -85,26 +78,15 @@ export function CatalogPage() {
     return () => {
       cancelled = true;
     };
-  }, [categorySlug, page, q, sort]);
+  }, [categorySlug, page, sort]);
 
-  const categoryOptions = useMemo(() => flattenCategories(categories), [categories]);
+  const titleCategoryName = useMemo(() => {
+    if (!categorySlug) {
+      return '전체 상품';
+    }
 
-  const onSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-
-    const nextQ = String(formData.get('q') ?? '').trim();
-    const nextCategorySlug = String(formData.get('categorySlug') ?? '').trim();
-    const nextSort = String(formData.get('sort') ?? 'latest');
-
-    const next = new URLSearchParams();
-    if (nextQ) next.set('q', nextQ);
-    if (nextCategorySlug) next.set('categorySlug', nextCategorySlug);
-    if (nextSort && nextSort !== 'latest') next.set('sort', nextSort);
-    next.set('page', '1');
-
-    setSearchParams(next);
-  };
+    return findCategoryNameBySlug(categories, categorySlug) ?? '상품';
+  }, [categories, categorySlug]);
 
   const onMovePage = (nextPage: number) => {
     const next = new URLSearchParams(searchParams);
@@ -115,58 +97,22 @@ export function CatalogPage() {
   return (
     <main className="m-page catalog-page">
       <section className="surface-hero compact-hero">
-        <p className="section-kicker">Collection</p>
-        <h1 className="section-title">상품 컬렉션</h1>
-        <p className="section-copy">
-          모바일에서 필터와 검색을 한 번에 조절할 수 있도록 상단에 정리했고, 각 상품 카드는 이미지와 가격 정보에 먼저
-          집중하도록 재배치했습니다.
-        </p>
+        <p className="section-kicker">{categorySlug || 'all'}</p>
+        <h1 className="section-title">{titleCategoryName}</h1>
         <div className="hero-metrics">
           <span className="metric-chip">{meta.totalItems} items</span>
-          <span className="metric-chip">{sort === 'latest' ? '최신순' : sort === 'price_asc' ? '가격 낮은순' : '가격 높은순'}</span>
+          {/* <span className="metric-chip">{sort === 'latest' ? '최신순' : sort === 'price_asc' ? '가격 낮은순' : '가격 높은순'}</span> */}
         </div>
       </section>
 
-      <form className="surface-card filter-panel" onSubmit={onSearchSubmit}>
-        <label className="field">
-          <span>카테고리</span>
-          <select name="categorySlug" defaultValue={categorySlug}>
-            <option value="">전체</option>
-            {categoryOptions.map((item) => (
-              <option key={item.slug} value={item.slug}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="field">
-          <span>검색어</span>
-          <input name="q" defaultValue={q} placeholder="상품명 검색" />
-        </label>
-
-        <label className="field">
-          <span>정렬</span>
-          <select name="sort" defaultValue={sort}>
-            <option value="latest">최신순</option>
-            <option value="price_asc">가격 낮은순</option>
-            <option value="price_desc">가격 높은순</option>
-          </select>
-        </label>
-
-        <button className="button button-block" type="submit">
-          필터 적용
-        </button>
-      </form>
-
-      {loading ? <p className="feedback-copy">상품 목록을 불러오는 중입니다.</p> : null}
+      {loading ? <LoadingScreen mode="inline" title="상품 목록 로딩 중" message="상품 목록을 불러오고 있습니다." /> : null}
       {error ? <p className="feedback-copy is-error">{error}</p> : null}
 
       {!loading && !error && products.length === 0 ? (
         <section className="surface-card empty-state">
           <p className="section-kicker">No Results</p>
-          <h2 className="section-subtitle">조건에 맞는 상품이 없습니다</h2>
-          <p className="section-copy">검색어나 카테고리를 바꾸면 바로 다시 조회할 수 있습니다.</p>
+          {/* <h2 className="section-subtitle">조건에 맞는 상품이 없습니다</h2> */}
+          <p className="section-copy">등록된 상품이 없습니다.</p>
         </section>
       ) : null}
 

@@ -1,36 +1,20 @@
-import { Injectable, Logger } from '@nestjs/common';
-import type { OrderStatus, ShipmentStatus } from '@prisma/client';
+import { Injectable } from '@nestjs/common';
 
-type AdminOrderStatusChangedEvent = {
-  orderId: number;
-  orderNumber: string;
-  previousStatus: OrderStatus;
-  newStatus: OrderStatus;
-  adminId: number;
-  changeReason: string | null;
-};
-
-type AdminOrderShipmentUpdatedEvent = {
-  orderId: number;
-  orderNumber: string;
-  orderStatus: OrderStatus;
-  shipmentStatus: ShipmentStatus;
-  adminId: number;
-};
+import { OrderNotificationsService } from '../notifications/order-notifications.service';
+import type {
+  OrderShipmentUpdatedEvent as AdminOrderShipmentUpdatedEvent,
+  OrderStatusChangedEvent as AdminOrderStatusChangedEvent,
+} from '../notifications/order-notification.events';
 
 @Injectable()
 export class AdminOrderNotificationsService {
-  private readonly logger = new Logger(AdminOrderNotificationsService.name);
+  constructor(private readonly orderNotifications: OrderNotificationsService) {}
 
-  async notifyOrderStatusChanged(event: AdminOrderStatusChangedEvent): Promise<void> {
-    this.logger.debug(
-      `order-status-changed orderId=${event.orderId} orderNumber=${event.orderNumber} previousStatus=${event.previousStatus} newStatus=${event.newStatus} adminId=${event.adminId}`,
-    );
+  notifyOrderStatusChanged(event: AdminOrderStatusChangedEvent): void {
+    this.orderNotifications.notifyOrderStatusChanged(event);
   }
 
-  async notifyOrderShipmentUpdated(event: AdminOrderShipmentUpdatedEvent): Promise<void> {
-    this.logger.debug(
-      `order-shipment-updated orderId=${event.orderId} orderNumber=${event.orderNumber} orderStatus=${event.orderStatus} shipmentStatus=${event.shipmentStatus} adminId=${event.adminId}`,
-    );
+  notifyOrderShipmentUpdated(event: AdminOrderShipmentUpdatedEvent): void {
+    this.orderNotifications.notifyOrderShipmentUpdated(event);
   }
 }

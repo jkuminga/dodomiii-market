@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import logoMain from '../../assets/images/logo_main3.jpg';
+import { apiClient, CategoryTreeNode } from '../../lib/api';
 
 function MenuIcon() {
   return (
@@ -19,6 +20,14 @@ function ArrowLeftIcon() {
   );
 }
 
+function ChevronIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
 function BagIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -32,6 +41,8 @@ export function MobileHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [roots, setRoots] = useState<CategoryTreeNode[]>([]);
+  const [expandedRootSlugs, setExpandedRootSlugs] = useState<Set<string>>(new Set());
 
   const detailMatch = location.pathname.match(/^\/products\/([^/]+)$/);
   const orderMatch = location.pathname.match(/^\/products\/([^/]+)\/order$/);
@@ -42,7 +53,31 @@ export function MobileHeader() {
 
   useEffect(() => {
     setMenuOpen(false);
+    setExpandedRootSlugs(new Set());
   }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        const result = await apiClient.getCategories();
+        if (!cancelled) {
+          setRoots(result.items);
+        }
+      } catch {
+        if (!cancelled) {
+          setRoots([]);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) {
@@ -73,6 +108,18 @@ export function MobileHeader() {
     }
 
     navigate(isDetailPage ? '/products' : '/', { replace: false });
+  };
+
+  const toggleRoot = (slug: string) => {
+    setExpandedRootSlugs((current) => {
+      const next = new Set(current);
+      if (next.has(slug)) {
+        next.delete(slug);
+      } else {
+        next.add(slug);
+      }
+      return next;
+    });
   };
 
   return (
@@ -132,23 +179,63 @@ export function MobileHeader() {
         <nav className="m-menu-links" aria-label="주요 메뉴">
           <Link className="m-menu-link" to="/">
             <span>홈</span>
-            <small>브랜드 소개와 추천 상품</small>
+            <small>메인 화면으로 이동</small>
           </Link>
-          <Link className="m-menu-link" to="/products">
-            <span>전체 상품</span>
-            <small>카테고리와 검색 필터로 둘러보기</small>
+
+          <section className="m-menu-category-group" aria-label="카테고리 메뉴">
+            <div className="m-menu-category-title">카테고리</div>
+            {roots.length === 0 ? (
+              <p className="m-menu-category-empty">표시할 카테고리가 없습니다.</p>
+            ) : (
+              <ul className="m-menu-category-root-list">
+                {roots.map((root) => {
+                  const hasChildren = root.children.length > 0;
+                  const expanded = expandedRootSlugs.has(root.slug);
+
+                  return (
+                    <li key={root.slug} className="m-menu-category-root-item">
+                      <div className="m-menu-category-root-row">
+                        <Link className="m-menu-category-link" to={`/products?categorySlug=${root.slug}`}>
+                          {root.name}
+                        </Link>
+                        {hasChildren ? (
+                          <button
+                            className={`m-menu-category-toggle ${expanded ? 'is-open' : ''}`}
+                            type="button"
+                            onClick={() => toggleRoot(root.slug)}
+                            aria-label={`${root.name} 하위 카테고리 ${expanded ? '닫기' : '열기'}`}
+                            aria-expanded={expanded}
+                          >
+                            <ChevronIcon />
+                          </button>
+                        ) : null}
+                      </div>
+                      {hasChildren && expanded ? (
+                        <ul className="m-menu-category-child-list">
+                          {root.children.map((child) => (
+                            <li key={child.slug}>
+                              <Link className="m-menu-category-child-link" to={`/products?categorySlug=${child.slug}`}>
+                                {child.name}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          <Link className="m-menu-link" to="/notices">
+            <span>공지사항</span>
+            <small>공지와 운영 소식 확인</small>
           </Link>
-          <Link className="m-menu-link" to="/products?sort=price_asc">
-            <span>가벼운 가격대</span>
-            <small>부담 없이 고를 수 있는 아이템</small>
-          </Link>
-          <Link className="m-menu-link" to="/products?sort=latest">
-            <span>신상품</span>
-            <small>가장 최근에 등록된 컬렉션</small>
-          </Link>
-          <Link className="m-menu-link" to="/orders">
-            <span>주문 조회</span>
-            <small>주문번호로 입금과 배송 상태 확인</small>
+
+          <Link className="m-menu-link" to="/qna">
+            <span>QnA</span>
+            <small>자주 묻는 질문과 문의</small>
           </Link>
         </nav>
       </aside>

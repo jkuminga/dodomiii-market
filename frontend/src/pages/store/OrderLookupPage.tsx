@@ -3,7 +3,6 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 
 import {
   apiClient,
-  StoreDepositRequestPayload,
   StoreDepositStatus,
   StoreOrderCreateResponse,
   StoreOrderLookupResponse,
@@ -24,16 +23,6 @@ type TimelineItem = {
   variant: 'complete' | 'current' | 'pending';
   linkUrl?: string | null;
   linkLabel?: string;
-};
-
-type DepositRequestFormState = {
-  depositorName: string;
-  memo: string;
-};
-
-const INITIAL_DEPOSIT_REQUEST_FORM: DepositRequestFormState = {
-  depositorName: '',
-  memo: '',
 };
 
 function normalizeOrderNumber(value: string): string {
@@ -118,6 +107,10 @@ function getShipmentStatusLabel(status: StoreShipmentStatus): string {
     default:
       return status;
   }
+}
+
+function hasShipmentStarted(status: StoreShipmentStatus | null | undefined): boolean {
+  return status === 'SHIPPED' || status === 'DELIVERED';
 }
 
 function buildFallbackTracking(order: StoreOrderLookupResponse): StoreOrderTrackingResponse {
@@ -238,21 +231,6 @@ function buildTimeline(order: StoreOrderLookupResponse, tracking: StoreOrderTrac
     });
   }
 
-  const hasCurrentState = items.some((item) => item.variant === 'current');
-
-  if (!hasCurrentState) {
-    items.push({
-      key: 'latest-status',
-      title: getOrderStatusLabel(order.orderStatus),
-      description: '가장 최근에 반영된 주문 상태입니다.',
-      occurredAt: order.updatedAt,
-      variant: 'current',
-      linkUrl: shipment.trackingUrl,
-      linkLabel:
-        shipment.shipmentStatus === 'SHIPPED' && shipment.trackingNumber ? `운송장 ${shipment.trackingNumber}` : undefined,
-    });
-  }
-
   return items.sort((left, right) => {
     if (left.occurredAt && right.occurredAt) {
       return left.occurredAt.localeCompare(right.occurredAt);
@@ -284,10 +262,6 @@ export function OrderLookupPage() {
   const [lookupError, setLookupError] = useState('');
   const [trackingError, setTrackingError] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
-  const [depositRequestForm, setDepositRequestForm] = useState<DepositRequestFormState>(INITIAL_DEPOSIT_REQUEST_FORM);
-  const [depositRequestLoading, setDepositRequestLoading] = useState(false);
-  const [depositRequestError, setDepositRequestError] = useState('');
-  const [depositRequestResult, setDepositRequestResult] = useState('');
 
   useEffect(() => {
     setOrderNumberInput(searchOrderNumber);
@@ -300,8 +274,6 @@ export function OrderLookupPage() {
       setLookupLoading(false);
       setLookupError('');
       setTrackingError('');
-      setDepositRequestError('');
-      setDepositRequestResult('');
       return;
     }
 
@@ -353,27 +325,9 @@ export function OrderLookupPage() {
     };
   }, [createdOrder, refreshKey, searchOrderNumber]);
 
-  useEffect(() => {
-    if (!order) {
-      setDepositRequestForm(INITIAL_DEPOSIT_REQUEST_FORM);
-      return;
-    }
-
-    setDepositRequestForm({
-      depositorName: order.deposit.depositorName ?? order.contact.buyerName,
-      memo: '',
-    });
-  }, [order?.orderNumber]);
-
   const timelineItems = order ? buildTimeline(order, tracking) : [];
   const activeTracking = tracking ?? (order ? buildFallbackTracking(order) : null);
   const depositExpectedAmount = order?.deposit.expectedAmount ?? order?.pricing.finalTotalPrice ?? 0;
-  const canRequestDeposit =
-    !!order &&
-    !lookupLoading &&
-    !depositRequestLoading &&
-    !['CONFIRMED', 'REQUESTED'].includes(order.deposit.depositStatus) &&
-    !['CANCELLED', 'EXPIRED'].includes(order.orderStatus);
 
   const onLookupSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -387,59 +341,12 @@ export function OrderLookupPage() {
       return;
     }
 
-    setDepositRequestError('');
-    setDepositRequestResult('');
-
     const nextParams = new URLSearchParams();
     nextParams.set('orderNumber', nextOrderNumber);
     setSearchParams(nextParams);
 
     if (nextOrderNumber === searchOrderNumber) {
       setRefreshKey((value) => value + 1);
-    }
-  };
-
-  const onRequestDeposit = async () => {
-    if (!order) {
-      return;
-    }
-
-    setDepositRequestLoading(true);
-    setDepositRequestError('');
-    setDepositRequestResult('');
-
-    const payload: StoreDepositRequestPayload = {
-      depositorName: depositRequestForm.depositorName.trim() || undefined,
-      memo: depositRequestForm.memo.trim() || undefined,
-    };
-
-    try {
-      const result = await apiClient.requestDeposit(order.orderNumber, payload);
-
-      setOrder((current) => {
-        if (!current || current.orderNumber !== result.orderNumber) {
-          return current;
-        }
-
-        return {
-          ...current,
-          orderStatus: current.orderStatus === 'PENDING_PAYMENT' ? 'PAYMENT_REQUESTED' : current.orderStatus,
-          deposit: {
-            ...current.deposit,
-            depositStatus: result.depositStatus,
-            requestedAt: result.requestedAt,
-            depositorName: payload.depositorName ?? current.deposit.depositorName ?? null,
-          },
-          updatedAt: result.requestedAt ?? current.updatedAt,
-        };
-      });
-
-      setDepositRequestResult('입금 확인 요청이 접수되었습니다. 상태가 반영되면 타임라인에서도 확인할 수 있습니다.');
-      setRefreshKey((value) => value + 1);
-    } catch (caught) {
-      setDepositRequestError(caught instanceof Error ? caught.message : '입금 확인 요청 처리 중 오류가 발생했습니다.');
-    } finally {
-      setDepositRequestLoading(false);
     }
   };
 
@@ -488,6 +395,8 @@ export function OrderLookupPage() {
         </p>
       </form>
 
+      {(lookupError || order || searchOrderNumber) ? <div className="order-lookup-divider" aria-hidden="true" /> : null}
+
       {lookupError ? (
         <section className="surface-card status-card" role="alert">
           <p className="section-kicker">Unavailable</p>
@@ -528,7 +437,11 @@ export function OrderLookupPage() {
                 </div>
                 <div className="order-summary-row">
                   <span>배송 상태</span>
-                  <strong>{getShipmentStatusLabel(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)}</strong>
+                  <strong>
+                    {hasShipmentStarted(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)
+                      ? getShipmentStatusLabel(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)
+                      : '-'}
+                  </strong>
                 </div>
               </div>
 
@@ -558,15 +471,24 @@ export function OrderLookupPage() {
             <ul className="order-item-list">
               {order.items.map((item, index) => (
                 <li className="order-item-card" key={`${item.productNameSnapshot}-${index}`}>
-                  <div>
-                    <strong>{item.productNameSnapshot}</strong>
-                    {item.optionNameSnapshot && item.optionValueSnapshot ? (
-                      <p>
-                        {item.optionNameSnapshot} / {item.optionValueSnapshot}
-                      </p>
-                    ) : null}
+                  <div className="order-item-head">
+                    <div className="order-item-thumb" aria-hidden="true">
+                      {item.thumbnailImageUrl ? (
+                        <img src={item.thumbnailImageUrl} alt="" loading="lazy" />
+                      ) : (
+                        <span>{item.productNameSnapshot.trim().slice(0, 1) || 'D'}</span>
+                      )}
+                    </div>
+                    <div>
+                      <strong>{item.productNameSnapshot}</strong>
+                      {item.optionNameSnapshot && item.optionValueSnapshot ? (
+                        <p>
+                          {item.optionNameSnapshot} / {item.optionValueSnapshot}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="order-item-line">
+                  <div className="order-item-line lookup-item-line">
                     <span>
                       {formatCurrency(item.unitPrice)} x {item.quantity}
                     </span>
@@ -632,73 +554,13 @@ export function OrderLookupPage() {
                 </div>
                 <div className="order-summary-row">
                   <span>계좌번호</span>
-                  <strong>{order.deposit.accountNumber ?? '주문 접수 화면에서 확인'}</strong>
+                  <strong className="lookup-value-break">
+                    {order.deposit.accountNumber ?? '주문 접수 화면에서 확인'}
+                  </strong>
                 </div>
               </div>
             </div>
 
-            <div className="order-lookup-block">
-              <div className="section-head">
-                <div>
-                  <p className="section-kicker">Action</p>
-                  <h3>입금 확인 요청</h3>
-                </div>
-                <button className="button button-secondary" type="button" onClick={onRequestDeposit} disabled={!canRequestDeposit}>
-                  {depositRequestLoading ? '요청 중...' : '입금확인요청'}
-                </button>
-              </div>
-
-              <div className="deposit-request-grid">
-                <label className="field">
-                  <span>입금자명</span>
-                  <input
-                    value={depositRequestForm.depositorName}
-                    onChange={(event) =>
-                      setDepositRequestForm((current) => ({
-                        ...current,
-                        depositorName: event.target.value,
-                      }))
-                    }
-                    placeholder="입금자명을 남기면 확인이 빨라집니다"
-                  />
-                </label>
-
-                <label className="field">
-                  <span>메모</span>
-                  <textarea
-                    rows={3}
-                    value={depositRequestForm.memo}
-                    onChange={(event) =>
-                      setDepositRequestForm((current) => ({
-                        ...current,
-                        memo: event.target.value,
-                      }))
-                    }
-                    placeholder="입금 시간이나 전달할 내용을 남겨 주세요"
-                  />
-                </label>
-              </div>
-
-              {depositRequestResult ? (
-                <p className="feedback-copy" role="status">
-                  {depositRequestResult}
-                </p>
-              ) : null}
-              {depositRequestError ? (
-                <p className="feedback-copy is-error" role="alert">
-                  {depositRequestError}
-                </p>
-              ) : null}
-              {!canRequestDeposit ? (
-                <p className="feedback-copy">
-                  {order.deposit.depositStatus === 'CONFIRMED'
-                    ? '이미 입금 확인이 완료된 주문입니다.'
-                    : order.deposit.depositStatus === 'REQUESTED'
-                      ? '입금 확인 요청이 이미 접수되어 있습니다.'
-                      : '현재 상태에서는 입금 확인 요청을 보낼 수 없습니다.'}
-                </p>
-              ) : null}
-            </div>
           </section>
 
           <section className="surface-card order-lookup-summary">
@@ -718,15 +580,27 @@ export function OrderLookupPage() {
               <div className="order-lookup-block">
                 <div className="order-summary-row">
                   <span>배송 상태</span>
-                  <strong>{getShipmentStatusLabel(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)}</strong>
+                  <strong>
+                    {hasShipmentStarted(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)
+                      ? getShipmentStatusLabel(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)
+                      : '-'}
+                  </strong>
                 </div>
                 <div className="order-summary-row">
                   <span>택배사</span>
-                  <strong>{activeTracking?.courierName ?? '배정 전'}</strong>
+                  <strong>
+                    {hasShipmentStarted(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)
+                      ? activeTracking?.courierName ?? '-'
+                      : '-'}
+                  </strong>
                 </div>
                 <div className="order-summary-row">
                   <span>운송장 번호</span>
-                  <strong>{activeTracking?.trackingNumber ?? '등록 전'}</strong>
+                  <strong>
+                    {hasShipmentStarted(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)
+                      ? activeTracking?.trackingNumber ?? '-'
+                      : '-'}
+                  </strong>
                 </div>
               </div>
 

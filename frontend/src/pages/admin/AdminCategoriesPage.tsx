@@ -1,8 +1,16 @@
-import { CSSProperties, FormEvent, useEffect, useMemo, useState } from 'react';
+import { CSSProperties, DragEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
+import { AdminRefreshButton } from '../../components/admin/AdminRefreshButton';
+import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { apiClient, AdminCategoryItem, AdminCategoryPayload } from '../../lib/api';
-import { AdminLayoutContext, buildAdminCategoryHierarchy, buildAdminCategoryOptions, formatAdminDateTime } from './adminUtils';
+import {
+  AdminLayoutContext,
+  buildAdminCategoryHierarchy,
+  buildAdminCategoryOptions,
+  formatAdminDateTime,
+  sortAdminCategories,
+} from './adminUtils';
 
 type CategoryFormState = {
   parentId: string;
@@ -12,12 +20,12 @@ type CategoryFormState = {
   isVisible: boolean;
 };
 
-function createEmptyForm(): CategoryFormState {
+function createEmptyForm(sortOrder = '0'): CategoryFormState {
   return {
     parentId: '',
     name: '',
     slug: '',
-    sortOrder: '0',
+    sortOrder,
     isVisible: true,
   };
 }
@@ -67,11 +75,15 @@ export function AdminCategoriesPage() {
   const { showToast } = useOutletContext<AdminLayoutContext>();
 
   const [categories, setCategories] = useState<AdminCategoryItem[]>([]);
+  const [draftCategories, setDraftCategories] = useState<AdminCategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [form, setForm] = useState<CategoryFormState>(createEmptyForm());
+  const [draggingCategoryId, setDraggingCategoryId] = useState<number | null>(null);
+  const [dragOverCategoryId, setDragOverCategoryId] = useState<number | null>(null);
 
   const loadCategories = async () => {
     setLoading(true);
@@ -80,6 +92,7 @@ export function AdminCategoriesPage() {
     try {
       const result = await apiClient.getAdminCategories();
       setCategories(result.items);
+      setDraftCategories(result.items);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : '카테고리 목록을 불러오지 못했습니다.');
     } finally {
@@ -91,7 +104,7 @@ export function AdminCategoriesPage() {
     void loadCategories();
   }, []);
 
-  const hierarchicalCategories = useMemo(() => buildAdminCategoryHierarchy(categories), [categories]);
+  const hierarchicalCategories = useMemo(() => buildAdminCategoryHierarchy(draftCategories), [draftCategories]);
   const categoryGroups = useMemo(() => {
     const groups: Array<{
       root: (typeof hierarchicalCategories)[number];
@@ -120,9 +133,41 @@ export function AdminCategoriesPage() {
 
     return groups;
   }, [hierarchicalCategories]);
-  const categoryOptions = useMemo(() => buildAdminCategoryOptions(categories), [categories]);
-  const selectedCategory = categories.find((category) => category.id === selectedCategoryId) ?? null;
+  const categoryOptions = useMemo(() => buildAdminCategoryOptions(draftCategories), [draftCategories]);
+  const selectedCategory = draftCategories.find((category) => category.id === selectedCategoryId) ?? null;
   const selectedCategoryHierarchy = hierarchicalCategories.find((item) => item.category.id === selectedCategoryId) ?? null;
+  const pendingSortChangeCount = useMemo(() => {
+    if (categories.length === 0 || draftCategories.length === 0) {
+      return 0;
+    }
+
+    const originalById = new Map(categories.map((category) => [category.id, category]));
+
+    return draftCategories.reduce((count, category) => {
+      const original = originalById.get(category.id);
+      if (!original) {
+        return count;
+      }
+      return count + (original.sortOrder !== category.sortOrder ? 1 : 0);
+    }, 0);
+  }, [categories, draftCategories]);
+  const hasPendingSortChanges = pendingSortChangeCount > 0;
+
+  const getNextSortOrder = (parentId: number | null, excludeCategoryId?: number | null): string => {
+    const siblingCategories = draftCategories.filter((category) => {
+      if (excludeCategoryId && category.id === excludeCategoryId) {
+        return false;
+      }
+      return category.parentId === parentId;
+    });
+
+    if (siblingCategories.length === 0) {
+      return '0';
+    }
+
+    const maxSortOrder = siblingCategories.reduce((max, category) => Math.max(max, category.sortOrder), Number.NEGATIVE_INFINITY);
+    return String(maxSortOrder + 1);
+  };
 
   useEffect(() => {
     if (selectedCategoryId === null) {
@@ -131,11 +176,31 @@ export function AdminCategoriesPage() {
 
     if (!selectedCategory) {
       setSelectedCategoryId(null);
-      setForm(createEmptyForm());
+      setForm(createEmptyForm(getNextSortOrder(null)));
     }
   }, [selectedCategory, selectedCategoryId]);
 
-  const visibleCount = categories.filter((category) => category.isVisible).length;
+  useEffect(() => {
+    if (selectedCategoryId !== null) {
+      return;
+    }
+
+    setForm((current) => {
+      const parentId = current.parentId ? Number(current.parentId) : null;
+      const nextSortOrder = getNextSortOrder(parentId);
+
+      if (current.sortOrder === nextSortOrder) {
+        return current;
+      }
+
+      return {
+        ...current,
+        sortOrder: nextSortOrder,
+      };
+    });
+  }, [draftCategories, selectedCategoryId]);
+
+  const visibleCount = draftCategories.filter((category) => category.isVisible).length;
 
   const onSelectCategory = (category: AdminCategoryItem) => {
     setSelectedCategoryId(category.id);
@@ -145,7 +210,7 @@ export function AdminCategoriesPage() {
 
   const onResetForm = () => {
     setSelectedCategoryId(null);
-    setForm(createEmptyForm());
+    setForm(createEmptyForm(getNextSortOrder(null)));
     setError('');
   };
 
@@ -195,12 +260,128 @@ export function AdminCategoriesPage() {
       await apiClient.deleteAdminCategory(selectedCategory.id);
       showToast('카테고리를 삭제했습니다.');
       setSelectedCategoryId(null);
-      setForm(createEmptyForm());
+      setForm(createEmptyForm(getNextSortOrder(null, selectedCategory.id)));
       await loadCategories();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : '카테고리 삭제에 실패했습니다.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const onDragStartCategory = (event: DragEvent<HTMLElement>, categoryId: number) => {
+    setDraggingCategoryId(categoryId);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(categoryId));
+  };
+
+  const onDragEndCategory = () => {
+    setDraggingCategoryId(null);
+    setDragOverCategoryId(null);
+  };
+
+  const onDragOverCategory = (event: DragEvent<HTMLElement>, categoryId: number) => {
+    if (draggingCategoryId === null || draggingCategoryId === categoryId) {
+      return;
+    }
+
+    const draggingCategory = draftCategories.find((category) => category.id === draggingCategoryId);
+    const targetCategory = draftCategories.find((category) => category.id === categoryId);
+
+    if (!draggingCategory || !targetCategory || draggingCategory.parentId !== targetCategory.parentId) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDragOverCategoryId(categoryId);
+  };
+
+  const onDropCategory = (event: DragEvent<HTMLElement>, targetCategoryId: number) => {
+    event.preventDefault();
+
+    const sourceCategoryId = draggingCategoryId ?? Number(event.dataTransfer.getData('text/plain'));
+    setDragOverCategoryId(null);
+
+    if (!Number.isFinite(sourceCategoryId) || sourceCategoryId === targetCategoryId || reordering) {
+      return;
+    }
+
+    const sourceCategory = draftCategories.find((category) => category.id === sourceCategoryId);
+    const targetCategory = draftCategories.find((category) => category.id === targetCategoryId);
+
+    if (!sourceCategory || !targetCategory) {
+      return;
+    }
+
+    if (sourceCategory.parentId !== targetCategory.parentId) {
+      showToast('같은 상위 카테고리 안에서만 순서를 바꿀 수 있습니다.', 'info');
+      return;
+    }
+
+    const siblings = sortAdminCategories(draftCategories.filter((category) => category.parentId === sourceCategory.parentId));
+    const sourceIndex = siblings.findIndex((category) => category.id === sourceCategory.id);
+    const targetIndex = siblings.findIndex((category) => category.id === targetCategory.id);
+
+    if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+      return;
+    }
+
+    const reorderedSiblings = [...siblings];
+    const [movedItem] = reorderedSiblings.splice(sourceIndex, 1);
+    reorderedSiblings.splice(targetIndex, 0, movedItem);
+
+    const nextSortOrderById = new Map(reorderedSiblings.map((category, index) => [category.id, index]));
+
+    setDraftCategories((current) =>
+      current.map((category) => {
+        const nextSortOrder = nextSortOrderById.get(category.id);
+        if (nextSortOrder === undefined) {
+          return category;
+        }
+        return {
+          ...category,
+          sortOrder: nextSortOrder,
+        };
+      }),
+    );
+
+    setDraggingCategoryId(null);
+    setDragOverCategoryId(null);
+  };
+
+  const onApplySortChanges = async () => {
+    if (!hasPendingSortChanges || reordering) {
+      return;
+    }
+
+    setReordering(true);
+    setError('');
+
+    try {
+      const originalById = new Map(categories.map((category) => [category.id, category]));
+      const changedCategories = draftCategories.filter((category) => {
+        const original = originalById.get(category.id);
+        return !!original && original.sortOrder !== category.sortOrder;
+      });
+
+      await Promise.all(
+        changedCategories.map((category) =>
+          apiClient.updateAdminCategory(category.id, {
+            sortOrder: category.sortOrder,
+          }),
+        ),
+      );
+
+      showToast('카테고리 순서 변경사항을 적용했습니다.');
+      await loadCategories();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : '카테고리 순서 적용에 실패했습니다.');
+      showToast('카테고리 순서 적용에 실패했습니다.', 'error');
+    } finally {
+      setReordering(false);
+      setDraggingCategoryId(null);
+      setDragOverCategoryId(null);
     }
   };
 
@@ -238,16 +419,22 @@ export function AdminCategoriesPage() {
             </div>
 
             <div className="inline-actions">
+              <button
+                className="button"
+                type="button"
+                onClick={() => void onApplySortChanges()}
+                disabled={!hasPendingSortChanges || loading || submitting || reordering}
+              >
+                {reordering ? '적용 중...' : `순서 적용${hasPendingSortChanges ? ` (${pendingSortChangeCount})` : ''}`}
+              </button>
               <button className="button button-secondary" type="button" onClick={onResetForm}>
-                새 카테고리
+                +
               </button>
-              <button className="button button-ghost" type="button" onClick={() => void loadCategories()} disabled={loading}>
-                새로고침
-              </button>
+              <AdminRefreshButton onClick={() => void loadCategories()} disabled={loading} />
             </div>
           </div>
 
-          {loading ? <p className="feedback-copy">카테고리 목록을 불러오는 중입니다.</p> : null}
+          {loading ? <LoadingScreen mode="inline" title="카테고리 로딩 중" message="카테고리 목록을 불러오고 있습니다." /> : null}
           {!loading && error ? (
             <p className="feedback-copy is-error" role="alert">
               {error}
@@ -272,21 +459,28 @@ export function AdminCategoriesPage() {
                   <section key={root.category.id} className={`admin-category-group ${isSelectedGroup ? 'is-current' : ''}`}>
                     <button
                       type="button"
-                      className={`admin-category-root-card ${selectedCategoryId === root.category.id ? 'is-active' : ''}`}
+                      className={`admin-category-root-card ${selectedCategoryId === root.category.id ? 'is-active' : ''} ${
+                        draggingCategoryId === root.category.id ? 'is-dragging' : ''
+                      } ${dragOverCategoryId === root.category.id ? 'is-drag-over' : ''}`}
                       onClick={() => onSelectCategory(root.category)}
                       aria-pressed={selectedCategoryId === root.category.id}
+                      draggable={!submitting && !reordering}
+                      onDragStart={(event) => onDragStartCategory(event, root.category.id)}
+                      onDragEnd={onDragEndCategory}
+                      onDragOver={(event) => onDragOverCategory(event, root.category.id)}
+                      onDrop={(event) => onDropCategory(event, root.category.id)}
                     >
                       <div className="admin-category-root-head">
                         <div className="admin-category-root-title">
-                          <span className="admin-category-root-badge">{root.isOrphan ? 'ORPHAN' : 'ROOT'}</span>
+                          <span className="admin-category-root-badge">{root.isOrphan ? 'ORPHAN' : '상위'}</span>
                           <strong>{root.category.name}</strong>
                         </div>
-                        <span className="admin-category-group-size">노드 {groupNodeCount}</span>
+                        {/* <span className="admin-category-group-size">노드 {groupNodeCount}</span> */}
                       </div>
 
                       <div className="admin-category-root-meta">
-                        <span className="admin-category-depth-badge">D1</span>
-                        <span>{root.hasChildren ? `하위 ${root.childCount}개` : '하위 없음'}</span>
+                        <span className="admin-category-depth-badge">하위</span>
+                        <span>{root.hasChildren ? `하위 ${root.childCount}개` : '하위 디렉토리 없음'}</span>
                         {!root.category.isVisible ? <span className="admin-category-hidden-indicator">숨김</span> : null}
                         {root.isOrphan ? <span className="admin-category-tree-warning">상위 누락</span> : null}
                       </div>
@@ -305,6 +499,11 @@ export function AdminCategoriesPage() {
                               onClick={() => onSelectCategory(category)}
                               aria-pressed={selectedCategoryId === category.id}
                               style={{ '--category-depth': depth } as CSSProperties}
+                              draggable={!submitting && !reordering}
+                              onDragStart={(event) => onDragStartCategory(event, category.id)}
+                              onDragEnd={onDragEndCategory}
+                              onDragOver={(event) => onDragOverCategory(event, category.id)}
+                              onDrop={(event) => onDropCategory(event, category.id)}
                             >
                               <div className="admin-category-tree-shell">
                                 <span className="admin-category-branch" aria-hidden="true">
@@ -312,7 +511,11 @@ export function AdminCategoriesPage() {
                                 </span>
 
                                 <div className="admin-category-tree-content">
-                                  <div className="admin-category-tree-row">
+                                  <div
+                                    className={`admin-category-tree-row ${draggingCategoryId === category.id ? 'is-dragging' : ''} ${
+                                      dragOverCategoryId === category.id ? 'is-drag-over' : ''
+                                    }`}
+                                  >
                                     <div className="admin-category-tree-title">
                                       <span className="admin-category-depth-badge">D{depth + 1}</span>
                                       <strong>{category.name}</strong>
@@ -330,7 +533,7 @@ export function AdminCategoriesPage() {
                         })}
                       </div>
                     ) : (
-                      <p className="admin-category-group-empty">하위 카테고리 없음</p>
+                      <p className="admin-category-group-empty">-</p>
                     )}
                   </section>
                 );
@@ -370,7 +573,26 @@ export function AdminCategoriesPage() {
             <span>상위 카테고리</span>
             <select
               value={form.parentId}
-              onChange={(event) => setForm((current) => ({ ...current, parentId: event.target.value }))}
+              onChange={(event) => {
+                const nextParentId = event.target.value;
+
+                setForm((current) => {
+                  if (selectedCategoryId !== null) {
+                    return {
+                      ...current,
+                      parentId: nextParentId,
+                    };
+                  }
+
+                  const parentId = nextParentId ? Number(nextParentId) : null;
+
+                  return {
+                    ...current,
+                    parentId: nextParentId,
+                    sortOrder: getNextSortOrder(parentId),
+                  };
+                });
+              }}
             >
               <option value="">최상위</option>
               {categoryOptions

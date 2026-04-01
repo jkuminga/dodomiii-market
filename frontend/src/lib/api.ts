@@ -1,5 +1,19 @@
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:4000/api/v1';
 
+type ApiAuthErrorPayload = {
+  status: number;
+  message: string;
+  code?: string;
+};
+
+type ApiAuthErrorHandler = (payload: ApiAuthErrorPayload) => void;
+
+let apiAuthErrorHandler: ApiAuthErrorHandler | null = null;
+
+export function setApiAuthErrorHandler(handler: ApiAuthErrorHandler | null) {
+  apiAuthErrorHandler = handler;
+}
+
 type ApiErrorShape = {
   success?: boolean;
   error?: {
@@ -26,7 +40,18 @@ async function requestEnvelope<T, M = undefined>(path: string, init?: RequestIni
   const body = (await response.json().catch(() => ({}))) as ApiEnvelope<T, M>;
 
   if (!response.ok || body.success === false) {
-    throw new Error(body.error?.message ?? '요청 처리 중 오류가 발생했습니다.');
+    const message = body.error?.message ?? '요청 처리 중 오류가 발생했습니다.';
+    const code = body.error?.code;
+
+    if (response.status === 401 || code === 'UNAUTHORIZED' || code === 'SESSION_EXPIRED') {
+      apiAuthErrorHandler?.({
+        status: response.status || 401,
+        message,
+        code,
+      });
+    }
+
+    throw new Error(message);
   }
 
   return body;
@@ -274,6 +299,7 @@ export type StoreOrderCreateRequest = {
   items: Array<{
     productId: number;
     productOptionId?: number;
+    selectedOptionIds?: number[];
     quantity: number;
   }>;
   contact: {
@@ -323,6 +349,7 @@ export type StoreOrderLookupResponse = {
   orderStatus: StoreOrderStatus;
   items: Array<{
     productNameSnapshot: string;
+    thumbnailImageUrl?: string | null;
     optionNameSnapshot: string | null;
     optionValueSnapshot: string | null;
     unitPrice: number;
@@ -352,6 +379,7 @@ export type StoreOrderLookupResponse = {
     depositorName?: string | null;
     requestedAt: string | null;
     confirmedAt: string | null;
+    depositDeadlineAt?: string | null;
     adminMemo?: string | null;
   };
   shipment: {
@@ -381,8 +409,11 @@ export type StoreDepositRequestPayload = {
 
 export type StoreDepositRequestResponse = {
   orderNumber: string;
+  orderStatus: StoreOrderStatus;
   depositStatus: StoreDepositStatus;
   requestedAt: string | null;
+  confirmedAt?: string | null;
+  requestAccepted?: boolean;
 };
 
 export type StoreOrderTrackingResponse = {
@@ -408,13 +439,15 @@ export type AdminCustomOrderLinkSummary = {
   checkoutUrl: string;
   finalTotalPrice: number;
   shippingFee: number;
+  note: string | null;
+  isUsed: boolean;
+  usedOrderId: number | null;
   expiresAt: string;
   createdAt: string;
 };
 
 export type AdminCustomOrderLinkDetail = AdminCustomOrderLinkSummary & {
-  isUsed: boolean;
-  usedOrderId: number | null;
+  usedAt?: string | null;
 };
 
 export type StoreCustomCheckoutLink = {
@@ -618,10 +651,16 @@ type AdminCustomOrderLinkResponse = {
   checkoutUrl?: string | null;
   finalTotalPrice?: number | string | null;
   shippingFee?: number | string | null;
+  note?: string | null;
   isUsed?: boolean | null;
+  usedAt?: string | null;
   usedOrderId?: number | string | null;
   expiresAt?: string | null;
   createdAt?: string | null;
+};
+
+type AdminCustomOrderLinkListResponse = {
+  items?: AdminCustomOrderLinkResponse[] | null;
 };
 
 type StoreCustomCheckoutLinkResponse = {
@@ -816,6 +855,8 @@ function normalizeAdminCustomOrderLinkSummary(raw: AdminCustomOrderLinkResponse)
 
   const token = raw.token?.trim();
   const checkoutUrl = raw.checkoutUrl?.trim();
+  const normalizedUsedOrderId =
+    raw.usedOrderId === null || raw.usedOrderId === undefined ? null : normalizeNumber(raw.usedOrderId, Number.NaN);
 
   if (!token) {
     throw new Error('커스텀 주문 링크 토큰이 응답에 없습니다.');
@@ -831,6 +872,12 @@ function normalizeAdminCustomOrderLinkSummary(raw: AdminCustomOrderLinkResponse)
     checkoutUrl,
     finalTotalPrice: normalizeNumber(raw.finalTotalPrice, 0),
     shippingFee: normalizeNumber(raw.shippingFee, 0),
+    note: raw.note ?? null,
+    isUsed: normalizeBoolean(raw.isUsed, false),
+    usedOrderId:
+      normalizedUsedOrderId !== null && Number.isFinite(normalizedUsedOrderId) && normalizedUsedOrderId > 0
+        ? normalizedUsedOrderId
+        : null,
     expiresAt: raw.expiresAt ?? '',
     createdAt: raw.createdAt ?? '',
   };
@@ -838,16 +885,10 @@ function normalizeAdminCustomOrderLinkSummary(raw: AdminCustomOrderLinkResponse)
 
 function normalizeAdminCustomOrderLinkDetail(raw: AdminCustomOrderLinkResponse): AdminCustomOrderLinkDetail {
   const summary = normalizeAdminCustomOrderLinkSummary(raw);
-  const normalizedUsedOrderId =
-    raw.usedOrderId === null || raw.usedOrderId === undefined ? null : normalizeNumber(raw.usedOrderId, Number.NaN);
 
   return {
     ...summary,
-    isUsed: normalizeBoolean(raw.isUsed, false),
-    usedOrderId:
-      normalizedUsedOrderId !== null && Number.isFinite(normalizedUsedOrderId) && normalizedUsedOrderId > 0
-        ? normalizedUsedOrderId
-        : null,
+    usedAt: raw.usedAt ?? null,
   };
 }
 
@@ -1017,6 +1058,12 @@ export const apiClient = {
     const result = await request<AdminCustomOrderLinkResponse>(`/admin/custom-orders/links/${linkId}`);
 
     return normalizeAdminCustomOrderLinkDetail(result);
+  },
+
+  getAdminCustomOrderLinks: async (limit = 10) => {
+    const result = await request<AdminCustomOrderLinkListResponse>(`/admin/custom-orders/links${buildQueryString({ limit })}`);
+    const items = Array.isArray(result.items) ? result.items : [];
+    return items.map(normalizeAdminCustomOrderLinkSummary);
   },
 
   createOrder: (payload: StoreOrderCreateRequest) =>

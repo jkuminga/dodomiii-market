@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, Navigate, useOutletContext, useParams } from 'react-router-dom';
 
+import { AdminRefreshButton } from '../../components/admin/AdminRefreshButton';
+import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { AdminOrderDetail, StoreOrderStatus, StoreShipmentStatus, apiClient } from '../../lib/api';
 import {
   AdminLayoutContext,
@@ -165,11 +167,7 @@ export function AdminOrderDetailPage() {
   if (loading) {
     return (
       <section className="admin-section">
-        <section className="surface-card admin-card-stack">
-          <p className="section-kicker">Loading</p>
-          <h2 className="section-subtitle">주문 상세를 불러오는 중입니다</h2>
-          <p className="feedback-copy">주문 기본 정보와 상태 이력을 정리하고 있습니다.</p>
-        </section>
+        <LoadingScreen title="주문 상세를 불러오는 중입니다" message="주문 기본 정보와 상태 이력을 정리하고 있습니다." />
       </section>
     );
   }
@@ -229,9 +227,7 @@ export function AdminOrderDetailPage() {
           <h3 className="section-subtitle">주문 운영 상세</h3>
         </div>
         <div className="inline-actions">
-          <button className="button button-ghost" type="button" onClick={() => void loadOrder()} disabled={loading}>
-            새로고침
-          </button>
+          <AdminRefreshButton onClick={() => void loadOrder()} disabled={loading} />
           <Link className="button button-secondary" to="/admin/orders">
             목록으로
           </Link>

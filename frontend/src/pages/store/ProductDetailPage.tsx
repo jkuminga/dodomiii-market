@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 
+import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { ProductArtwork } from '../../components/store/ProductArtwork';
 import { apiClient, ProductDetail } from '../../lib/api';
 
@@ -18,7 +19,8 @@ export function ProductDetailPage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<DetailTab>('story');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [selectedOrderOptionId, setSelectedOrderOptionId] = useState('');
+  const [selectedOrderOptionByGroup, setSelectedOrderOptionByGroup] = useState<Record<string, string[]>>({});
+  const [expandedOptionGroups, setExpandedOptionGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!productId) {
@@ -41,7 +43,7 @@ export function ProductDetailPage() {
         setProduct(result);
         setSelectedImageIndex(0);
         setActiveTab('story');
-        setSelectedOrderOptionId('');
+        setSelectedOrderOptionByGroup({});
       } catch (caught) {
         if (!cancelled) {
           setError(caught instanceof Error ? caught.message : '상품 상세 조회 중 오류가 발생했습니다.');
@@ -60,6 +62,53 @@ export function ProductDetailPage() {
     };
   }, [productId]);
 
+  const activeOptions = useMemo(
+    () =>
+      product
+        ? [...product.options]
+            .filter((option) => option.isActive)
+            .sort((left, right) => left.sortOrder - right.sortOrder)
+        : [],
+    [product],
+  );
+
+  const optionGroups = useMemo(() => {
+    const grouped = new Map<string, typeof activeOptions>();
+
+    for (const option of activeOptions) {
+      const current = grouped.get(option.optionGroupName) ?? [];
+      current.push(option);
+      grouped.set(option.optionGroupName, current);
+    }
+
+    return [...grouped.entries()].map(([groupName, options]) => ({
+      groupName,
+      options,
+    }));
+  }, [activeOptions]);
+
+  useEffect(() => {
+    if (!product) {
+      return;
+    }
+
+    const nextByGroup: Record<string, string[]> = {};
+
+    for (const group of optionGroups) {
+      nextByGroup[group.groupName] = group.options.length === 1 ? [String(group.options[0].id)] : [];
+    }
+
+    setSelectedOrderOptionByGroup(nextByGroup);
+    setExpandedOptionGroups((current) => {
+      const nextExpanded: Record<string, boolean> = {};
+      for (const group of optionGroups) {
+        const hasSelected = (nextByGroup[group.groupName] ?? []).length > 0;
+        nextExpanded[group.groupName] = current[group.groupName] ?? (hasSelected || optionGroups.length <= 2);
+      }
+      return nextExpanded;
+    });
+  }, [optionGroups, product]);
+
   if (!productId) {
     return <Navigate to="/products" replace />;
   }
@@ -67,11 +116,7 @@ export function ProductDetailPage() {
   if (loading) {
     return (
       <main className="m-page detail-page">
-        <section className="surface-card status-card">
-          <p className="section-kicker">Loading</p>
-          <h1 className="section-subtitle">상품 정보를 불러오는 중</h1>
-          <p className="feedback-copy">현재 상세 데이터를 가져오고 있습니다.</p>
-        </section>
+        <LoadingScreen title="상품 정보를 불러오는 중" message="현재 상세 데이터를 가져오고 있습니다." />
       </main>
     );
   }
@@ -99,24 +144,33 @@ export function ProductDetailPage() {
     return left.sortOrder - right.sortOrder;
   });
   const activeImage = orderedImages[selectedImageIndex] ?? orderedImages[0];
-  const activeOptions = [...product.options]
-    .filter((option) => option.isActive)
-    .sort((left, right) => left.sortOrder - right.sortOrder);
-  const orderParams = new URLSearchParams();
 
-  if (selectedOrderOptionId) {
-    orderParams.set('optionId', selectedOrderOptionId);
+  const orderParams = new URLSearchParams();
+  const selectedOptionIdSet = new Set(
+    optionGroups
+      .flatMap((group) => (selectedOrderOptionByGroup[group.groupName] ?? []).map((value) => Number(value)))
+      .filter((value) => Number.isFinite(value)),
+  );
+  const selectedOptionIds = [...selectedOptionIdSet];
+  const selectedOptions = selectedOptionIds
+    .map((optionId) => activeOptions.find((option) => option.id === optionId) ?? null)
+    .filter((option): option is NonNullable<typeof option> => option !== null);
+  const selectedOptionExtraTotal = selectedOptions.reduce((sum, option) => sum + option.extraPrice, 0);
+  const selectedTotalPrice = product.basePrice + selectedOptionExtraTotal;
+
+  if (selectedOptionIds.length > 0) {
+    orderParams.set('optionIds', selectedOptionIds.join(','));
   }
 
   const orderHref = `/products/${product.id}/order${orderParams.toString() ? `?${orderParams.toString()}` : ''}`;
 
   return (
     <main className="m-page detail-page with-fixed-bar">
-      <div className="inline-actions">
+      {/* <div className="inline-actions">
         <Link className="button-text" to="/products">
           컬렉션으로 돌아가기
         </Link>
-      </div>
+      </div> */}
 
       <section className="surface-card detail-media-card">
         <div className="detail-main-media">
@@ -173,9 +227,9 @@ export function ProductDetailPage() {
       <section className="surface-card detail-order-card">
         <div className="section-head">
           <div>
-            <p className="section-kicker">Quick Order</p>
-            <h2 className="section-subtitle">주문서로 이어서 입력</h2>
-            <p className="section-copy section-copy-compact">상품은 고정하고, 옵션만 골라 주문서로 바로 이동할 수 있게 정리했습니다.</p>
+            <p className="section-kicker">Options</p>
+            <h2 className="section-subtitle">옵션 선택</h2>
+            <p className="section-copy section-copy-compact">원하시는 옵션을 선택하세요.</p>
           </div>
           <Link className="button-text" to={orderHref}>
             주문서 열기
@@ -183,18 +237,65 @@ export function ProductDetailPage() {
         </div>
 
         {activeOptions.length > 0 ? (
-          <label className="field">
-            <span>주문서에 미리 담을 옵션</span>
-            <select value={selectedOrderOptionId} onChange={(event) => setSelectedOrderOptionId(event.target.value)}>
-              <option value="">주문서에서 선택</option>
-              {activeOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.optionGroupName} / {option.optionValue}
-                  {option.extraPrice > 0 ? ` (+${formatCurrency(option.extraPrice)})` : ''}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="order-option-group-list">
+            {optionGroups.map((group) => (
+              <div className="field order-option-group-field" key={group.groupName}>
+                <div className="order-option-group-head">
+                  <span>
+                    {group.groupName}
+                    {(selectedOrderOptionByGroup[group.groupName] ?? []).length > 0 ? (
+                      <small className="order-option-selected-flag">선택됨</small>
+                    ) : null}
+                  </span>
+                  <button
+                    type="button"
+                    className="order-option-toggle"
+                    onClick={() =>
+                      setExpandedOptionGroups((current) => ({
+                        ...current,
+                        [group.groupName]: !(current[group.groupName] ?? false),
+                      }))
+                    }
+                    aria-expanded={expandedOptionGroups[group.groupName] ?? false}
+                  >
+                    {expandedOptionGroups[group.groupName] ?? false ? '접기' : '펼치기'}
+                  </button>
+                </div>
+                {(expandedOptionGroups[group.groupName] ?? false) ? (
+                  <div className="order-option-multi-list">
+                    {group.options.map((option) => {
+                      const selectedValues = selectedOrderOptionByGroup[group.groupName] ?? [];
+                      const isChecked = selectedValues.includes(String(option.id));
+
+                      return (
+                        <label className={`order-option-multi-item ${isChecked ? 'is-selected' : ''}`} key={option.id}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(event) =>
+                              setSelectedOrderOptionByGroup((current) => {
+                                const previous = current[group.groupName] ?? [];
+                                const next = event.target.checked
+                                  ? [...previous, String(option.id)]
+                                  : previous.filter((value) => value !== String(option.id));
+
+                                return {
+                                  ...current,
+                                  [group.groupName]: [...new Set(next)],
+                                };
+                              })
+                            }
+                          />
+                          <span>{option.optionValue}</span>
+                          <strong>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '+0원'}</strong>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
         ) : (
           <p className="feedback-copy">추가 옵션이 없는 상품입니다. 주문서에서 수량과 배송지 정보만 입력하면 됩니다.</p>
         )}
@@ -271,8 +372,8 @@ export function ProductDetailPage() {
 
       <div className="fixed-product-bar">
         <div>
-          <p>기본가</p>
-          <strong>{formatCurrency(product.basePrice)}</strong>
+          <p>총액</p>
+          <strong>{formatCurrency(selectedTotalPrice)}</strong>
         </div>
         {product.isSoldOut ? (
           <button className="button" type="button" disabled>
@@ -280,7 +381,7 @@ export function ProductDetailPage() {
           </button>
         ) : (
           <Link className="button" to={orderHref}>
-            주문서 작성
+            주문서 이동
           </Link>
         )}
       </div>

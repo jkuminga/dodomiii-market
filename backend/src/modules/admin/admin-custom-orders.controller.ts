@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 
 import { AdminSessionGuard } from '../auth/guards/admin-session.guard';
 import { StoreService } from '../store/store.service';
+import { AdminCustomOrderLinksQueryDto } from './dto/admin-custom-order-links-query.dto';
 import { AdminCustomOrderLinkIdParamDto } from './dto/admin-custom-order-link-id-param.dto';
 import { CreateAdminCustomOrderLinkDto } from './dto/create-admin-custom-order-link.dto';
 
@@ -21,6 +22,18 @@ export class AdminCustomOrdersController {
     return {
       success: true,
       data,
+    };
+  }
+
+  @Get('links')
+  async getLinks(@Query() query: AdminCustomOrderLinksQueryDto) {
+    const data = await this.storeService.getAdminCustomOrderLinks(query.limit ?? 10);
+
+    return {
+      success: true,
+      data: {
+        items: data,
+      },
     };
   }
 

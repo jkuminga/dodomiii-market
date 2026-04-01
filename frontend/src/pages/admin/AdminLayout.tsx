@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { AdminToastRegion } from '../../components/admin/AdminToastRegion';
-import { apiClient, AdminSession } from '../../lib/api';
+import { LoadingScreen } from '../../components/common/LoadingScreen';
+import { apiClient, AdminSession, setApiAuthErrorHandler } from '../../lib/api';
 import { AdminLayoutContext, AdminToast, AdminToastTone } from './adminUtils';
 
 const ADMIN_SIDEBAR_QUERY = '(min-width: 960px)';
@@ -137,6 +138,7 @@ export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const timeoutIdsRef = useRef<number[]>([]);
+  const sessionExpiryHandledRef = useRef(false);
 
   const [admin, setAdmin] = useState<AdminSession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -257,6 +259,38 @@ export function AdminLayout() {
     setIsSidebarCollapsed((current) => !current);
   };
 
+  useEffect(() => {
+    if (!admin) {
+      setApiAuthErrorHandler(null);
+      return;
+    }
+
+    setApiAuthErrorHandler((payload) => {
+      if (payload.status !== 401 || sessionExpiryHandledRef.current) {
+        return;
+      }
+
+      sessionExpiryHandledRef.current = true;
+      showToast('세션이 만료되어 로그인 화면으로 이동합니다.', 'error');
+
+      const timeoutId = window.setTimeout(() => {
+        navigate('/admin/login', {
+          replace: true,
+          state: {
+            from: location,
+            reason: payload.message || '세션이 만료되었습니다.',
+          },
+        });
+      }, 900);
+
+      timeoutIdsRef.current.push(timeoutId);
+    });
+
+    return () => {
+      setApiAuthErrorHandler(null);
+    };
+  }, [admin, location, navigate]);
+
   const logout = async () => {
     try {
       await apiClient.logout();
@@ -284,11 +318,7 @@ export function AdminLayout() {
   if (loading) {
     return (
       <main className="admin-page admin-page-centered">
-        <section className="surface-card status-card">
-          <p className="section-kicker">Checking Session</p>
-          <h1 className="section-subtitle">운영 세션 확인 중</h1>
-          <p className="feedback-copy">기존 `/admin` 보호 흐름에 맞춰 로그인 상태를 확인하고 있습니다.</p>
-        </section>
+        <LoadingScreen title="운영 세션 확인 중" message="관리자 로그인 상태를 확인하고 있습니다." />
       </main>
     );
   }

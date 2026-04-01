@@ -1,6 +1,7 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 
+import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { StoreCustomCheckoutLink, StoreDepositStatus, StoreOrderCreateResponse, StoreOrderStatus, apiClient } from '../../lib/api';
 
 type ContactFormState = {
@@ -199,11 +200,7 @@ export function CustomCheckoutPage() {
   if (loading) {
     return (
       <main className="m-page custom-checkout-page">
-        <section className="surface-card status-card" role="status" aria-live="polite">
-          <p className="section-kicker">Loading</p>
-          <h1 className="section-subtitle">커스텀 주문 링크를 확인하는 중</h1>
-          <p className="feedback-copy">토큰 유효성과 주문 입력 화면을 준비하고 있습니다.</p>
-        </section>
+        <LoadingScreen title="커스텀 주문 링크를 확인하는 중" message="토큰 유효성과 주문 입력 화면을 준비하고 있습니다." />
       </main>
     );
   }

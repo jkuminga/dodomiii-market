@@ -24,7 +24,7 @@
 - [x] M07 관리자 카테고리/상품 관리 API
 - [x] M08 관리자 주문/상태/배송 관리 API
 - [x] M09 커스텀 주문 링크 API
-- [ ] M10 내부 알림 연동 API
+- [x] M10 내부 알림 연동 API
 - [ ] M11 테스트/검증/문서 동기화
 
 ## 프론트 진행 현황
@@ -174,13 +174,13 @@
 
 ### M10 내부 알림 연동 API
 
-- 상태: `TODO`
-- 완료일: `-`
-- 비고: `-`
+- 상태: `DONE`
+- 완료일: `2026-03-29`
+- 비고: `주문 신규/상태변경/배송업데이트 이벤트에 대해 Email(SMTP)/SMS(HTTP API) 알림 서비스 연결, 관리자 DB 수신자(email/phone) + 고객 연락처 기반 발송, 재시도/로깅/드라이런 옵션 반영, 검증: backend build OK`
 - 완료 조건:
-  - [ ] `POST /internal/notifications/order-status-changed`
-  - [ ] `POST /internal/emails/new-order`
-  - [ ] 큐 실패 재시도/로깅 정책 기본 반영
+  - [x] `POST /internal/notifications/order-status-changed`
+  - [x] `POST /internal/emails/new-order`
+  - [x] 큐 실패 재시도/로깅 정책 기본 반영
 
 ### M11 테스트/검증/문서 동기화
 
@@ -195,3 +195,5 @@
 ## 추가 작업
 
 - `DIRECT_URL`을 direct host 대신 pooler로 임시 설정한 상태이므로, 추후 direct 연결 재검증 필요
+- `admins.email`, `admins.phone` 컬럼 추가됨에 따라 관리자 연락처 백필 필요
+- SMTP/SMS 공급자 실서비스 자격증명 설정 후 실전 발송 E2E 검증 필요

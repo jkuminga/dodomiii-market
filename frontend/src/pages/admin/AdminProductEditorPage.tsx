@@ -1,6 +1,7 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { DragEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 
+import { LoadingScreen } from '../../components/common/LoadingScreen';
 import {
   apiClient,
   AdminCategoryItem,
@@ -157,44 +158,80 @@ function getNextSortOrder(items: Array<{ sortOrder: string }>): string {
   return String(maxOrder + 1);
 }
 
-function moveDraftItem<T extends { sortOrder: string }>(items: T[], index: number, direction: 'up' | 'down'): T[] {
-  const targetIndex = direction === 'up' ? index - 1 : index + 1;
+function reorderDraftItems<T extends { key: string; sortOrder: string }>(items: T[], sourceKey: string, targetKey: string): T[] {
+  const sourceIndex = items.findIndex((item) => item.key === sourceKey);
+  const targetIndex = items.findIndex((item) => item.key === targetKey);
 
-  if (targetIndex < 0 || targetIndex >= items.length) {
+  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
     return items;
   }
 
-  const currentItem = items[index];
-  const targetItem = items[targetIndex];
-  const nextItems = [...items];
+  const reordered = [...items];
+  const [moved] = reordered.splice(sourceIndex, 1);
+  reordered.splice(targetIndex, 0, moved);
 
-  nextItems[index] = {
-    ...targetItem,
-    sortOrder: currentItem.sortOrder,
-  };
-  nextItems[targetIndex] = {
-    ...currentItem,
-    sortOrder: targetItem.sortOrder,
-  };
-
-  return nextItems;
+  return reordered.map((item, index) => ({
+    ...item,
+    sortOrder: String(index),
+  }));
 }
 
-function SortArrowIcon({ direction }: { direction: 'up' | 'down' }) {
-  return (
-    <svg aria-hidden="true" className="admin-sort-icon" viewBox="0 0 24 24">
-      {direction === 'up' ? (
-        <>
-          <path d="M12 18V7" />
-          <path d="M7.5 11.5L12 7l4.5 4.5" />
-        </>
-      ) : (
-        <>
-          <path d="M12 6v11" />
-          <path d="M7.5 12.5L12 17l4.5-4.5" />
-        </>
-      )}
-    </svg>
+function buildImageInputsFromDrafts(images: ProductImageDraft[]): AdminProductImageInput[] {
+  return images
+    .filter((image) => image.imageUrl.trim() !== '')
+    .map((image, index) => {
+      const sortOrder = image.sortOrder.trim() ? Number(image.sortOrder) : index;
+
+      if (!Number.isFinite(sortOrder)) {
+        throw new Error('이미지 정렬 순서는 숫자로 입력해주세요.');
+      }
+
+      return {
+        imageType: image.imageType,
+        imageUrl: image.imageUrl.trim(),
+        sortOrder,
+      };
+    });
+}
+
+function buildOptionInputsFromDrafts(options: ProductOptionDraft[]): AdminProductOptionInput[] {
+  return options
+    .filter(
+      (option) =>
+        option.optionGroupName.trim() !== '' || option.optionValue.trim() !== '' || option.extraPrice.trim() !== '' || option.sortOrder.trim() !== '',
+    )
+    .map((option, index) => {
+      if (!option.optionGroupName.trim() || !option.optionValue.trim()) {
+        throw new Error('옵션을 입력할 때는 옵션 그룹명과 옵션 값을 모두 입력해주세요.');
+      }
+
+      const extraPrice = option.extraPrice.trim() ? Number(option.extraPrice) : 0;
+      const sortOrder = option.sortOrder.trim() ? Number(option.sortOrder) : index;
+
+      if (!Number.isFinite(extraPrice)) {
+        throw new Error('옵션 추가 금액은 숫자로 입력해주세요.');
+      }
+
+      if (!Number.isFinite(sortOrder)) {
+        throw new Error('옵션 정렬 순서는 숫자로 입력해주세요.');
+      }
+
+      return {
+        optionGroupName: option.optionGroupName.trim(),
+        optionValue: option.optionValue.trim(),
+        extraPrice,
+        isActive: option.isActive,
+        sortOrder,
+      };
+    });
+}
+
+function buildOrderSignature(items: Array<{ key: string; sortOrder: string }>): string {
+  return JSON.stringify(
+    items.map((item) => ({
+      key: item.key,
+      sortOrder: item.sortOrder,
+    })),
   );
 }
 
@@ -227,51 +264,8 @@ function buildPayload(form: ProductFormState): AdminProductPayload {
     throw new Error('재고 수량은 비워두거나 0 이상의 숫자로 입력해주세요.');
   }
 
-  const images: AdminProductImageInput[] = form.images
-    .filter((image) => image.imageUrl.trim() !== '')
-    .map((image, index) => {
-      const sortOrder = image.sortOrder.trim() ? Number(image.sortOrder) : index;
-
-      if (!Number.isFinite(sortOrder)) {
-        throw new Error('이미지 정렬 순서는 숫자로 입력해주세요.');
-      }
-
-      return {
-        imageType: image.imageType,
-        imageUrl: image.imageUrl.trim(),
-        sortOrder,
-      };
-    });
-
-  const options: AdminProductOptionInput[] = form.options
-    .filter(
-      (option) =>
-        option.optionGroupName.trim() !== '' || option.optionValue.trim() !== '' || option.extraPrice.trim() !== '' || option.sortOrder.trim() !== '',
-    )
-    .map((option, index) => {
-      if (!option.optionGroupName.trim() || !option.optionValue.trim()) {
-        throw new Error('옵션을 입력할 때는 옵션 그룹명과 옵션 값을 모두 입력해주세요.');
-      }
-
-      const extraPrice = option.extraPrice.trim() ? Number(option.extraPrice) : 0;
-      const sortOrder = option.sortOrder.trim() ? Number(option.sortOrder) : index;
-
-      if (!Number.isFinite(extraPrice)) {
-        throw new Error('옵션 추가 금액은 숫자로 입력해주세요.');
-      }
-
-      if (!Number.isFinite(sortOrder)) {
-        throw new Error('옵션 정렬 순서는 숫자로 입력해주세요.');
-      }
-
-      return {
-        optionGroupName: option.optionGroupName.trim(),
-        optionValue: option.optionValue.trim(),
-        extraPrice,
-        isActive: option.isActive,
-        sortOrder,
-      };
-    });
+  const images = buildImageInputsFromDrafts(form.images);
+  const options = buildOptionInputsFromDrafts(form.options);
 
   return {
     categoryId,
@@ -310,6 +304,14 @@ export function AdminProductEditorPage() {
   const [isAddingOption, setIsAddingOption] = useState(false);
   const [newImage, setNewImage] = useState<ProductImageDraft>(() => createImageDraft('THUMBNAIL'));
   const [newOption, setNewOption] = useState<ProductOptionDraft>(() => createOptionDraft());
+  const [savedImageOrderSignature, setSavedImageOrderSignature] = useState('[]');
+  const [savedOptionOrderSignature, setSavedOptionOrderSignature] = useState('[]');
+  const [applyingImageOrder, setApplyingImageOrder] = useState(false);
+  const [applyingOptionOrder, setApplyingOptionOrder] = useState(false);
+  const [draggingImageKey, setDraggingImageKey] = useState<string | null>(null);
+  const [dragOverImageKey, setDragOverImageKey] = useState<string | null>(null);
+  const [draggingOptionKey, setDraggingOptionKey] = useState<string | null>(null);
+  const [dragOverOptionKey, setDragOverOptionKey] = useState<string | null>(null);
 
   const resetEditorPanels = (nextForm: ProductFormState) => {
     setExpandedImageKey(null);
@@ -335,6 +337,8 @@ export function AdminProductEditorPage() {
         setProduct(null);
         setForm(nextForm);
         setInitialSignature(serializeFormState(nextForm));
+        setSavedImageOrderSignature(buildOrderSignature(nextForm.images));
+        setSavedOptionOrderSignature(buildOrderSignature(nextForm.options));
         resetEditorPanels(nextForm);
       } else if (productId) {
         const [categoriesResult, productResult] = await Promise.all([categoriesPromise, apiClient.getAdminProductById(productId)]);
@@ -343,6 +347,8 @@ export function AdminProductEditorPage() {
         setProduct(productResult);
         setForm(nextForm);
         setInitialSignature(serializeFormState(nextForm));
+        setSavedImageOrderSignature(buildOrderSignature(nextForm.images));
+        setSavedOptionOrderSignature(buildOrderSignature(nextForm.options));
         resetEditorPanels(nextForm);
       }
     } catch (caught) {
@@ -360,6 +366,14 @@ export function AdminProductEditorPage() {
   const previewCategoryId = form.categoryId ? Number(form.categoryId) : product?.category.id;
   const previewCategoryLabel = Number.isFinite(previewCategoryId) ? getAdminCategoryLabel(previewCategoryId, categories) : '카테고리 미선택';
   const hasUnsavedChanges = useMemo(() => serializeFormState(form) !== initialSignature, [form, initialSignature]);
+  const hasPendingImageOrderChanges = useMemo(
+    () => buildOrderSignature(form.images) !== savedImageOrderSignature,
+    [form.images, savedImageOrderSignature],
+  );
+  const hasPendingOptionOrderChanges = useMemo(
+    () => buildOrderSignature(form.options) !== savedOptionOrderSignature,
+    [form.options, savedOptionOrderSignature],
+  );
   const configuredImageCount = useMemo(
     () => form.images.filter((image) => image.imageUrl.trim() !== '').length,
     [form.images],
@@ -385,21 +399,6 @@ export function AdminProductEditorPage() {
     setExpandedImageKey((current) => (current === key ? null : current));
   };
 
-  const moveImage = (key: string, direction: 'up' | 'down') => {
-    setForm((current) => {
-      const index = current.images.findIndex((image) => image.key === key);
-
-      if (index < 0) {
-        return current;
-      }
-
-      return {
-        ...current,
-        images: moveDraftItem(current.images, index, direction),
-      };
-    });
-  };
-
   const replaceOption = (key: string, patch: Partial<ProductOptionDraft>) => {
     setForm((current) => ({
       ...current,
@@ -415,19 +414,76 @@ export function AdminProductEditorPage() {
     setExpandedOptionKey((current) => (current === key ? null : current));
   };
 
-  const moveOption = (key: string, direction: 'up' | 'down') => {
-    setForm((current) => {
-      const index = current.options.findIndex((option) => option.key === key);
+  const onImageDragStart = (event: DragEvent<HTMLElement>, key: string) => {
+    setDraggingImageKey(key);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', key);
+  };
 
-      if (index < 0) {
-        return current;
-      }
+  const onImageDragEnd = () => {
+    setDraggingImageKey(null);
+    setDragOverImageKey(null);
+  };
 
-      return {
-        ...current,
-        options: moveDraftItem(current.options, index, direction),
-      };
-    });
+  const onImageDragOver = (event: DragEvent<HTMLElement>, key: string) => {
+    if (!draggingImageKey || draggingImageKey === key) {
+      return;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDragOverImageKey(key);
+  };
+
+  const onImageDrop = (event: DragEvent<HTMLElement>, key: string) => {
+    event.preventDefault();
+    const sourceKey = draggingImageKey ?? event.dataTransfer.getData('text/plain');
+
+    if (!sourceKey || sourceKey === key) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      images: reorderDraftItems(current.images, sourceKey, key),
+    }));
+    setDraggingImageKey(null);
+    setDragOverImageKey(null);
+  };
+
+  const onOptionDragStart = (event: DragEvent<HTMLElement>, key: string) => {
+    setDraggingOptionKey(key);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', key);
+  };
+
+  const onOptionDragEnd = () => {
+    setDraggingOptionKey(null);
+    setDragOverOptionKey(null);
+  };
+
+  const onOptionDragOver = (event: DragEvent<HTMLElement>, key: string) => {
+    if (!draggingOptionKey || draggingOptionKey === key) {
+      return;
+    }
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDragOverOptionKey(key);
+  };
+
+  const onOptionDrop = (event: DragEvent<HTMLElement>, key: string) => {
+    event.preventDefault();
+    const sourceKey = draggingOptionKey ?? event.dataTransfer.getData('text/plain');
+
+    if (!sourceKey || sourceKey === key) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      options: reorderDraftItems(current.options, sourceKey, key),
+    }));
+    setDraggingOptionKey(null);
+    setDragOverOptionKey(null);
   };
 
   const toggleImageAddPanel = () => {
@@ -522,6 +578,50 @@ export function AdminProductEditorPage() {
     }
   };
 
+  const onApplyImageOrder = async () => {
+    if (isCreateMode || !productId || !hasPendingImageOrderChanges || applyingImageOrder) {
+      return;
+    }
+
+    setApplyingImageOrder(true);
+    setError('');
+
+    try {
+      await apiClient.updateAdminProduct(productId, {
+        images: buildImageInputsFromDrafts(form.images),
+      });
+      setSavedImageOrderSignature(buildOrderSignature(form.images));
+      showToast('이미지 순서를 적용했습니다.');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : '이미지 순서 적용에 실패했습니다.');
+      showToast('이미지 순서 적용에 실패했습니다.', 'error');
+    } finally {
+      setApplyingImageOrder(false);
+    }
+  };
+
+  const onApplyOptionOrder = async () => {
+    if (isCreateMode || !productId || !hasPendingOptionOrderChanges || applyingOptionOrder) {
+      return;
+    }
+
+    setApplyingOptionOrder(true);
+    setError('');
+
+    try {
+      await apiClient.updateAdminProduct(productId, {
+        options: buildOptionInputsFromDrafts(form.options),
+      });
+      setSavedOptionOrderSignature(buildOrderSignature(form.options));
+      showToast('옵션 순서를 적용했습니다.');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : '옵션 순서 적용에 실패했습니다.');
+      showToast('옵션 순서 적용에 실패했습니다.', 'error');
+    } finally {
+      setApplyingOptionOrder(false);
+    }
+  };
+
   const onDelete = async () => {
     if (!productId) {
       return;
@@ -554,11 +654,7 @@ export function AdminProductEditorPage() {
   if (loading) {
     return (
       <section className="admin-section">
-        <section className="surface-card status-card">
-          <p className="section-kicker">Loading</p>
-          <h2 className="section-subtitle">상품 정보를 준비하는 중</h2>
-          <p className="feedback-copy">카테고리와 상품 상세 데이터를 불러오고 있습니다.</p>
-        </section>
+        <LoadingScreen title="상품 정보를 준비하는 중" message="카테고리와 상품 상세 데이터를 불러오고 있습니다." />
       </section>
     );
   }
@@ -761,9 +857,21 @@ export function AdminProductEditorPage() {
                 <p className="section-kicker">Images</p>
                 <h3 className="section-subtitle">이미지</h3>
               </div>
-              <button className="button button-secondary" type="button" onClick={toggleImageAddPanel}>
-                {isAddingImage ? '추가 닫기' : '이미지 추가'}
-              </button>
+              <div className="inline-actions">
+                {!isCreateMode ? (
+                  <button
+                    className="button button-ghost"
+                    type="button"
+                    onClick={() => void onApplyImageOrder()}
+                    disabled={!hasPendingImageOrderChanges || applyingImageOrder || submitting}
+                  >
+                    {applyingImageOrder ? '적용 중...' : '순서 적용'}
+                  </button>
+                ) : null}
+                <button className="button button-secondary" type="button" onClick={toggleImageAddPanel}>
+                  {isAddingImage ? '추가 닫기' : '이미지 추가'}
+                </button>
+              </div>
             </div>
 
             {isAddingImage ? (
@@ -826,7 +934,17 @@ export function AdminProductEditorPage() {
                   const isExpanded = expandedImageKey === image.key;
 
                   return (
-                    <article className={`admin-list-card admin-editor-list-card ${isExpanded ? 'is-active' : ''}`} key={image.key}>
+                    <article
+                      className={`admin-list-card admin-editor-list-card ${isExpanded ? 'is-active' : ''} ${
+                        draggingImageKey === image.key ? 'is-dragging' : ''
+                      } ${dragOverImageKey === image.key ? 'is-drag-over' : ''}`}
+                      key={image.key}
+                      draggable
+                      onDragStart={(event) => onImageDragStart(event, image.key)}
+                      onDragEnd={onImageDragEnd}
+                      onDragOver={(event) => onImageDragOver(event, image.key)}
+                      onDrop={(event) => onImageDrop(event, image.key)}
+                    >
                       <div className="admin-item-card-shell">
                         <button
                           className="admin-item-toggle"
@@ -856,32 +974,13 @@ export function AdminProductEditorPage() {
                             <div className="admin-meta-row">
                               <span>정렬 {image.sortOrder || '-'}</span>
                               <span>{image.imageType === 'THUMBNAIL' ? '대표 이미지 슬롯' : '상세 이미지 슬롯'}</span>
+                              <span>드래그로 순서 변경</span>
                               <span>{isExpanded ? '편집 패널 열림' : '접힘'}</span>
                             </div>
                           </div>
                         </button>
 
                         <div className="admin-item-actions">
-                          <button
-                            aria-label="이미지 위로 이동"
-                            className="button button-ghost admin-sort-icon-button"
-                            type="button"
-                            title="이미지 위로 이동"
-                            onClick={() => moveImage(image.key, 'up')}
-                            disabled={index === 0}
-                          >
-                            <SortArrowIcon direction="up" />
-                          </button>
-                          <button
-                            aria-label="이미지 아래로 이동"
-                            className="button button-ghost admin-sort-icon-button"
-                            type="button"
-                            title="이미지 아래로 이동"
-                            onClick={() => moveImage(image.key, 'down')}
-                            disabled={index === form.images.length - 1}
-                          >
-                            <SortArrowIcon direction="down" />
-                          </button>
                           <button
                             className="button button-secondary"
                             type="button"
@@ -938,9 +1037,21 @@ export function AdminProductEditorPage() {
                 <p className="section-kicker">Options</p>
                 <h3 className="section-subtitle">옵션</h3>
               </div>
-              <button className="button button-secondary" type="button" onClick={toggleOptionAddPanel}>
-                {isAddingOption ? '추가 닫기' : '옵션 추가'}
-              </button>
+              <div className="inline-actions">
+                {!isCreateMode ? (
+                  <button
+                    className="button button-ghost"
+                    type="button"
+                    onClick={() => void onApplyOptionOrder()}
+                    disabled={!hasPendingOptionOrderChanges || applyingOptionOrder || submitting}
+                  >
+                    {applyingOptionOrder ? '적용 중...' : '순서 적용'}
+                  </button>
+                ) : null}
+                <button className="button button-secondary" type="button" onClick={toggleOptionAddPanel}>
+                  {isAddingOption ? '추가 닫기' : '옵션 추가'}
+                </button>
+              </div>
             </div>
 
             {isAddingOption ? (
@@ -1030,7 +1141,17 @@ export function AdminProductEditorPage() {
                     : '금액 확인 필요';
 
                   return (
-                    <article className={`admin-list-card admin-editor-list-card ${isExpanded ? 'is-active' : ''}`} key={option.key}>
+                    <article
+                      className={`admin-list-card admin-editor-list-card ${isExpanded ? 'is-active' : ''} ${
+                        draggingOptionKey === option.key ? 'is-dragging' : ''
+                      } ${dragOverOptionKey === option.key ? 'is-drag-over' : ''}`}
+                      key={option.key}
+                      draggable
+                      onDragStart={(event) => onOptionDragStart(event, option.key)}
+                      onDragEnd={onOptionDragEnd}
+                      onDragOver={(event) => onOptionDragOver(event, option.key)}
+                      onDrop={(event) => onOptionDrop(event, option.key)}
+                    >
                       <div className="admin-item-card-shell">
                         <button
                           className="admin-item-toggle"
@@ -1055,31 +1176,12 @@ export function AdminProductEditorPage() {
                             <div className="admin-product-summary">
                               <span>{extraPriceLabel}</span>
                               <span>정렬 {option.sortOrder || '-'}</span>
+                              <span>드래그로 순서 변경</span>
                             </div>
                           </div>
                         </button>
 
                         <div className="admin-item-actions">
-                          <button
-                            aria-label="옵션 위로 이동"
-                            className="button button-ghost admin-sort-icon-button"
-                            type="button"
-                            title="옵션 위로 이동"
-                            onClick={() => moveOption(option.key, 'up')}
-                            disabled={index === 0}
-                          >
-                            <SortArrowIcon direction="up" />
-                          </button>
-                          <button
-                            aria-label="옵션 아래로 이동"
-                            className="button button-ghost admin-sort-icon-button"
-                            type="button"
-                            title="옵션 아래로 이동"
-                            onClick={() => moveOption(option.key, 'down')}
-                            disabled={index === form.options.length - 1}
-                          >
-                            <SortArrowIcon direction="down" />
-                          </button>
                           <button
                             className="button button-secondary"
                             type="button"
@@ -1177,7 +1279,7 @@ export function AdminProductEditorPage() {
           <div className="admin-section-head">
             <div>
               <p className="section-kicker">Summary</p>
-              <h3 className="section-subtitle">운영 요약</h3>
+              <h3 className="section-subtitle">상품 요약</h3>
             </div>
             {!isCreateMode && product ? <span className="admin-inline-note">ID {product.id}</span> : null}
           </div>

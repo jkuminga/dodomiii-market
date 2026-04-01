@@ -2,6 +2,7 @@ import type { DepositStatus, OrderStatus, ShipmentStatus } from '@prisma/client'
 
 export type StoreOrderItemSnapshot = {
   productNameSnapshot: string;
+  thumbnailImageUrl: string | null;
   optionNameSnapshot: string | null;
   optionValueSnapshot: string | null;
   unitPrice: number;

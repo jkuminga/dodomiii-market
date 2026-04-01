@@ -1,11 +1,12 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 
+import { AdminRefreshButton } from '../../components/admin/AdminRefreshButton';
+import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { AdminCustomOrderLinkDetail, AdminCustomOrderLinkSummary, apiClient } from '../../lib/api';
 import { AdminLayoutContext, formatAdminDateTime, formatCurrency } from './adminUtils';
 
-const RECENT_CUSTOM_LINKS_STORAGE_KEY = 'dodomi.admin.custom-order-links.recent';
-const MAX_RECENT_CUSTOM_LINKS = 12;
+const RECENT_CUSTOM_LINKS_LIMIT = 10;
 
 type CustomOrderFormState = {
   finalTotalPrice: string;
@@ -16,9 +17,16 @@ type CustomOrderFormState = {
 
 type RecentCustomOrderLink = AdminCustomOrderLinkSummary & {
   isUsed?: boolean;
-  note?: string;
-  usedOrderId?: number | null;
 };
+
+type CustomOrderStatus = 'used' | 'expired' | 'active';
+
+const CUSTOM_ORDER_STATUS_FILTER_OPTIONS: Array<{ value: 'all' | CustomOrderStatus; label: string }> = [
+  { value: 'all', label: '전체' },
+  { value: 'active', label: '사용중' },
+  { value: 'used', label: '사용완료' },
+  { value: 'expired', label: '만료됨' },
+];
 
 function toLocalDateTimeInputValue(date: Date): string {
   const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
@@ -38,51 +46,6 @@ function getDefaultCustomOrderForm(): CustomOrderFormState {
   };
 }
 
-function readRecentCustomOrderLinks(): RecentCustomOrderLink[] {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-
-  try {
-    const raw = window.localStorage.getItem(RECENT_CUSTOM_LINKS_STORAGE_KEY);
-
-    if (!raw) {
-      return [];
-    }
-
-    const parsed = JSON.parse(raw) as unknown;
-
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed
-      .filter((item): item is RecentCustomOrderLink => typeof item === 'object' && item !== null)
-      .map((item) => ({
-        linkId: Number(item.linkId),
-        token: typeof item.token === 'string' ? item.token : '',
-        checkoutUrl: typeof item.checkoutUrl === 'string' ? item.checkoutUrl : '',
-        finalTotalPrice: Number(item.finalTotalPrice) || 0,
-        shippingFee: Number(item.shippingFee) || 0,
-        expiresAt: typeof item.expiresAt === 'string' ? item.expiresAt : '',
-        createdAt: typeof item.createdAt === 'string' ? item.createdAt : '',
-        isUsed: typeof item.isUsed === 'boolean' ? item.isUsed : false,
-        note: typeof item.note === 'string' ? item.note : '',
-        usedOrderId: typeof item.usedOrderId === 'number' ? item.usedOrderId : null,
-      }))
-      .filter((item) => item.linkId > 0 && item.token && item.checkoutUrl);
-  } catch {
-    return [];
-  }
-}
-
-function upsertRecentCustomOrderLink(
-  current: RecentCustomOrderLink[],
-  nextItem: RecentCustomOrderLink,
-): RecentCustomOrderLink[] {
-  return [nextItem, ...current.filter((item) => item.linkId !== nextItem.linkId)].slice(0, MAX_RECENT_CUSTOM_LINKS);
-}
-
 function isLinkExpired(expiresAt: string): boolean {
   if (!expiresAt) {
     return false;
@@ -97,7 +60,7 @@ function isLinkExpired(expiresAt: string): boolean {
   return expiresAtTime < Date.now();
 }
 
-function getCustomOrderStatus(item: { expiresAt: string; isUsed?: boolean }): 'used' | 'expired' | 'active' {
+function getCustomOrderStatus(item: { expiresAt: string; isUsed?: boolean }): CustomOrderStatus {
   if (item.isUsed) {
     return 'used';
   }
@@ -109,14 +72,14 @@ function getCustomOrderStatus(item: { expiresAt: string; isUsed?: boolean }): 'u
   return 'active';
 }
 
-function getCustomOrderStatusLabel(status: 'used' | 'expired' | 'active'): string {
+function getCustomOrderStatusLabel(status: CustomOrderStatus): string {
   switch (status) {
     case 'used':
-      return '사용 완료';
+      return '사용완료';
     case 'expired':
-      return '만료';
+      return '만료됨';
     default:
-      return '운영 중';
+      return '사용중';
   }
 }
 
@@ -148,24 +111,44 @@ export function AdminCustomOrdersPage() {
   const detailCardRef = useRef<HTMLElement | null>(null);
 
   const [form, setForm] = useState<CustomOrderFormState>(getDefaultCustomOrderForm);
-  const [recentLinks, setRecentLinks] = useState<RecentCustomOrderLink[]>(readRecentCustomOrderLinks);
+  const [recentLinks, setRecentLinks] = useState<RecentCustomOrderLink[]>([]);
   const [selectedLinkId, setSelectedLinkId] = useState<number | null>(null);
   const [detailLookupId, setDetailLookupId] = useState('');
   const [latestCreatedLink, setLatestCreatedLink] = useState<RecentCustomOrderLink | null>(null);
   const [detail, setDetail] = useState<AdminCustomOrderLinkDetail | null>(null);
   const [creating, setCreating] = useState(false);
+  const [recentLoading, setRecentLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [recentError, setRecentError] = useState('');
   const [detailError, setDetailError] = useState('');
   const [detailReloadKey, setDetailReloadKey] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<'all' | CustomOrderStatus>('all');
+
+  const loadRecentLinks = async () => {
+    setRecentLoading(true);
+    setRecentError('');
+
+    try {
+      const items = await apiClient.getAdminCustomOrderLinks(RECENT_CUSTOM_LINKS_LIMIT);
+      setRecentLinks(items);
+      setSelectedLinkId((current) => {
+        if (current && items.some((item) => item.linkId === current)) {
+          return current;
+        }
+        return items[0]?.linkId ?? null;
+      });
+    } catch (caught) {
+      setRecentError(caught instanceof Error ? caught.message : '최근 링크 목록을 불러오지 못했습니다.');
+      setRecentLinks([]);
+    } finally {
+      setRecentLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    window.localStorage.setItem(RECENT_CUSTOM_LINKS_STORAGE_KEY, JSON.stringify(recentLinks));
-  }, [recentLinks]);
+    void loadRecentLinks();
+  }, []);
 
   useEffect(() => {
     if (selectedLinkId === null && recentLinks.length > 0) {
@@ -200,14 +183,6 @@ export function AdminCustomOrdersPage() {
 
         setDetail(result);
         setDetailLookupId(String(result.linkId));
-        setRecentLinks((current) => {
-          const existing = current.find((item) => item.linkId === result.linkId);
-
-          return upsertRecentCustomOrderLink(current, {
-            ...result,
-            note: existing?.note ?? '',
-          });
-        });
       } catch (caught) {
         if (!cancelled) {
           setDetail(null);
@@ -238,6 +213,9 @@ export function AdminCustomOrdersPage() {
   const totalRecentCount = recentLinks.length;
   const activeRecentCount = recentLinks.filter((item) => getCustomOrderStatus(item) === 'active').length;
   const usedRecentCount = recentLinks.filter((item) => getCustomOrderStatus(item) === 'used').length;
+  const expiredRecentCount = recentLinks.filter((item) => getCustomOrderStatus(item) === 'expired').length;
+  const filteredRecentLinks =
+    statusFilter === 'all' ? recentLinks : recentLinks.filter((item) => getCustomOrderStatus(item) === statusFilter);
   const selectedRecentLink = selectedLinkId === null ? null : recentLinks.find((item) => item.linkId === selectedLinkId) ?? null;
   const detailStatus = detail ? getCustomOrderStatus(detail) : null;
 
@@ -313,7 +291,7 @@ export function AdminCustomOrdersPage() {
       };
 
       setLatestCreatedLink(nextRecentLink);
-      setRecentLinks((current) => upsertRecentCustomOrderLink(current, nextRecentLink));
+      await loadRecentLinks();
       setSelectedLinkId(result.linkId);
       setDetailLookupId(String(result.linkId));
       setDetailReloadKey((current) => current + 1);
@@ -359,7 +337,7 @@ export function AdminCustomOrdersPage() {
           </p>
         </div>
 
-        <div className="admin-stat-grid">
+          <div className="admin-stat-grid">
           <div className="admin-stat-card">
             <span>최근 링크</span>
             <strong>{totalRecentCount}</strong>
@@ -371,6 +349,10 @@ export function AdminCustomOrdersPage() {
           <div className="admin-stat-card">
             <span>사용 완료</span>
             <strong>{usedRecentCount}</strong>
+          </div>
+          <div className="admin-stat-card">
+            <span>만료됨</span>
+            <strong>{expiredRecentCount}</strong>
           </div>
         </div>
       </section>
@@ -500,13 +482,13 @@ export function AdminCustomOrdersPage() {
           <section className="surface-card admin-card-stack">
             <div className="admin-section-head">
               <div>
-                <p className="section-kicker">Recent</p>
-                <h3 className="section-subtitle">최근 생성 링크</h3>
+                <p className="section-kicker">List</p>
+                <h3 className="section-subtitle">생된 링크 목록</h3>
               </div>
-              <span className="admin-inline-note">브라우저 기준 최근 {MAX_RECENT_CUSTOM_LINKS}건</span>
+              <span className="admin-inline-note">※ 최신 {RECENT_CUSTOM_LINKS_LIMIT}건 출력</span>
             </div>
 
-            <form className="custom-link-lookup-form" onSubmit={onDetailLookupSubmit}>
+            {/* <form className="custom-link-lookup-form" onSubmit={onDetailLookupSubmit}>
               <label className="field">
                 <span>링크 ID로 상세 조회</span>
                 <input
@@ -521,18 +503,42 @@ export function AdminCustomOrdersPage() {
               <button className="button button-secondary" type="submit">
                 조회
               </button>
-            </form>
+            </form> */}
 
-            {recentLinks.length === 0 ? (
+            <div className="admin-status-filter-row" role="tablist" aria-label="커스텀 링크 상태 필터">
+              {CUSTOM_ORDER_STATUS_FILTER_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  className={`admin-status-filter-button ${statusFilter === option.value ? 'is-active' : ''}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={statusFilter === option.value}
+                  onClick={() => setStatusFilter(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            {recentLoading ? <LoadingScreen mode="inline" title="최근 링크 로딩 중" message="최근 생성 링크를 불러오고 있습니다." /> : null}
+            {recentError ? (
+              <p className="feedback-copy is-error" role="alert">
+                {recentError}
+              </p>
+            ) : null}
+
+            {!recentLoading && !recentError && filteredRecentLinks.length === 0 ? (
               <section className="admin-empty-state">
                 <p className="section-kicker">Empty</p>
-                <h4 className="section-subtitle">최근 생성한 링크가 없습니다</h4>
-                <p className="section-copy">왼쪽 폼에서 첫 링크를 만들거나 링크 ID로 직접 상세를 조회할 수 있습니다.</p>
+                <h4 className="section-subtitle">선택한 상태의 링크가 없습니다</h4>
+                <p className="section-copy">상태 필터를 바꾸거나 새 링크를 생성해 확인할 수 있습니다.</p>
               </section>
-            ) : (
+            ) : null}
+
+            {!recentLoading && !recentError && filteredRecentLinks.length > 0 ? (
               <div className="custom-link-list">
-                {recentLinks.map((link) => {
-                  const status = getCustomOrderStatus(link);
+                {filteredRecentLinks.map((link) => {
+                   const status = getCustomOrderStatus(link);
 
                   return (
                     <article
@@ -553,7 +559,7 @@ export function AdminCustomOrdersPage() {
                         <span>상품 협의 금액 {formatCurrency(link.finalTotalPrice)}</span>
                         <span>배송비 {formatCurrency(link.shippingFee)}</span>
                         <span>만료 {formatAdminDateTime(link.expiresAt)}</span>
-                        <span>{link.note?.trim() ? link.note : '운영 메모 없음'}</span>
+                        <span>{link.note?.trim() ? link.note : '메모 없음'}</span>
                       </div>
 
                       <div className="inline-actions custom-link-card-actions">
@@ -581,7 +587,7 @@ export function AdminCustomOrdersPage() {
                   );
                 })}
               </div>
-            )}
+            ) : null}
           </section>
         </div>
 
@@ -592,14 +598,7 @@ export function AdminCustomOrdersPage() {
               <h3 className="section-subtitle">링크 상세</h3>
             </div>
             <div className="inline-actions">
-              <button
-                className="button button-ghost"
-                type="button"
-                onClick={refreshSelectedDetail}
-                disabled={selectedLinkId === null || detailLoading}
-              >
-                새로고침
-              </button>
+              <AdminRefreshButton onClick={refreshSelectedDetail} disabled={selectedLinkId === null || detailLoading} />
               {detail ? (
                 <button
                   className="button button-secondary"
@@ -612,7 +611,7 @@ export function AdminCustomOrdersPage() {
             </div>
           </div>
 
-          {detailLoading ? <p className="feedback-copy">선택한 링크 상세를 불러오는 중입니다.</p> : null}
+          {detailLoading ? <LoadingScreen mode="inline" title="링크 상세 로딩 중" message="선택한 링크 상세를 불러오고 있습니다." /> : null}
           {detailError ? (
             <p className="feedback-copy is-error" role="alert">
               {detailError}

@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 
+import { AdminRefreshButton } from '../../components/admin/AdminRefreshButton';
+import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { apiClient, AdminCategoryItem, AdminProductListItem, PaginationMeta } from '../../lib/api';
 import { AdminLayoutContext, buildAdminCategoryOptions, formatAdminDateTime, formatCurrency, getAdminCategoryLabel } from './adminUtils';
 
@@ -206,9 +208,7 @@ export function AdminProductsPage() {
           <button className="button" type="submit">
             조건 적용
           </button>
-          <button className="button button-ghost" type="button" onClick={() => void loadProducts()} disabled={loading}>
-            새로고침
-          </button>
+          <AdminRefreshButton onClick={() => void loadProducts()} disabled={loading} />
         </div>
       </form>
 
@@ -221,7 +221,7 @@ export function AdminProductsPage() {
           <span className="admin-inline-note">{meta.totalItems}건</span>
         </div>
 
-        {loading ? <p className="feedback-copy">상품 목록을 불러오는 중입니다.</p> : null}
+        {loading ? <LoadingScreen mode="inline" title="상품 목록 로딩 중" message="상품 목록을 불러오고 있습니다." /> : null}
         {error ? (
           <p className="feedback-copy is-error" role="alert">
             {error}
