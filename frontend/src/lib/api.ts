@@ -382,6 +382,9 @@ export type StoreOrderCreateRequest = {
     zipcode: string;
     address1: string;
     address2?: string;
+    userSelectedType?: 'R' | 'J';
+    roadAddress?: string;
+    jibunAddress?: string;
   };
   customerRequest?: string;
 };
@@ -539,6 +542,9 @@ export type StoreCustomCheckoutOrderCreateRequest = {
     zipcode: string;
     address1: string;
     address2?: string;
+    userSelectedType?: 'R' | 'J';
+    roadAddress?: string;
+    jibunAddress?: string;
   };
   customerRequest?: string;
 };

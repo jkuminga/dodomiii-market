@@ -4,6 +4,66 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { apiClient, ProductDetail } from '../../lib/api';
 
+type KakaoPostcodeAddressData = {
+  zonecode: string;
+  roadAddress: string;
+  jibunAddress: string;
+  address: string;
+  userSelectedType: 'R' | 'J';
+};
+
+type KakaoPostcodeInstance = {
+  open: () => void;
+};
+
+type KakaoPostcodeCloseState = 'COMPLETE_CLOSE' | 'FORCE_CLOSE';
+
+type KakaoPostcodeConstructor = new (options: {
+  oncomplete: (data: KakaoPostcodeAddressData) => void;
+  onclose?: (state: KakaoPostcodeCloseState) => void;
+}) => KakaoPostcodeInstance;
+
+declare global {
+  interface Window {
+    kakao?: {
+      Postcode: KakaoPostcodeConstructor;
+    };
+  }
+}
+
+const KAKAO_POSTCODE_SCRIPT_URL = 'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+let kakaoPostcodeScriptPromise: Promise<void> | null = null;
+
+function loadKakaoPostcodeScript(): Promise<void> {
+  if (window.kakao?.Postcode) {
+    return Promise.resolve();
+  }
+
+  if (kakaoPostcodeScriptPromise) {
+    return kakaoPostcodeScriptPromise;
+  }
+
+  kakaoPostcodeScriptPromise = new Promise<void>((resolve, reject) => {
+    const existingScript = document.querySelector<HTMLScriptElement>(`script[src="${KAKAO_POSTCODE_SCRIPT_URL}"]`);
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(), { once: true });
+      existingScript.addEventListener('error', () => reject(new Error('주소 검색 스크립트를 불러오지 못했습니다.')), {
+        once: true,
+      });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = KAKAO_POSTCODE_SCRIPT_URL;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('주소 검색 스크립트를 불러오지 못했습니다.'));
+    document.head.appendChild(script);
+  });
+
+  return kakaoPostcodeScriptPromise;
+}
+
 function formatCurrency(value: number): string {
   return `${value.toLocaleString('ko-KR')}원`;
 }
@@ -21,6 +81,12 @@ type ContactFormState = {
   address1: string;
   address2: string;
   customerRequest: string;
+};
+
+type AddressSelectionState = {
+  userSelectedType: 'R' | 'J';
+  roadAddress: string;
+  jibunAddress: string;
 };
 
 const INITIAL_CONTACT_FORM: ContactFormState = {
@@ -59,6 +125,10 @@ export function OrderPage() {
   const [selectedOptionByGroup, setSelectedOptionByGroup] = useState<Record<string, string[]>>({});
   const [expandedOptionGroups, setExpandedOptionGroups] = useState<Record<string, boolean>>({});
   const [quantity, setQuantity] = useState(1);
+  const [selectedAddress, setSelectedAddress] = useState<AddressSelectionState | null>(null);
+  const [addressSearchActive, setAddressSearchActive] = useState(false);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [addressError, setAddressError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -76,6 +146,10 @@ export function OrderPage() {
       setQuantity(1);
       setContact(INITIAL_CONTACT_FORM);
       setReceiverSameAsBuyer(false);
+      setSelectedAddress(null);
+      setAddressSearchActive(false);
+      setAddressLoading(false);
+      setAddressError('');
 
       try {
         const result = await apiClient.getProductById(productId);
@@ -206,6 +280,7 @@ export function OrderPage() {
       return selectedIds.length === 0;
     });
   const isSubmitDisabled = submitting || !!product?.isSoldOut || requiresOptionSelection;
+  const hasSelectedAddress = !!selectedAddress && contact.zipcode.trim().length > 0 && contact.address1.trim().length > 0;
 
   const onContactChange =
     (field: keyof ContactFormState) =>
@@ -220,6 +295,54 @@ export function OrderPage() {
     setQuantity(Math.max(1, nextValue));
   };
 
+  const onOpenAddressSearch = async () => {
+    setAddressLoading(true);
+    setAddressSearchActive(false);
+    setAddressError('');
+
+    try {
+      await loadKakaoPostcodeScript();
+
+      if (!window.kakao?.Postcode) {
+        throw new Error('주소 검색 창을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      }
+
+      new window.kakao.Postcode({
+        oncomplete: (data) => {
+          const selectedType = data.userSelectedType;
+          const resolvedAddress =
+            selectedType === 'R'
+              ? data.roadAddress.trim() || data.address.trim() || data.jibunAddress.trim()
+              : data.jibunAddress.trim() || data.address.trim() || data.roadAddress.trim();
+
+          setContact((current) => ({
+            ...current,
+            zipcode: data.zonecode.trim(),
+            address1: resolvedAddress,
+          }));
+          setSelectedAddress({
+            userSelectedType: selectedType,
+            roadAddress: data.roadAddress.trim(),
+            jibunAddress: data.jibunAddress.trim(),
+          });
+          setAddressSearchActive(false);
+          setAddressError('');
+          setSubmitError('');
+        },
+        onclose: () => {
+          setAddressSearchActive(false);
+        },
+      }).open();
+
+      setAddressSearchActive(true);
+    } catch (caught) {
+      setAddressSearchActive(false);
+      setAddressError(caught instanceof Error ? caught.message : '주소 검색을 열지 못했습니다.');
+    } finally {
+      setAddressLoading(false);
+    }
+  };
+
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -229,6 +352,11 @@ export function OrderPage() {
 
     if (requiresOptionSelection) {
       setSubmitError('옵션을 먼저 선택해 주세요.');
+      return;
+    }
+
+    if (!contact.zipcode.trim() || !contact.address1.trim()) {
+      setSubmitError('주소 검색 버튼으로 배송지 정보를 먼저 입력해 주세요.');
       return;
     }
 
@@ -252,6 +380,9 @@ export function OrderPage() {
           zipcode: contact.zipcode.trim(),
           address1: contact.address1.trim(),
           address2: contact.address2.trim() || undefined,
+          userSelectedType: selectedAddress?.userSelectedType,
+          roadAddress: selectedAddress?.roadAddress || undefined,
+          jibunAddress: selectedAddress?.jibunAddress || undefined,
         },
         customerRequest: contact.customerRequest.trim() || undefined,
       });
@@ -346,10 +477,6 @@ export function OrderPage() {
             <strong>{formatCurrency(estimatedSubtotal)}</strong>
           </div>
         </div>
-
-        <p className="feedback-copy">
-          주문 생성 후 결제 페이지에서 최종 금액, 입금 계좌, 입금 기한을 확인할 수 있습니다.
-        </p>
       </section>
 
       <form className="order-form-shell" onSubmit={onSubmit}>
@@ -424,6 +551,7 @@ export function OrderPage() {
               <p className="feedback-copy">추가 옵션이 없는 상품입니다. 수량만 조정해서 바로 주문할 수 있습니다.</p>
             )}
 
+            <hr className="order-form-divider" />
             {optionGroups.length > 0 ? (
               <section className="order-option-basket" aria-live="polite">
                 <div className="order-option-basket-head">
@@ -513,6 +641,7 @@ export function OrderPage() {
               />
             </label>
           </fieldset>
+          <hr className="order-form-divider" />
 
           <fieldset className="order-form-section">
             <legend className="order-section-legend-inline">
@@ -536,6 +665,7 @@ export function OrderPage() {
                 <span>주문자 정보와 동일</span>
               </label>
             </legend>
+            
 
             <label className="field">
               <span>수령인 이름</span>
@@ -560,25 +690,46 @@ export function OrderPage() {
               />
             </label>
           </fieldset>
-
+<hr className="order-form-divider" />
           <fieldset className="order-form-section">
             <legend>배송지 정보</legend>
 
+            <button
+              className="order-address-search-button"
+              type="button"
+              onClick={() => void onOpenAddressSearch()}
+              disabled={addressLoading || addressSearchActive}
+            >
+              배송지 주소 검색
+            </button>
+
+            {addressError ? (
+              <p className="feedback-copy is-error" role="alert">
+                {addressError}
+              </p>
+            ) : null}
+
             <label className="field">
               <span>우편번호</span>
-              <input value={contact.zipcode} onChange={onContactChange('zipcode')} placeholder="우편번호" inputMode="numeric" required />
+              <input value={contact.zipcode} placeholder="주소 검색으로 자동 입력" inputMode="numeric" disabled required />
             </label>
 
             <label className="field">
               <span>기본 주소</span>
-              <input value={contact.address1} onChange={onContactChange('address1')} placeholder="기본 주소" required />
+              <input value={contact.address1} placeholder="주소 검색으로 자동 입력" disabled required />
             </label>
 
             <label className="field">
               <span>상세 주소</span>
-              <input value={contact.address2} onChange={onContactChange('address2')} placeholder="상세 주소" />
+              <input
+                value={contact.address2}
+                onChange={onContactChange('address2')}
+                placeholder={hasSelectedAddress ? '상세 주소를 입력해 주세요' : '주소 검색 완료 후 입력 가능'}
+                disabled={!hasSelectedAddress}
+              />
             </label>
           </fieldset>
+          <hr className="order-form-divider" />
 
           <fieldset className="order-form-section">
             <legend>추가 요청</legend>

@@ -24,6 +24,7 @@ import {
   StoreOrderTrackingResponse,
   StoreTrackingEvent,
 } from './store.types';
+import { normalizeOrderContactAddress } from './utils/order-contact.util';
 
 export type CategoryTreeNode = {
   id: number;
@@ -1050,6 +1051,7 @@ export class StoreService {
   ): Promise<StoreCreatedOrderResponse> {
     const depositDeadlineAt = this.getDepositDeadlineAt(params.now);
     const depositInfo = this.getDepositAccountInfo();
+    const normalizedContactAddress = normalizeOrderContactAddress(params.contact);
 
     const order = await tx.order.create({
       data: {
@@ -1087,8 +1089,8 @@ export class StoreService {
         receiverName: params.contact.receiverName,
         receiverPhone: params.contact.receiverPhone,
         zipcode: params.contact.zipcode,
-        address1: params.contact.address1,
-        address2: params.contact.address2 ?? null,
+        address1: normalizedContactAddress.address1,
+        address2: normalizedContactAddress.address2,
       },
     });
 

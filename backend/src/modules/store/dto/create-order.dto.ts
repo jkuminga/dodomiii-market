@@ -4,6 +4,7 @@ import {
   ArrayUnique,
   IsArray,
   IsDefined,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -70,6 +71,21 @@ export class CreateOrderContactDto {
   @IsNotEmpty()
   @MaxLength(255)
   address1!: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['R', 'J'])
+  userSelectedType?: 'R' | 'J';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  roadAddress?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  jibunAddress?: string;
 
   @IsOptional()
   @IsString()
