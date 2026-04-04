@@ -5,6 +5,7 @@ import logoMain from './assets/images/logo_main3.jpg';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { BottomNav } from './components/mobile/BottomNav';
 import { MobileHeader } from './components/mobile/MobileHeader';
+import { DesktopHeader } from './components/store/DesktopHeader';
 import { ProductArtwork } from './components/store/ProductArtwork';
 import { apiClient, CategoryTreeNode, ProductListItem, StoreHomePopup } from './lib/api';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
@@ -387,10 +388,32 @@ function QnaPage() {
 function AppFrame() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const [isDesktopViewport, setIsDesktopViewport] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 960px)').matches : false,
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(min-width: 960px)');
+    const onChange = (event: MediaQueryListEvent) => setIsDesktopViewport(event.matches);
+
+    setIsDesktopViewport(mediaQuery.matches);
+    mediaQuery.addEventListener('change', onChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', onChange);
+    };
+  }, []);
+
+  const isDesktopStoreRoute = !isAdminRoute && isDesktopViewport;
+  const shellClassName = `app-shell ${isAdminRoute ? 'is-admin' : 'is-store'}${isDesktopStoreRoute ? ' is-store-desktop' : ''}`;
 
   return (
-    <div className={`app-shell ${isAdminRoute ? 'is-admin' : 'is-store'}`}>
-      {isAdminRoute ? null : <MobileHeader />}
+    <div className={shellClassName}>
+      {isAdminRoute ? null : isDesktopStoreRoute ? <DesktopHeader /> : <MobileHeader />}
 
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -418,7 +441,7 @@ function AppFrame() {
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
 
-      {isAdminRoute ? null : <BottomNav />}
+      {isAdminRoute || isDesktopStoreRoute ? null : <BottomNav />}
     </div>
   );
 }

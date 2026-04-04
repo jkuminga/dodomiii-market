@@ -198,7 +198,7 @@ export function ProductDetailPage() {
         ) : null}
       </section>
 
-      <section className="surface-hero compact-hero">
+      <section className="surface-hero compact-hero detail-summary-card">
         <p className="section-kicker">{product.categoryName}</p>
         <h1 className="section-title">{product.name}</h1>
         <p className="section-copy">{product.shortDescription ?? product.description ?? '상품 소개 문구가 준비 중입니다.'}</p>
@@ -305,7 +305,7 @@ export function ProductDetailPage() {
         ) : null}
       </section>
 
-      <section className="surface-card">
+      <section className="surface-card detail-tab-card">
         <div className="tab-bar" role="tablist" aria-label="상품 세부 정보">
           <button
             className={`tab-button ${activeTab === 'story' ? 'is-active' : ''}`}
