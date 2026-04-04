@@ -172,140 +172,161 @@ export function ProductDetailPage() {
         </Link>
       </div> */}
 
-      <section className="surface-card detail-media-card">
-        <div className="detail-main-media">
-          <ProductArtwork src={activeImage?.imageUrl} name={product.name} category={product.categoryName} />
-          <div className="detail-media-overlay">
-            <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`}>{product.isSoldOut ? '품절' : '판매 중'}</span>
-            {product.consultationRequired ? <span className="status-pill">상담 필요</span> : null}
+      <div className="detail-media-column">
+        <section className="surface-card detail-media-card">
+          <div className="detail-main-media">
+            <ProductArtwork src={activeImage?.imageUrl} name={product.name} category={product.categoryName} />
+            <div className="detail-media-overlay">
+              <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`}>{product.isSoldOut ? '품절' : '판매 중'}</span>
+              {product.consultationRequired ? <span className="status-pill">상담 필요</span> : null}
+            </div>
           </div>
-        </div>
 
-        {orderedImages.length > 1 ? (
-          <div className="detail-thumb-row" aria-label="상품 이미지 선택">
-            {orderedImages.map((image, index) => (
-              <button
-                key={image.id}
-                className={`detail-thumb ${index === selectedImageIndex ? 'is-active' : ''}`}
-                type="button"
-                onClick={() => setSelectedImageIndex(index)}
-                aria-label={`${index + 1}번 이미지 보기`}
-              >
-                <ProductArtwork src={image.imageUrl} name={product.name} category={product.categoryName} />
-              </button>
-            ))}
+          {orderedImages.length > 1 ? (
+            <div className="detail-thumb-row" aria-label="상품 이미지 선택">
+              {orderedImages.map((image, index) => (
+                <button
+                  key={image.id}
+                  className={`detail-thumb ${index === selectedImageIndex ? 'is-active' : ''}`}
+                  type="button"
+                  onClick={() => setSelectedImageIndex(index)}
+                  aria-label={`${index + 1}번 이미지 보기`}
+                >
+                  <ProductArtwork src={image.imageUrl} name={product.name} category={product.categoryName} />
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      </div>
+
+      <div className="detail-side-column">
+        <section className="surface-hero compact-hero detail-summary-card">
+          <p className="section-kicker">{product.categoryName}</p>
+          <h1 className="section-title">{product.name}</h1>
+          <p className="section-copy">{product.shortDescription ?? product.description ?? '상품 소개 문구가 준비 중입니다.'}</p>
+
+          <div className="detail-price-row">
+            <strong className="detail-price">{formatCurrency(product.basePrice)}</strong>
+            <span className="detail-stock">{product.stockQuantity === null ? '주문 후 제작' : `남은 수량 ${product.stockQuantity}개`}</span>
           </div>
-        ) : null}
-      </section>
+        </section>
 
-      <section className="surface-hero compact-hero detail-summary-card">
-        <p className="section-kicker">{product.categoryName}</p>
-        <h1 className="section-title">{product.name}</h1>
-        <p className="section-copy">{product.shortDescription ?? product.description ?? '상품 소개 문구가 준비 중입니다.'}</p>
-
-        <div className="detail-price-row">
-          <strong className="detail-price">{formatCurrency(product.basePrice)}</strong>
-          <span className="detail-stock">{product.stockQuantity === null ? '주문 후 제작' : `남은 수량 ${product.stockQuantity}개`}</span>
-        </div>
-      </section>
-
-      <section className="surface-card info-stack">
-        <div className="benefit-item">
-          <span className="benefit-label">배송</span>
-          <p>{product.policy.shippingInfo}</p>
-        </div>
-        <div className="benefit-item">
-          <span className="benefit-label">환불</span>
-          <p>{product.policy.refundInfo}</p>
-        </div>
-        <div className="benefit-item">
-          <span className="benefit-label">주문 방식</span>
-          <p>{product.consultationRequired ? '상담 후 주문이 필요한 상품입니다.' : '현재 화면에서는 상품 정보 확인에 집중했습니다.'}</p>
-        </div>
-      </section>
-
-      <section className="surface-card detail-order-card">
-        <div className="section-head">
-          <div>
-            <p className="section-kicker">Options</p>
-            <h2 className="section-subtitle">옵션 선택</h2>
-            <p className="section-copy section-copy-compact">원하시는 옵션을 선택하세요.</p>
+        <section className="surface-card info-stack">
+          <div className="benefit-item">
+            <span className="benefit-label">배송</span>
+            <p>{product.policy.shippingInfo}</p>
           </div>
-          <Link className="button-text" to={orderHref}>
-            주문서 열기
-          </Link>
-        </div>
+          <div className="benefit-item">
+            <span className="benefit-label">환불</span>
+            <p>{product.policy.refundInfo}</p>
+          </div>
+          <div className="benefit-item">
+            <span className="benefit-label">주문 방식</span>
+            <p>{product.consultationRequired ? '상담 후 주문이 필요한 상품입니다.' : '현재 화면에서는 상품 정보 확인에 집중했습니다.'}</p>
+          </div>
+        </section>
 
-        {activeOptions.length > 0 ? (
-          <div className="order-option-group-list">
-            {optionGroups.map((group) => (
-              <div className="field order-option-group-field" key={group.groupName}>
-                <div className="order-option-group-head">
-                  <span>
-                    {group.groupName}
-                    {(selectedOrderOptionByGroup[group.groupName] ?? []).length > 0 ? (
-                      <small className="order-option-selected-flag">선택됨</small>
-                    ) : null}
-                  </span>
-                  <button
-                    type="button"
-                    className="order-option-toggle"
-                    onClick={() =>
-                      setExpandedOptionGroups((current) => ({
-                        ...current,
-                        [group.groupName]: !(current[group.groupName] ?? false),
-                      }))
-                    }
-                    aria-expanded={expandedOptionGroups[group.groupName] ?? false}
-                  >
-                    {expandedOptionGroups[group.groupName] ?? false ? '접기' : '펼치기'}
-                  </button>
-                </div>
-                {(expandedOptionGroups[group.groupName] ?? false) ? (
-                  <div className="order-option-multi-list">
-                    {group.options.map((option) => {
-                      const selectedValues = selectedOrderOptionByGroup[group.groupName] ?? [];
-                      const isChecked = selectedValues.includes(String(option.id));
+        <section className="surface-card detail-order-card">
+          <div className="section-head">
+            <div>
+              <p className="section-kicker">Options</p>
+              <h2 className="section-subtitle">옵션 선택</h2>
+              <p className="section-copy section-copy-compact">원하시는 옵션을 선택하세요.</p>
+            </div>
+            <Link className="button-text" to={orderHref}>
+              주문서 열기
+            </Link>
+          </div>
 
-                      return (
-                        <label className={`order-option-multi-item ${isChecked ? 'is-selected' : ''}`} key={option.id}>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(event) =>
-                              setSelectedOrderOptionByGroup((current) => {
-                                const previous = current[group.groupName] ?? [];
-                                const next = event.target.checked
-                                  ? [...previous, String(option.id)]
-                                  : previous.filter((value) => value !== String(option.id));
-
-                                return {
-                                  ...current,
-                                  [group.groupName]: [...new Set(next)],
-                                };
-                              })
-                            }
-                          />
-                          <span>{option.optionValue}</span>
-                          <strong>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '+0원'}</strong>
-                        </label>
-                      );
-                    })}
+          {activeOptions.length > 0 ? (
+            <div className="order-option-group-list">
+              {optionGroups.map((group) => (
+                <div className="field order-option-group-field" key={group.groupName}>
+                  <div className="order-option-group-head">
+                    <span>
+                      {group.groupName}
+                      {(selectedOrderOptionByGroup[group.groupName] ?? []).length > 0 ? (
+                        <small className="order-option-selected-flag">선택됨</small>
+                      ) : null}
+                    </span>
+                    <button
+                      type="button"
+                      className="order-option-toggle"
+                      onClick={() =>
+                        setExpandedOptionGroups((current) => ({
+                          ...current,
+                          [group.groupName]: !(current[group.groupName] ?? false),
+                        }))
+                      }
+                      aria-expanded={expandedOptionGroups[group.groupName] ?? false}
+                    >
+                      {expandedOptionGroups[group.groupName] ?? false ? '접기' : '펼치기'}
+                    </button>
                   </div>
-                ) : null}
-              </div>
-            ))}
+                  {(expandedOptionGroups[group.groupName] ?? false) ? (
+                    <div className="order-option-multi-list">
+                      {group.options.map((option) => {
+                        const selectedValues = selectedOrderOptionByGroup[group.groupName] ?? [];
+                        const isChecked = selectedValues.includes(String(option.id));
+
+                        return (
+                          <label className={`order-option-multi-item ${isChecked ? 'is-selected' : ''}`} key={option.id}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(event) =>
+                                setSelectedOrderOptionByGroup((current) => {
+                                  const previous = current[group.groupName] ?? [];
+                                  const next = event.target.checked
+                                    ? [...previous, String(option.id)]
+                                    : previous.filter((value) => value !== String(option.id));
+
+                                  return {
+                                    ...current,
+                                    [group.groupName]: [...new Set(next)],
+                                  };
+                                })
+                              }
+                            />
+                            <span>{option.optionValue}</span>
+                            <strong>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '+0원'}</strong>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="feedback-copy">추가 옵션이 없는 상품입니다. 주문서에서 수량과 배송지 정보만 입력하면 됩니다.</p>
+          )}
+
+          {product.consultationRequired ? (
+            <p className="feedback-copy">주문 접수 뒤 상담 확인이 이어질 수 있습니다.</p>
+          ) : null}
+        </section>
+
+        <div className="fixed-product-bar">
+          <div>
+            <p>총액</p>
+            <strong>{formatCurrency(selectedTotalPrice)}</strong>
           </div>
-        ) : (
-          <p className="feedback-copy">추가 옵션이 없는 상품입니다. 주문서에서 수량과 배송지 정보만 입력하면 됩니다.</p>
-        )}
+          {product.isSoldOut ? (
+            <button className="button" type="button" disabled>
+              품절 상품
+            </button>
+          ) : (
+            <Link className="button" to={orderHref}>
+              주문서 이동
+            </Link>
+          )}
+        </div>
+      </div>
 
-        {product.consultationRequired ? (
-          <p className="feedback-copy">주문 접수 뒤 상담 확인이 이어질 수 있습니다.</p>
-        ) : null}
-      </section>
-
-      <section className="surface-card detail-tab-card">
+      <div className="detail-tab-column">
+        <section className="surface-card detail-tab-card">
         <div className="tab-bar" role="tablist" aria-label="상품 세부 정보">
           <button
             className={`tab-button ${activeTab === 'story' ? 'is-active' : ''}`}
@@ -368,23 +389,9 @@ export function ProductDetailPage() {
             </div>
           ) : null}
         </div>
-      </section>
-
-      <div className="fixed-product-bar">
-        <div>
-          <p>총액</p>
-          <strong>{formatCurrency(selectedTotalPrice)}</strong>
-        </div>
-        {product.isSoldOut ? (
-          <button className="button" type="button" disabled>
-            품절 상품
-          </button>
-        ) : (
-          <Link className="button" to={orderHref}>
-            주문서 이동
-          </Link>
-        )}
+        </section>
       </div>
+
     </main>
   );
 }

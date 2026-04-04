@@ -42,13 +42,6 @@ enum AdminRole {
   STAFF
 }
 
-enum InstagramIntegrationStatus {
-  ACTIVE
-  EXPIRED
-  REVOKED
-  ERROR
-}
-
 model Category {
   id        BigInt   @id @default(autoincrement())
   parentId  BigInt?  @map("parent_id")
@@ -261,32 +254,9 @@ model Admin {
 
   statusHistories         OrderStatusHistory[]
   createdCustomOrderLinks CustomOrderLink[]
-  instagramIntegrations   InstagramIntegration[]
 
   @@index([isActive], map: "idx_admins_active")
   @@map("admins")
-}
-
-model InstagramIntegration {
-  id                   BigInt                     @id @default(autoincrement()) @map("instagram_integration_id")
-  adminId              BigInt?                    @map("admin_id")
-  igUserId             String                     @unique @map("ig_user_id") @db.VarChar(50)
-  igUsername           String?                    @map("ig_username") @db.VarChar(100)
-  accessTokenEncrypted String                     @map("access_token_encrypted") @db.VarChar(2048)
-  tokenExpiresAt       DateTime?                  @map("token_expires_at")
-  status               InstagramIntegrationStatus @default(ACTIVE)
-  lastSyncedAt         DateTime?                  @map("last_synced_at")
-  lastErrorCode        String?                    @map("last_error_code") @db.VarChar(100)
-  lastErrorMessage     String?                    @map("last_error_message") @db.VarChar(500)
-  createdAt            DateTime                   @default(now()) @map("created_at")
-  updatedAt            DateTime                   @updatedAt @map("updated_at")
-
-  admin Admin? @relation(fields: [adminId], references: [id], onDelete: SetNull)
-
-  @@index([adminId], map: "idx_instagram_integrations_admin_id")
-  @@index([status], map: "idx_instagram_integrations_status")
-  @@index([tokenExpiresAt], map: "idx_instagram_integrations_token_expires_at")
-  @@map("instagram_integrations")
 }
 
 model HomePopup {

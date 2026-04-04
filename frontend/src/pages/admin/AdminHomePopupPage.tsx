@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
 import { LoadingScreen } from '../../components/common/LoadingScreen';
@@ -32,6 +32,18 @@ function toFormState(popup: AdminHomePopup | null): PopupFormState {
   };
 }
 
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function AdminHomePopupPage() {
   const { showToast } = useOutletContext<AdminLayoutContext>();
 
@@ -61,6 +73,25 @@ export function AdminHomePopupPage() {
   useEffect(() => {
     void loadPopup();
   }, []);
+
+  const updateField = <Key extends keyof PopupFormState>(key: Key, value: PopupFormState[Key]) => {
+    setForm((current) => ({ ...current, [key]: value }));
+
+    if (error !== '') {
+      setError('');
+    }
+  };
+
+  const onSelectFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0] ?? null;
+    setSelectedFile(nextFile);
+
+    if (error !== '') {
+      setError('');
+    }
+
+    event.target.value = '';
+  };
 
   const uploadToCloudinary = async (file: File) => {
     const signed = await apiClient.signAdminUpload({
@@ -129,6 +160,7 @@ export function AdminHomePopupPage() {
     try {
       const secureUrl = await uploadToCloudinary(selectedFile);
       setForm((current) => ({ ...current, imageUrl: secureUrl }));
+      setSelectedFile(null);
       showToast('이미지 업로드를 완료했습니다.');
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : '이미지 업로드에 실패했습니다.');
@@ -169,6 +201,20 @@ export function AdminHomePopupPage() {
     }
   };
 
+  const trimmedTitle = form.title.trim();
+  const trimmedImageUrl = form.imageUrl.trim();
+  const trimmedLinkUrl = form.linkUrl.trim();
+  const imageRequiredError = error === '팝업 이미지 URL을 입력해주세요.';
+  const uploadReady = selectedFile !== null;
+  const hasExistingPopup = popup !== null;
+  const currentStatusLabel = loading ? '불러오는 중' : form.isActive ? '노출 중' : '비노출';
+  const imageStatusLabel = loading ? '확인 중' : trimmedImageUrl !== '' ? '준비됨' : '미설정';
+  const linkStatusLabel = loading ? '확인 중' : trimmedLinkUrl !== '' ? '연결됨' : '없음';
+  const selectedFileMeta =
+    selectedFile !== null
+      ? `${selectedFile.type || '형식 미확인'} · ${formatFileSize(selectedFile.size)}`
+      : '권장 이미지를 선택한 뒤 업로드하면 URL이 자동으로 입력됩니다.';
+
   return (
     <section className="admin-section">
       <section className="surface-hero compact-hero admin-hero-card">
@@ -180,7 +226,11 @@ export function AdminHomePopupPage() {
         <div className="admin-stat-grid">
           <div className="admin-stat-card">
             <span>활성 상태</span>
-            <strong>{form.isActive ? '노출' : '비노출'}</strong>
+            <strong>{currentStatusLabel}</strong>
+          </div>
+          <div className="admin-stat-card">
+            <span>이미지 상태</span>
+            <strong>{imageStatusLabel}</strong>
           </div>
           <div className="admin-stat-card">
             <span>최근 수정</span>
@@ -189,95 +239,229 @@ export function AdminHomePopupPage() {
         </div>
       </section>
 
-      <form className="surface-card admin-card-stack" onSubmit={onSubmit}>
-        <div className="admin-section-head">
-          <div>
-            <p className="section-kicker">Content</p>
-            <h3 className="section-subtitle">팝업 노출 설정</h3>
-          </div>
-          <button className="button" type="submit" disabled={saving || loading}>
-            {saving ? '저장 중...' : '저장'}
-          </button>
-        </div>
-
-        {loading ? <LoadingScreen mode="inline" title="팝업 설정 로딩 중" message="기존 팝업 설정을 불러오고 있습니다." /> : null}
-        {error !== '' ? (
-          <p className="feedback-copy is-error" role="alert">
-            {error}
-          </p>
-        ) : null}
-
-        {loading === false ? (
-          <>
-            <div className="admin-field-grid">
-              <label className="field">
-                <span>팝업 제목 (선택)</span>
-                <input
-                  value={form.title}
-                  onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                  placeholder="예: 4월 이벤트 안내"
-                />
-              </label>
-
-              <label className="field">
-                <span>링크 URL (선택)</span>
-                <input
-                  value={form.linkUrl}
-                  onChange={(event) => setForm((current) => ({ ...current, linkUrl: event.target.value }))}
-                  placeholder="https://..."
-                />
-              </label>
-
-              <label className="field field-checkbox">
-                <span>노출 상태</span>
-                <div className="checkbox-inline" style={{ marginTop: 8 }}>
-                  <input
-                    type="checkbox"
-                    checked={form.isActive}
-                    onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))}
-                  />
-                  <span>메인 홈 진입 시 팝업 노출</span>
-                </div>
-              </label>
+      <form className="admin-two-column admin-home-popup-layout" onSubmit={onSubmit} aria-busy={loading || saving || uploading}>
+        <section className="surface-card admin-card-stack admin-home-popup-editor">
+          <div className="admin-section-head">
+            <div>
+              <p className="section-kicker">Content</p>
+              <h3 className="section-subtitle">팝업 노출 설정</h3>
+              <p className="section-copy section-copy-compact admin-home-popup-header-copy">
+                홈 진입 팝업의 노출 상태, 연결 링크, 이미지 자산을 한 번에 관리합니다.
+              </p>
             </div>
+            <button className="button" type="submit" disabled={saving || loading}>
+              {saving ? '저장 중...' : '저장'}
+            </button>
+          </div>
 
-            <div className="inline-actions">
-              <label className="button button-secondary" style={{ cursor: 'pointer' }}>
-                파일 선택
+          {loading ? <LoadingScreen mode="inline" title="팝업 설정 로딩 중" message="기존 팝업 설정을 불러오고 있습니다." /> : null}
+          {error !== '' ? (
+            <p className="feedback-copy is-error" id="admin-home-popup-feedback" role="alert">
+              {error}
+            </p>
+          ) : null}
+
+          {loading === false ? (
+            <>
+              <section className="admin-editor-overview-bar" aria-label="팝업 설정 요약">
+                <div className="admin-overview-chip">
+                  <span>노출 상태</span>
+                  <strong>{form.isActive ? '표시됨' : '숨김'}</strong>
+                  <small>{form.isActive ? '스토어 홈 진입 시 팝업이 열립니다.' : '저장 후에는 팝업이 노출되지 않습니다.'}</small>
+                </div>
+                <div className="admin-overview-chip">
+                  <span>이미지 자산</span>
+                  <strong>{trimmedImageUrl !== '' ? '연결 완료' : '입력 필요'}</strong>
+                  <small>{trimmedImageUrl !== '' ? '현재 미리보기에 즉시 반영됩니다.' : 'Cloudinary 업로드 또는 직접 URL 입력이 필요합니다.'}</small>
+                </div>
+                <div className="admin-overview-chip">
+                  <span>링크 이동</span>
+                  <strong>{trimmedLinkUrl !== '' ? '설정됨' : '미사용'}</strong>
+                  <small>{trimmedLinkUrl !== '' ? '클릭 시 새 창으로 이동합니다.' : '링크 없이 이미지 팝업만 노출됩니다.'}</small>
+                </div>
+              </section>
+
+              <section className="admin-form-section">
+                <div className="admin-panel-head">
+                  <div>
+                    <strong>기본 정보</strong>
+                    <p>운영 제목과 연결 링크, 노출 상태를 먼저 정리하면 저장 전 검토가 쉬워집니다.</p>
+                  </div>
+                </div>
+
+                <div className="admin-field-grid">
+                  <label className="field">
+                    <span>팝업 제목 (선택)</span>
+                    <input
+                      value={form.title}
+                      onChange={(event) => updateField('title', event.target.value)}
+                      placeholder="예: 4월 이벤트 안내"
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>링크 URL (선택)</span>
+                    <input
+                      value={form.linkUrl}
+                      onChange={(event) => updateField('linkUrl', event.target.value)}
+                      placeholder="https://..."
+                    />
+                  </label>
+                </div>
+
+                <div className="admin-check-grid admin-home-popup-check-grid">
+                  <label className="admin-check-field admin-home-popup-toggle">
+                    <input
+                      type="checkbox"
+                      checked={form.isActive}
+                      onChange={(event) => updateField('isActive', event.target.checked)}
+                    />
+                    <span>
+                      <strong>메인 홈 진입 시 팝업 노출</strong>
+                      <small>{form.isActive ? '현재 저장 시 스토어에서 바로 보이도록 설정됩니다.' : '현재 저장 시 팝업이 비노출 상태로 유지됩니다.'}</small>
+                    </span>
+                  </label>
+                </div>
+              </section>
+
+              <section className="admin-form-section">
+                <div className="admin-section-head">
+                  <div>
+                    <p className="section-kicker">Upload</p>
+                    <h4 className="section-subtitle">이미지 자산 업로드</h4>
+                  </div>
+                  <div className="admin-inline-note">Cloudinary 업로드 후 이미지 URL이 자동 입력됩니다.</div>
+                </div>
+
+                <div className="admin-home-popup-upload-grid">
+                  <label className={`admin-home-popup-file-picker${uploadReady ? ' is-selected' : ''}`} htmlFor="admin-home-popup-file">
+                    <span className="admin-home-popup-file-picker-kicker">Image Asset</span>
+                    <strong>{selectedFile ? selectedFile.name : '팝업 이미지를 선택하세요'}</strong>
+                    <p>JPG, PNG, WEBP 등 브라우저에서 업로드 가능한 이미지를 선택할 수 있습니다.</p>
+                    <span className="admin-home-popup-file-picker-action">{selectedFile ? '다른 파일 선택' : '파일 고르기'}</span>
+                  </label>
+
+                  <section className="admin-subcard admin-home-popup-upload-card" aria-live="polite">
+                    <div className="admin-home-popup-upload-meta">
+                      <span>선택 파일</span>
+                      <strong>{selectedFile ? selectedFile.name : '아직 파일이 선택되지 않았습니다.'}</strong>
+                      <p>{selectedFileMeta}</p>
+                    </div>
+
+                    <div className="inline-actions admin-home-popup-upload-actions">
+                      <button className="button" type="button" onClick={() => void onUploadFile()} disabled={!uploadReady || uploading}>
+                        {uploading ? '업로드 중...' : 'Cloudinary 업로드'}
+                      </button>
+                      {selectedFile ? (
+                        <button className="button button-ghost" type="button" onClick={() => setSelectedFile(null)} disabled={uploading}>
+                          선택 해제
+                        </button>
+                      ) : null}
+                    </div>
+                  </section>
+                </div>
+
                 <input
+                  id="admin-home-popup-file"
+                  className="sr-only"
                   type="file"
                   accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
+                  onChange={onSelectFile}
+                  aria-describedby="admin-home-popup-upload-help"
                 />
-              </label>
-              <button className="button button-ghost" type="button" onClick={() => void onUploadFile()} disabled={uploading}>
-                {uploading ? '업로드 중...' : 'Cloudinary 업로드'}
-              </button>
-              <span className="admin-inline-note">{selectedFile ? selectedFile.name : '선택된 파일 없음'}</span>
-            </div>
 
-            <label className="field">
-              <span>팝업 이미지 URL (업로드 후 자동 입력)</span>
-              <input
-                value={form.imageUrl}
-                onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
-                placeholder="https://..."
-              />
-            </label>
+                <label className="field">
+                  <span>팝업 이미지 URL</span>
+                  <input
+                    value={form.imageUrl}
+                    onChange={(event) => updateField('imageUrl', event.target.value)}
+                    placeholder="https://..."
+                    aria-describedby="admin-home-popup-upload-help"
+                    aria-invalid={imageRequiredError}
+                  />
+                </label>
 
-            <section className="surface-card admin-popup-preview-card">
+                <p className="admin-inline-note admin-home-popup-upload-help" id="admin-home-popup-upload-help">
+                  업로드 없이 직접 입력해도 됩니다. 저장 전에 오른쪽 미리보기에서 이미지를 꼭 확인하세요.
+                </p>
+              </section>
+
+              <section className="admin-home-popup-action-bar" aria-label="저장 안내">
+                <div className="admin-home-popup-action-copy" role="status" aria-live="polite">
+                  <strong>{hasExistingPopup ? '기존 팝업을 수정 중입니다.' : '새 홈 팝업을 만들 준비가 되었습니다.'}</strong>
+                  <p>
+                    {trimmedImageUrl !== ''
+                      ? '저장하면 현재 설정이 스토어 홈 팝업에 반영됩니다.'
+                      : '이미지 URL을 입력하거나 업로드한 뒤 저장하면 스토어 팝업에 반영됩니다.'}
+                  </p>
+                </div>
+                <button className="button" type="submit" disabled={saving}>
+                  {saving ? '저장 중...' : '변경사항 저장'}
+                </button>
+              </section>
+            </>
+          ) : null}
+        </section>
+
+        <aside className="surface-card admin-card-stack admin-home-popup-preview-panel">
+          <div className="admin-section-head">
+            <div>
               <p className="section-kicker">Preview</p>
-              <h4 className="section-subtitle">팝업 미리보기</h4>
-              {form.title.trim() !== '' ? <p className="section-copy section-copy-compact">{form.title.trim()}</p> : null}
-              {form.imageUrl.trim() !== '' ? (
-                <img className="admin-popup-preview-image" src={form.imageUrl.trim()} alt={form.title.trim() || '홈 팝업 이미지'} />
-              ) : (
-                <p className="section-copy section-copy-compact">이미지 URL을 입력하면 미리보기가 표시됩니다.</p>
-              )}
-            </section>
-          </>
-        ) : null}
+              <h3 className="section-subtitle">스토어 팝업 미리보기</h3>
+            </div>
+            <span className={`admin-home-popup-preview-badge${loading || form.isActive ? '' : ' is-muted'}`}>
+              {loading ? '설정 확인 중' : form.isActive ? '노출 예정' : '비노출 예정'}
+            </span>
+          </div>
+
+          <p className="section-copy section-copy-compact">
+            실제 스토어 팝업 구성에 맞춰 확인할 수 있습니다. 이미지가 없으면 빈 상태가 표시됩니다.
+          </p>
+
+          {loading ? (
+            <LoadingScreen mode="inline" title="미리보기 준비 중" message="저장된 팝업 설정을 확인하고 있습니다." />
+          ) : (
+            <>
+              <div className="admin-home-popup-preview-stage" aria-live="polite">
+                <div className="home-popup-card admin-home-popup-preview-frame">
+                  <div className="home-popup-body admin-home-popup-preview-body">
+                    {trimmedImageUrl !== '' ? (
+                      <>
+                        <img className="admin-popup-preview-image" src={trimmedImageUrl} alt={trimmedTitle || '홈 팝업 이미지'} />
+                        {trimmedLinkUrl !== '' ? <span className="admin-home-popup-preview-link-badge">클릭 시 새 창 이동</span> : null}
+                      </>
+                    ) : (
+                      <div className="admin-home-popup-preview-empty">
+                        <strong>이미지 미리보기 준비 중</strong>
+                        <p>이미지 URL을 입력하거나 파일 업로드를 완료하면 이 영역에 실제 팝업 이미지가 나타납니다.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="home-popup-actions" aria-hidden="true">
+                    <span className="button button-ghost home-popup-dismiss">하루 동안 보지 않기</span>
+                    <span className="button home-popup-dismiss">닫기</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="admin-home-popup-preview-summary">
+                <div className="admin-summary-item">
+                  <span>제목</span>
+                  <strong>{trimmedTitle !== '' ? trimmedTitle : '제목 없음'}</strong>
+                </div>
+                <div className="admin-summary-item">
+                  <span>링크</span>
+                  <strong>{linkStatusLabel}</strong>
+                </div>
+                <div className="admin-summary-item admin-home-popup-summary-span-2">
+                  <span>운영 메모</span>
+                  <strong>{trimmedTitle !== '' ? '제목은 alt 텍스트와 운영 식별에 함께 사용됩니다.' : '제목을 입력하면 운영 식별과 접근성 텍스트를 더 명확하게 관리할 수 있습니다.'}</strong>
+                </div>
+              </div>
+            </>
+          )}
+        </aside>
       </form>
     </section>
   );
