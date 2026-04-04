@@ -35,6 +35,12 @@ const adminPrimaryNavItems: AdminNavItem[] = [
     icon: ProductIcon,
   },
   {
+    label: '홈 팝업',
+    description: '메인 진입 팝업 이미지 운영',
+    to: '/admin/home-popup',
+    icon: HomePopupIcon,
+  },
+  {
     label: '커스텀 주문',
     description: '개별 링크 생성과 사용 상태 확인',
     to: '/admin/custom-orders',
@@ -82,6 +88,17 @@ function ProductIcon(props: AdminIconProps) {
       <path d="M12 3.8l7 3.6v9.2l-7 3.6-7-3.6V7.4z" />
       <path d="M12 3.8v16.4" />
       <path d="M5 7.4l7 3.7 7-3.7" />
+    </SidebarIcon>
+  );
+}
+
+function HomePopupIcon(props: AdminIconProps) {
+  return (
+    <SidebarIcon {...props}>
+      <rect x="5" y="4.5" width="14" height="15" rx="2.5" />
+      <path d="M8 9.5h8" />
+      <path d="M8 13h5.5" />
+      <path d="M15.5 6.5h1" />
     </SidebarIcon>
   );
 }

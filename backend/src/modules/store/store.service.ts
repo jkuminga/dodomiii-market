@@ -19,6 +19,7 @@ import { GetProductsQueryDto } from './dto/get-products.query.dto';
 import {
   StoreCustomCheckoutResponse,
   StoreDepositRequestResponse,
+  StoreHomePopupResponse,
   StoreOrderDetailResponse,
   StoreOrderTrackingResponse,
   StoreTrackingEvent,
@@ -311,6 +312,29 @@ export class StoreService {
     }
 
     return { items: roots };
+  }
+
+  async getActiveHomePopup(): Promise<StoreHomePopupResponse | null> {
+    const popup = await this.prisma.homePopup.findFirst({
+      where: {
+        isActive: true,
+      },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    });
+
+    if (!popup) {
+      return null;
+    }
+
+    return {
+      id: Number(popup.id),
+      title: popup.title,
+      imageUrl: popup.imageUrl,
+      linkUrl: popup.linkUrl,
+      isActive: popup.isActive,
+      createdAt: popup.createdAt.toISOString(),
+      updatedAt: popup.updatedAt.toISOString(),
+    };
   }
 
   async getVisibleProducts(query: GetProductsQueryDto) {

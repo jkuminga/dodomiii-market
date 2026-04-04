@@ -9,10 +9,12 @@ import { Prisma, ProductImageType } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type {
   AdminCategoryResponse,
+  AdminHomePopupResponse,
   AdminProductDetailResponse,
   AdminProductListItemResponse,
 } from './admin.types';
 import { CreateAdminCategoryDto } from './dto/create-admin-category.dto';
+import { UpdateAdminHomePopupDto } from './dto/update-admin-home-popup.dto';
 import { CreateAdminProductDto } from './dto/create-admin-product.dto';
 import { GetAdminProductsQueryDto } from './dto/get-admin-products.query.dto';
 import { UpdateAdminCategoryDto } from './dto/update-admin-category.dto';
@@ -71,6 +73,77 @@ type CategoryNode = {
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getLatestHomePopup(): Promise<AdminHomePopupResponse | null> {
+    const popup = await this.prisma.homePopup.findFirst({
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    });
+
+    return popup ? this.mapHomePopup(popup) : null;
+  }
+
+  async upsertHomePopup(dto: UpdateAdminHomePopupDto): Promise<AdminHomePopupResponse> {
+    const popupId = dto.popupId ? BigInt(dto.popupId) : null;
+
+    return this.prisma.$transaction(async (tx) => {
+      const isActive = dto.isActive ?? true;
+
+      if (isActive) {
+        await tx.homePopup.updateMany({
+          where: popupId
+            ? {
+                isActive: true,
+                id: {
+                  not: popupId,
+                },
+              }
+            : {
+                isActive: true,
+              },
+          data: {
+            isActive: false,
+          },
+        });
+      }
+
+      if (popupId) {
+        const existing = await tx.homePopup.findUnique({
+          where: { id: popupId },
+          select: { id: true },
+        });
+
+        if (!existing) {
+          throw new NotFoundException({
+            code: 'HOME_POPUP_NOT_FOUND',
+            message: '홈 팝업을 찾을 수 없습니다.',
+          });
+        }
+
+        const updated = await tx.homePopup.update({
+          where: { id: popupId },
+          data: {
+            title: dto.title?.trim() || null,
+            imageUrl: dto.imageUrl.trim(),
+            linkUrl: dto.linkUrl?.trim() || null,
+            isActive,
+          },
+        });
+
+        return this.mapHomePopup(updated);
+      }
+
+      const created = await tx.homePopup.create({
+        data: {
+          title: dto.title?.trim() || null,
+          imageUrl: dto.imageUrl.trim(),
+          linkUrl: dto.linkUrl?.trim() || null,
+          isActive,
+        },
+      });
+
+      return this.mapHomePopup(created);
+    });
+  }
 
   async createCategory(dto: CreateAdminCategoryDto): Promise<AdminCategoryResponse> {
     try {
@@ -976,5 +1049,25 @@ export class AdminService {
     }
 
     throw error;
+  }
+
+  private mapHomePopup(popup: {
+    id: bigint;
+    title: string | null;
+    imageUrl: string;
+    linkUrl: string | null;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }): AdminHomePopupResponse {
+    return {
+      id: Number(popup.id),
+      title: popup.title,
+      imageUrl: popup.imageUrl,
+      linkUrl: popup.linkUrl,
+      isActive: popup.isActive,
+      createdAt: popup.createdAt.toISOString(),
+      updatedAt: popup.updatedAt.toISOString(),
+    };
   }
 }

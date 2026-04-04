@@ -22,6 +22,16 @@ export class StoreController {
     };
   }
 
+  @Get('home-popup')
+  async getHomePopup() {
+    const data = await this.storeService.getActiveHomePopup();
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
   @Get('products')
   async getProducts(@Query() query: GetProductsQueryDto) {
     const result = await this.storeService.getVisibleProducts(query);

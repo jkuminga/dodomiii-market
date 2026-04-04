@@ -225,6 +225,78 @@ export type AdminProductPayload = {
   options: AdminProductOptionInput[];
 };
 
+export type AdminHomePopup = {
+  id: number;
+  title: string | null;
+  imageUrl: string;
+  linkUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminHomePopupPayload = {
+  popupId?: number;
+  title?: string | null;
+  imageUrl: string;
+  linkUrl?: string | null;
+  isActive?: boolean;
+};
+
+export type AdminMediaUsage = 'HOME_POPUP' | 'PRODUCT_THUMBNAIL' | 'PRODUCT_DETAIL';
+
+export type AdminMediaSignUploadPayload = {
+  usage: AdminMediaUsage;
+  fileName?: string;
+  contentType?: string;
+  size?: number;
+};
+
+export type AdminMediaSignedUpload = {
+  uploadUrl: string;
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  folder: string;
+  publicId: string;
+  signature: string;
+  maxBytes: number;
+};
+
+export type AdminMediaFinalizePayload = {
+  publicId: string;
+  version: number;
+  secureUrl: string;
+  signature?: string;
+  resourceType?: 'image';
+  format?: string;
+  width?: number;
+  height?: number;
+  bytes?: number;
+};
+
+export type AdminMediaAsset = {
+  publicId: string;
+  version: number;
+  secureUrl: string;
+  optimizedUrl: string;
+  resourceType: 'image';
+  format: string | null;
+  width: number | null;
+  height: number | null;
+  bytes: number | null;
+};
+
+export type StoreHomePopup = {
+  id: number;
+  title: string | null;
+  imageUrl: string;
+  linkUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AdminProductDetail = {
   id: number;
   category: {
@@ -925,6 +997,8 @@ export const apiClient = {
 
   getCategories: () => request<{ items: CategoryTreeNode[] }>('/store/categories'),
 
+  getHomePopup: () => request<StoreHomePopup | null>('/store/home-popup'),
+
   getProducts: (query: { categorySlug?: string; q?: string; sort?: string; page?: number; size?: number }) =>
     request<{ items: ProductListItem[] } & { meta?: unknown }>(
       `/store/products${buildQueryString({
@@ -985,6 +1059,26 @@ export const apiClient = {
         size: query.size,
       })}`,
     ),
+
+  getAdminHomePopup: () => request<AdminHomePopup | null>('/admin/home-popup'),
+
+  upsertAdminHomePopup: (payload: AdminHomePopupPayload) =>
+    request<AdminHomePopup>('/admin/home-popup', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  signAdminUpload: (payload: AdminMediaSignUploadPayload) =>
+    request<AdminMediaSignedUpload>('/admin/media/sign-upload', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  finalizeAdminUpload: (payload: AdminMediaFinalizePayload) =>
+    request<AdminMediaAsset>('/admin/media/finalize', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
   getAdminProductById: (productId: string | number) => request<AdminProductDetail>(`/admin/products/${productId}`),
 

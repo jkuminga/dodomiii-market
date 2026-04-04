@@ -6,9 +6,10 @@ import { LoadingScreen } from './components/common/LoadingScreen';
 import { BottomNav } from './components/mobile/BottomNav';
 import { MobileHeader } from './components/mobile/MobileHeader';
 import { ProductArtwork } from './components/store/ProductArtwork';
-import { apiClient, CategoryTreeNode, ProductListItem } from './lib/api';
+import { apiClient, CategoryTreeNode, ProductListItem, StoreHomePopup } from './lib/api';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
 import { AdminCustomOrdersPage } from './pages/admin/AdminCustomOrdersPage';
+import { AdminHomePopupPage } from './pages/admin/AdminHomePopupPage';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { AdminOrderDetailPage } from './pages/admin/AdminOrderDetailPage';
@@ -52,8 +53,11 @@ function collectCategoryLinks(nodes: CategoryTreeNode[]): Array<{ slug: string; 
 
 function HomePage() {
   const HOME_INTRO_SEEN_KEY = 'dodomi.home.intro.seen';
+  const HOME_POPUP_HIDE_UNTIL_PREFIX = 'dodomi.home.popup.hideUntil.';
   const [categories, setCategories] = useState<Array<{ slug: string; name: string }>>([]);
   const [featuredProducts, setFeaturedProducts] = useState<ProductListItem[]>([]);
+  const [homePopup, setHomePopup] = useState<StoreHomePopup | null>(null);
+  const [showHomePopup, setShowHomePopup] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
@@ -109,6 +113,52 @@ function HomePage() {
   }, [reloadKey]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const loadPopup = async () => {
+      try {
+        const homePopupResult = await apiClient.getHomePopup();
+        if (cancelled) {
+          return;
+        }
+
+        setHomePopup(homePopupResult);
+        if (!homePopupResult || !homePopupResult.isActive) {
+          setShowHomePopup(false);
+          return;
+        }
+
+        const storageKey = `${HOME_POPUP_HIDE_UNTIL_PREFIX}${homePopupResult.id}`;
+        const hideUntil = Number(window.localStorage.getItem(storageKey) ?? '0');
+        const shouldShow = !Number.isFinite(hideUntil) || hideUntil <= Date.now();
+        setShowHomePopup(shouldShow);
+      } catch {
+        if (!cancelled) {
+          setHomePopup(null);
+          setShowHomePopup(false);
+        }
+      }
+    };
+
+    void loadPopup();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
+
+  const hidePopupForOneDay = () => {
+    if (!homePopup) {
+      return;
+    }
+
+    const storageKey = `${HOME_POPUP_HIDE_UNTIL_PREFIX}${homePopup.id}`;
+    const hideUntil = Date.now() + 24 * 60 * 60 * 1000;
+    window.localStorage.setItem(storageKey, String(hideUntil));
+    setShowHomePopup(false);
+  };
+
+  useEffect(() => {
     if (!showIntroLoading || loading) {
       return;
     }
@@ -126,16 +176,51 @@ function HomePage() {
     };
   }, [loading, showIntroLoading]);
 
+  const homePopupLayer =
+    showHomePopup && homePopup ? (
+      <div
+        className="home-popup-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label="홈 팝업"
+        onClick={() => setShowHomePopup(false)}
+      >
+        <div className="home-popup-card" onClick={(event) => event.stopPropagation()}>
+          <div className="home-popup-body">
+            {homePopup.linkUrl ? (
+              <a className="home-popup-image-link" href={homePopup.linkUrl} target="_blank" rel="noreferrer">
+                <img className="home-popup-image" src={homePopup.imageUrl} alt={homePopup.title || '홈 팝업 이미지'} />
+              </a>
+            ) : (
+              <img className="home-popup-image" src={homePopup.imageUrl} alt={homePopup.title || '홈 팝업 이미지'} />
+            )}
+          </div>
+
+          <div className="home-popup-actions">
+            <button className="button button-ghost home-popup-dismiss" type="button" onClick={hidePopupForOneDay}>
+              하루 동안 보지 않기
+            </button>
+            <button className="button home-popup-dismiss" type="button" onClick={() => setShowHomePopup(false)}>
+              닫기
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null;
+
   if (showIntroLoading) {
     return (
       <main className="m-page home-page">
         <LoadingScreen title="도도미 마켓 준비 중" message="잠시만 기다려 주세요." />
+        {homePopupLayer}
       </main>
     );
   }
 
   return (
     <main className="m-page home-page">
+      {homePopupLayer}
+
       <section className={`surface-hero hero-stage ${heroReveal ? 'is-hero-reveal' : ''}`}>
         <div className="hero-copy hero-copy-polished">
           <div className="hero-art hero-art-prominent" aria-hidden="true">
@@ -328,6 +413,7 @@ function AppFrame() {
           <Route path="products" element={<AdminProductsPage />} />
           <Route path="products/new" element={<AdminProductEditorPage />} />
           <Route path="products/:productId" element={<AdminProductEditorPage />} />
+          <Route path="home-popup" element={<AdminHomePopupPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

@@ -101,3 +101,13 @@ export type StoreCustomCheckoutResponse = {
   isExpired: boolean;
   isAvailable: boolean;
 };
+
+export type StoreHomePopupResponse = {
+  id: number;
+  title: string | null;
+  imageUrl: string;
+  linkUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};

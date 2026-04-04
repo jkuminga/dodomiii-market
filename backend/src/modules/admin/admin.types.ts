@@ -233,3 +233,13 @@ export type AdminCustomOrderLinkResponse = {
   updatedAt: string;
   deletedAt: string | null;
 };
+
+export type AdminHomePopupResponse = {
+  id: number;
+  title: string | null;
+  imageUrl: string;
+  linkUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
