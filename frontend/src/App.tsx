@@ -29,19 +29,32 @@ function formatCurrency(value: number): string {
   return `${value.toLocaleString('ko-KR')}원`;
 }
 
-function collectCategoryLinks(nodes: CategoryTreeNode[]): Array<{ slug: string; name: string }> {
-  const result: Array<{ slug: string; name: string }> = [];
+type LandingCategory = {
+  slug: string;
+  name: string;
+  imageUrl: string | null;
+};
+
+function collectLandingCategories(nodes: CategoryTreeNode[]): LandingCategory[] {
+  const result: LandingCategory[] = [];
 
   const walk = (items: CategoryTreeNode[]) => {
     for (const item of items) {
-      result.push({ slug: item.slug, name: item.name });
-      if (result.length >= 6) {
+      if (item.isOnLandingPage) {
+        result.push({
+          slug: item.slug,
+          name: item.name,
+          imageUrl: item.imageUrl,
+        });
+      }
+
+      if (result.length >= 3) {
         return;
       }
       if (item.children.length > 0) {
         walk(item.children);
       }
-      if (result.length >= 6) {
+      if (result.length >= 3) {
         return;
       }
     }
@@ -55,7 +68,7 @@ function collectCategoryLinks(nodes: CategoryTreeNode[]): Array<{ slug: string; 
 function HomePage() {
   const HOME_INTRO_SEEN_KEY = 'dodomi.home.intro.seen';
   const HOME_POPUP_HIDE_UNTIL_PREFIX = 'dodomi.home.popup.hideUntil.';
-  const [categories, setCategories] = useState<Array<{ slug: string; name: string }>>([]);
+  const [landingCategories, setLandingCategories] = useState<LandingCategory[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<ProductListItem[]>([]);
   const [homePopup, setHomePopup] = useState<StoreHomePopup | null>(null);
   const [showHomePopup, setShowHomePopup] = useState(false);
@@ -89,7 +102,7 @@ function HomePage() {
           return;
         }
 
-        setCategories(collectCategoryLinks(categoriesResult.items));
+        setLandingCategories(collectLandingCategories(categoriesResult.items));
         setFeaturedProducts(productsResult.items.slice(0, 4));
       } catch (caught) {
         if (!cancelled) {
@@ -222,64 +235,91 @@ function HomePage() {
     <main className="m-page home-page">
       {homePopupLayer}
 
-      <section className={`surface-hero hero-stage ${heroReveal ? 'is-hero-reveal' : ''}`}>
-        <div className="hero-copy hero-copy-polished">
-          <div className="hero-art hero-art-prominent" aria-hidden="true">
-            <div className="hero-art-blur hero-art-blur-left" />
-            <div className="hero-art-blur hero-art-blur-right" />
-            <div className="hero-art-ring hero-art-ring-outer" />
-            <div className="hero-art-ring hero-art-ring-inner" />
-            <div className="hero-logo-shadow" />
-            <div className="hero-logo-wrap">
-              <img className="hero-logo-image" src={logoMain} alt="" />
-            </div>
-            <div className="hero-art-note">DODOMII MARKET</div>
+      <section className={`surface-hero hero-stage hero-stage-landing ${heroReveal ? 'is-hero-reveal' : ''}`}>
+        <div className="hero-landing-media" aria-hidden="true">
+          <img className="hero-landing-bg" src={logoMain} alt="" />
+          <div className="hero-landing-gradient" />
+          <div className="hero-landing-grain" />
+          <div className="hero-landing-stamp">
+            <img className="hero-logo-image" src={logoMain} alt="" />
           </div>
+        </div>
 
-          <h1 className="section-title hero-title">꽃다발처럼 남는 선물</h1>
-          <p className="section-copy hero-summary">뜨개 꽃다발과 모루 오브제를 모바일에서 간결하게 고를 수 있는 홈.</p>
+        <div className="hero-copy hero-copy-polished hero-copy-landing">
+          <p className="hero-badge">DODOMII MARKET</p>
+          <h1 className="section-title hero-title">꽃다발처럼 남는 선물, 오늘 바로 고르는 홈</h1>
+          <p className="section-copy hero-summary">
+            레트로 무드의 메인 비주얼 위에서 뜨개 꽃다발과 모루 오브제를 빠르게 탐색하고 주문까지 이어지는 첫 화면입니다.
+          </p>
           <div className="hero-actions">
             <Link className="button" to="/products">
               상품 보기
+            </Link>
+            <Link className="button-text" to="/notices">
+              공지 확인
             </Link>
           </div>
         </div>
       </section>
 
-      <section className="surface-card section-rhythm-card">
-        <div className="section-head">
-          <div>
-            <p className="section-kicker">Browse</p>
-            <h2 className="section-subtitle">카테고리 바로가기</h2>
-            <p className="section-copy section-copy-compact">가장 많이 찾는 분류부터 바로 진입할 수 있게 정리했습니다.</p>
-          </div>
-          <Link className="button-text" to="/products">
-            전체 보기
-          </Link>
-        </div>
-
+      <div className="landing-category-block">
         {loading ? (
           <div className="home-status-card" role="status" aria-live="polite">
             <LoadingScreen mode="inline" title="카테고리 준비 중" message="카테고리를 불러오고 있습니다." />
           </div>
         ) : null}
-        {!loading && !error && categories.length === 0 ? (
-          <div className="home-status-card">
-            <p className="feedback-copy">표시할 카테고리가 아직 없습니다.</p>
-          </div>
-        ) : null}
-        {!loading && !error && categories.length > 0 ? (
-          <div className="category-row">
-            {categories.map((category) => (
-              <Link key={category.slug} className="category-chip" to={`/products?categorySlug=${category.slug}`}>
-                {category.name}
-              </Link>
-            ))}
-          </div>
-        ) : null}
-      </section>
 
-      <section className="promo-card section-rhythm-card">
+        {!loading ? (
+          <>
+            {error ? (
+              <p className="feedback-copy is-error" role="alert">
+                카테고리 데이터를 불러오지 못해 기본 카드로 표시합니다.
+              </p>
+            ) : null}
+            <div className="landing-category-grid">
+              {[0, 1, 2].map((index) => {
+                const category = landingCategories[index] ?? null;
+                if (!category) {
+                  return (
+                    <div key={`empty-${index}`} className="landing-category-card is-empty" aria-hidden="true">
+                      <div className="landing-category-content">
+                        <span>준비 중</span>
+                      </div>
+                    </div>
+                  );
+                }
+
+                const cardStyle = category.imageUrl
+                  ? {
+                      backgroundImage: `linear-gradient(180deg, rgba(18, 46, 26, 0.18), rgba(12, 34, 20, 0.72)), url(${category.imageUrl})`,
+                    }
+                  : undefined;
+
+                return (
+                  <Link
+                    key={category.slug}
+                    className={`landing-category-card ${category.imageUrl ? 'has-image' : 'has-theme'}`}
+                    to={`/products?categorySlug=${category.slug}`}
+                    style={cardStyle}
+                  >
+                    <div className="landing-category-content">
+                      <span>{category.name}</span>
+                    </div>
+                  </Link>
+                );
+              })}
+
+              <Link className="landing-category-card landing-category-card-all has-theme" to="/products">
+                <div className="landing-category-content">
+                  <span>모든 상품 보기</span>
+                </div>
+              </Link>
+            </div>
+          </>
+        ) : null}
+      </div>
+
+      {/* <section className="promo-card section-rhythm-card">
         <p className="section-kicker">Signature</p>
         <h2 className="section-subtitle">선물용 패키지와 시즌 컬렉션을 한눈에</h2>
         <p className="section-copy">
@@ -291,7 +331,7 @@ function HomePage() {
           <span>카테고리 탐색</span>
           <span>상세 페이지 이동</span>
         </div>
-      </section>
+      </section> */}
 
       <section className="home-section">
         <div className="section-head">

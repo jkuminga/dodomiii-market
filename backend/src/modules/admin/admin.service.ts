@@ -70,6 +70,8 @@ type CategoryNode = {
   name: string;
 };
 
+const CATEGORY_LANDING_SELECTION_LIMIT = 3;
+
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
@@ -148,6 +150,10 @@ export class AdminService {
   async createCategory(dto: CreateAdminCategoryDto): Promise<AdminCategoryResponse> {
     try {
       const categoryId = await this.prisma.$transaction(async (tx) => {
+        if (dto.isOnLandingPage) {
+          await this.assertLandingCategorySlotAvailable(tx);
+        }
+
         await this.assertCategorySlugAvailable(tx, dto.slug);
 
         const parentId = dto.parentId == null ? null : BigInt(dto.parentId);
@@ -160,6 +166,8 @@ export class AdminService {
             parentId,
             name: dto.name,
             slug: dto.slug,
+            imageUrl: dto.imageUrl?.trim() || null,
+            isOnLandingPage: dto.isOnLandingPage ?? false,
             sortOrder: dto.sortOrder ?? 0,
             isVisible: dto.isVisible ?? true,
           },
@@ -235,6 +243,8 @@ export class AdminService {
           parentId: category.parentId,
           name: category.name,
           slug: category.slug,
+          imageUrl: category.imageUrl,
+          isOnLandingPage: category.isOnLandingPage,
           sortOrder: category.sortOrder,
           isVisible: category.isVisible,
           createdAt: category.createdAt,
@@ -260,6 +270,7 @@ export class AdminService {
             id: true,
             parentId: true,
             slug: true,
+            isOnLandingPage: true,
           },
         });
 
@@ -282,6 +293,10 @@ export class AdminService {
           );
         }
 
+        if (dto.isOnLandingPage === true && !existingCategory.isOnLandingPage) {
+          await this.assertLandingCategorySlotAvailable(tx);
+        }
+
         const updatedCategory = await tx.category.update({
           where: { id: existingCategory.id },
           data: {
@@ -289,6 +304,8 @@ export class AdminService {
               dto.parentId !== undefined ? (dto.parentId == null ? null : BigInt(dto.parentId)) : undefined,
             name: dto.name,
             slug: dto.slug,
+            imageUrl: dto.imageUrl !== undefined ? dto.imageUrl?.trim() || null : undefined,
+            isOnLandingPage: dto.isOnLandingPage,
             sortOrder: dto.sortOrder,
             isVisible: dto.isVisible,
           },
@@ -733,6 +750,8 @@ export class AdminService {
       parentId: category.parentId,
       name: category.name,
       slug: category.slug,
+      imageUrl: category.imageUrl,
+      isOnLandingPage: category.isOnLandingPage,
       sortOrder: category.sortOrder,
       isVisible: category.isVisible,
       createdAt: category.createdAt,
@@ -751,6 +770,8 @@ export class AdminService {
       parentId: bigint | null;
       name: string;
       slug: string;
+      imageUrl: string | null;
+      isOnLandingPage: boolean;
       sortOrder: number;
       isVisible: boolean;
       createdAt: Date;
@@ -784,6 +805,8 @@ export class AdminService {
       parentName: category.parentName,
       name: category.name,
       slug: category.slug,
+      imageUrl: category.imageUrl,
+      isOnLandingPage: category.isOnLandingPage,
       depth,
       path: pathSegments.join(' > '),
       sortOrder: category.sortOrder,
@@ -905,6 +928,21 @@ export class AdminService {
       throw new ConflictException({
         code: 'CATEGORY_CONFLICT',
         message: '이미 사용 중인 카테고리 슬러그입니다.',
+      });
+    }
+  }
+
+  private async assertLandingCategorySlotAvailable(tx: Prisma.TransactionClient): Promise<void> {
+    const selectedCount = await tx.category.count({
+      where: {
+        isOnLandingPage: true,
+      },
+    });
+
+    if (selectedCount >= CATEGORY_LANDING_SELECTION_LIMIT) {
+      throw new ConflictException({
+        code: 'CATEGORY_LANDING_LIMIT_EXCEEDED',
+        message: `랜딩 페이지 카테고리는 최대 ${CATEGORY_LANDING_SELECTION_LIMIT}개까지 노출할 수 있습니다.`,
       });
     }
   }

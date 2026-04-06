@@ -114,6 +114,8 @@ export type CategoryTreeNode = {
   parentId: number | null;
   name: string;
   slug: string;
+  imageUrl: string | null;
+  isOnLandingPage: boolean;
   sortOrder: number;
   children: CategoryTreeNode[];
 };
@@ -123,6 +125,8 @@ export type AdminCategoryItem = {
   parentId: number | null;
   name: string;
   slug: string;
+  imageUrl: string | null;
+  isOnLandingPage: boolean;
   sortOrder: number;
   isVisible: boolean;
   createdAt: string;
@@ -133,6 +137,8 @@ export type AdminCategoryPayload = {
   parentId: number | null;
   name: string;
   slug: string;
+  imageUrl: string | null;
+  isOnLandingPage: boolean;
   sortOrder: number;
   isVisible: boolean;
 };

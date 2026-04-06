@@ -31,6 +31,8 @@ export type CategoryTreeNode = {
   parentId: number | null;
   name: string;
   slug: string;
+  imageUrl: string | null;
+  isOnLandingPage: boolean;
   sortOrder: number;
   children: CategoryTreeNode[];
 };
@@ -272,6 +274,8 @@ export class StoreService {
         parentId: true,
         name: true,
         slug: true,
+        imageUrl: true,
+        isOnLandingPage: true,
         sortOrder: true,
       },
     });
@@ -285,6 +289,8 @@ export class StoreService {
         parentId: category.parentId ? Number(category.parentId) : null,
         name: category.name,
         slug: category.slug,
+        imageUrl: category.imageUrl,
+        isOnLandingPage: category.isOnLandingPage,
         sortOrder: category.sortOrder,
         children: [],
       };

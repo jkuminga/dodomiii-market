@@ -15,6 +15,15 @@ export class CreateAdminCategoryDto {
   slug!: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  imageUrl?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  isOnLandingPage?: boolean;
+
+  @IsOptional()
   @IsInt()
   @Min(0)
   sortOrder?: number;

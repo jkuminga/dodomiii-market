@@ -12,6 +12,8 @@ export type AdminCategoryResponse = {
   parentName: string | null;
   name: string;
   slug: string;
+  imageUrl: string | null;
+  isOnLandingPage: boolean;
   depth: number;
   path: string;
   sortOrder: number;

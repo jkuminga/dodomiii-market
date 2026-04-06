@@ -16,6 +16,8 @@ type CategoryFormState = {
   parentId: string;
   name: string;
   slug: string;
+  imageUrl: string;
+  isOnLandingPage: boolean;
   sortOrder: string;
   isVisible: boolean;
 };
@@ -25,6 +27,8 @@ function createEmptyForm(sortOrder = '0'): CategoryFormState {
     parentId: '',
     name: '',
     slug: '',
+    imageUrl: '',
+    isOnLandingPage: false,
     sortOrder,
     isVisible: true,
   };
@@ -35,6 +39,8 @@ function formFromCategory(category: AdminCategoryItem): CategoryFormState {
     parentId: category.parentId === null ? '' : String(category.parentId),
     name: category.name,
     slug: category.slug,
+    imageUrl: category.imageUrl ?? '',
+    isOnLandingPage: category.isOnLandingPage,
     sortOrder: String(category.sortOrder),
     isVisible: category.isVisible,
   };
@@ -66,6 +72,8 @@ function buildPayload(form: CategoryFormState, editingId: number | null): AdminC
     parentId,
     name,
     slug,
+    imageUrl: form.imageUrl.trim() || null,
+    isOnLandingPage: form.isOnLandingPage,
     sortOrder,
     isVisible: form.isVisible,
   };
@@ -201,6 +209,7 @@ export function AdminCategoriesPage() {
   }, [draftCategories, selectedCategoryId]);
 
   const visibleCount = draftCategories.filter((category) => category.isVisible).length;
+  const landingSelectedCount = draftCategories.filter((category) => category.isOnLandingPage).length;
 
   const onSelectCategory = (category: AdminCategoryItem) => {
     setSelectedCategoryId(category.id);
@@ -407,6 +416,10 @@ export function AdminCategoriesPage() {
             <span>비노출</span>
             <strong>{categories.length - visibleCount}</strong>
           </div>
+          <div className="admin-stat-card">
+            <span>랜딩 노출</span>
+            <strong>{landingSelectedCount}/3</strong>
+          </div>
         </div>
       </section>
 
@@ -482,6 +495,7 @@ export function AdminCategoriesPage() {
                         <span className="admin-category-depth-badge">하위</span>
                         <span>{root.hasChildren ? `하위 ${root.childCount}개` : '하위 디렉토리 없음'}</span>
                         {!root.category.isVisible ? <span className="admin-category-hidden-indicator">숨김</span> : null}
+                        {root.category.isOnLandingPage ? <span className="admin-category-hidden-indicator">랜딩 노출</span> : null}
                         {root.isOrphan ? <span className="admin-category-tree-warning">상위 누락</span> : null}
                       </div>
                     </button>
@@ -524,6 +538,7 @@ export function AdminCategoriesPage() {
                                     <div className="admin-category-tree-indicators">
                                       {childCount > 0 ? <span className="admin-category-child-count">하위 {childCount}</span> : null}
                                       {!category.isVisible ? <span className="admin-category-hidden-indicator">숨김</span> : null}
+                                      {category.isOnLandingPage ? <span className="admin-category-hidden-indicator">랜딩 노출</span> : null}
                                     </div>
                                   </div>
                                 </div>
@@ -620,6 +635,15 @@ export function AdminCategoriesPage() {
           </label>
 
           <label className="field">
+            <span>대표 이미지 URL</span>
+            <input
+              value={form.imageUrl}
+              onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
+              placeholder="https://..."
+            />
+          </label>
+
+          <label className="field">
             <span>정렬 순서</span>
             <input
               type="number"
@@ -635,6 +659,15 @@ export function AdminCategoriesPage() {
               onChange={(event) => setForm((current) => ({ ...current, isVisible: event.target.checked }))}
             />
             <span>스토어에 노출</span>
+          </label>
+
+          <label className="admin-check-field">
+            <input
+              type="checkbox"
+              checked={form.isOnLandingPage}
+              onChange={(event) => setForm((current) => ({ ...current, isOnLandingPage: event.target.checked }))}
+            />
+            <span>랜딩 페이지 카테고리 섹션에 노출 (최대 3개)</span>
           </label>
 
           {error ? (
