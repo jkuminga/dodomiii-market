@@ -58,11 +58,6 @@ const adminOrderListArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
         trackingNumber: true,
       },
     },
-    items: {
-      select: {
-        quantity: true,
-      },
-    },
   },
 });
 
@@ -225,6 +220,11 @@ type ShipmentUpdateEvent = {
   adminId: number;
 };
 
+type OrderListItemStats = {
+  itemCount: number;
+  totalQuantity: number;
+};
+
 @Injectable()
 export class AdminOrdersService {
   constructor(
@@ -248,8 +248,35 @@ export class AdminOrdersService {
       }),
     ]);
 
+    const orderIds = orders.map((order) => order.id);
+    const itemStatsMap = new Map<string, OrderListItemStats>();
+
+    if (orderIds.length > 0) {
+      const grouped = await this.prisma.orderItem.groupBy({
+        by: ['orderId'],
+        where: {
+          orderId: {
+            in: orderIds,
+          },
+        },
+        _count: {
+          _all: true,
+        },
+        _sum: {
+          quantity: true,
+        },
+      });
+
+      for (const row of grouped) {
+        itemStatsMap.set(row.orderId.toString(), {
+          itemCount: row._count._all,
+          totalQuantity: row._sum.quantity ?? 0,
+        });
+      }
+    }
+
     return {
-      items: orders.map((order) => this.mapOrderListItem(order)),
+      items: orders.map((order) => this.mapOrderListItem(order, itemStatsMap)),
       meta: {
         page,
         size,
@@ -504,16 +531,22 @@ export class AdminOrdersService {
     return filters.length > 0 ? { AND: filters } : {};
   }
 
-  private mapOrderListItem(order: AdminOrderListRecord): AdminOrderListItemResponse {
+  private mapOrderListItem(
+    order: AdminOrderListRecord,
+    itemStatsMap: Map<string, OrderListItemStats>,
+  ): AdminOrderListItemResponse {
     const shipmentStatus = order.shipment?.shipmentStatus ?? ShipmentStatus.READY;
-    const totalQuantity = order.items.reduce((sum, item) => sum + item.quantity, 0);
+    const itemStats = itemStatsMap.get(order.id.toString()) ?? {
+      itemCount: 0,
+      totalQuantity: 0,
+    };
 
     return {
       id: Number(order.id),
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
-      itemCount: order.items.length,
-      totalQuantity,
+      itemCount: itemStats.itemCount,
+      totalQuantity: itemStats.totalQuantity,
       totalProductPrice: order.totalProductPrice,
       shippingFee: order.shippingFee,
       finalTotalPrice: order.finalTotalPrice,

@@ -109,10 +109,6 @@ function HomePage() {
           setError(caught instanceof Error ? caught.message : '홈 화면을 불러오는 중 오류가 발생했습니다.');
         }
       } finally {
-        const elapsed = Date.now() - startedAt;
-        const delay = Math.max(0, 220 - elapsed);
-        await new Promise((resolve) => window.setTimeout(resolve, delay));
-
         if (!cancelled) {
           setLoading(false);
         }
@@ -177,17 +173,11 @@ function HomePage() {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
-      setShowIntroLoading(false);
-      setHeroReveal(true);
-      if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem(HOME_INTRO_SEEN_KEY, '1');
-      }
-    }, 220);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
+    setShowIntroLoading(false);
+    setHeroReveal(true);
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem(HOME_INTRO_SEEN_KEY, '1');
+    }
   }, [loading, showIntroLoading]);
 
   const homePopupLayer =
@@ -261,6 +251,7 @@ function HomePage() {
           </div>
         </div>
       </section>
+
 
       <div className="landing-category-block">
         {loading ? (

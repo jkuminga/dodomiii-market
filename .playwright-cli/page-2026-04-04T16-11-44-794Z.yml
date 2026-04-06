@@ -1,0 +1,31 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - link "DODOMIII Handmade market" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e8]:
+          - strong [ref=e9]: DODOMIII
+          - generic [ref=e10]: Handmade market
+      - navigation "데스크탑 주요 메뉴" [ref=e11]:
+        - link "홈" [ref=e12] [cursor=pointer]:
+          - /url: /
+        - link "상품" [ref=e13] [cursor=pointer]:
+          - /url: /products
+        - link "주문조회" [ref=e14] [cursor=pointer]:
+          - /url: /orders
+        - link "공지사항" [ref=e15] [cursor=pointer]:
+          - /url: /notices
+        - link "QnA" [ref=e16] [cursor=pointer]:
+          - /url: /qna
+      - link "신상품 보기" [ref=e18] [cursor=pointer]:
+        - /url: /products?sort=latest
+  - main [ref=e19]:
+    - generic [ref=e20]:
+      - paragraph [ref=e21]: all
+      - heading "전체 상품" [level=1] [ref=e22]
+      - generic [ref=e24]: 0 items
+    - status [ref=e25]:
+      - img [ref=e28]
+      - generic [ref=e32]:
+        - strong [ref=e33]: 상품 목록 로딩 중
+        - paragraph [ref=e34]: 상품 목록을 불러오고 있습니다.

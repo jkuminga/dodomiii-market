@@ -41,25 +41,44 @@ export function CatalogPage() {
     let cancelled = false;
 
     const run = async () => {
-      setLoading(true);
-      setError('');
-
       try {
-        const [categoriesResult, productsResult] = await Promise.all([
-          apiClient.getCategories(),
-          apiClient.getProductsWithMeta({
-            categorySlug: categorySlug || undefined,
-            sort,
-            page,
-            size: 12,
-          }),
-        ]);
-
+        const categoriesResult = await apiClient.getCategories();
         if (cancelled) {
           return;
         }
 
         setCategories(categoriesResult.items);
+      } catch {
+        // Keep fallback title when category list loading fails.
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      setLoading(true);
+      setError('');
+
+      try {
+        const productsResult = await apiClient.getProductsWithMeta({
+          categorySlug: categorySlug || undefined,
+          sort,
+          page,
+          size: 12,
+        });
+
+        if (cancelled) {
+          return;
+        }
+
         setProducts(productsResult.data.items);
         setMeta(productsResult.meta);
       } catch (caught) {

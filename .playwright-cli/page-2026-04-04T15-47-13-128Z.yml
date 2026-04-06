@@ -1,0 +1,163 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - link "DODOMIII Handmade market" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e8]:
+          - strong [ref=e9]: DODOMIII
+          - generic [ref=e10]: Handmade market
+      - navigation "데스크탑 주요 메뉴" [ref=e11]:
+        - link "홈" [ref=e12] [cursor=pointer]:
+          - /url: /
+        - link "상품" [ref=e13] [cursor=pointer]:
+          - /url: /products
+        - link "주문조회" [ref=e14] [cursor=pointer]:
+          - /url: /orders
+        - link "공지사항" [ref=e15] [cursor=pointer]:
+          - /url: /notices
+        - link "QnA" [ref=e16] [cursor=pointer]:
+          - /url: /qna
+      - link "신상품 보기" [ref=e18] [cursor=pointer]:
+        - /url: /products?sort=latest
+  - main [ref=e119]:
+    - generic [ref=e120]:
+      - paragraph [ref=e121]: Order Form
+      - heading "주문서 작성" [level=1] [ref=e122]
+      - paragraph [ref=e123]: 주문자, 수령인, 배송지 정보를 입력한 뒤 결제 페이지에서 입금 계좌 확인 및 입금 확인 요청을 진행합니다.
+    - generic [ref=e124]:
+      - paragraph [ref=e125]: Consultation
+      - paragraph [ref=e126]: 이 상품은 상담이 필요한 상품입니다. 주문 접수 후 추가 확인 연락이 이어질 수 있습니다.
+    - generic [ref=e127]:
+      - generic [ref=e128]:
+        - generic [ref=e129]:
+          - paragraph [ref=e130]: 꽃다발
+          - heading "모루 튤립 꽃다발" [level=2] [ref=e131]
+        - generic [ref=e132]: 주문 가능
+      - generic [ref=e133]:
+        - generic [ref=e134]:
+          - generic [ref=e135]: 기본가
+          - strong [ref=e136]: 29,000원
+        - generic [ref=e137]:
+          - generic [ref=e138]: 예상 상품 금액
+          - strong [ref=e139]: 29,000원
+      - paragraph [ref=e140]: 주문 생성 후 결제 페이지에서 최종 금액, 입금 계좌, 입금 기한을 확인할 수 있습니다.
+    - generic [ref=e141]:
+      - group "옵션 및 수량" [ref=e143]:
+        - generic [ref=e144]: 옵션 및 수량
+        - generic [ref=e146]:
+          - generic [ref=e147]:
+            - generic [ref=e148]: 색상
+            - button "접기" [expanded] [ref=e149] [cursor=pointer]
+          - generic [ref=e150]:
+            - generic [ref=e151]:
+              - checkbox "핑크 +0원" [ref=e152]
+              - generic [ref=e153]: 핑크
+              - strong [ref=e154]: +0원
+            - generic [ref=e155]:
+              - checkbox "화이트 +1,000원" [ref=e156]
+              - generic [ref=e157]: 화이트
+              - strong [ref=e158]: +1,000원
+        - generic [ref=e159]:
+          - generic [ref=e160]:
+            - strong [ref=e161]: 선택된 옵션
+            - generic [ref=e162]: 0개 담김
+          - paragraph [ref=e163]: 옵션을 선택하면 이곳에 담깁니다.
+      - generic [ref=e164]:
+        - group "주문자 정보" [ref=e165]:
+          - generic [ref=e166]: 주문자 정보
+          - generic [ref=e167]:
+            - generic [ref=e168]: 주문자 이름
+            - textbox "주문자 이름" [ref=e169]
+          - generic [ref=e170]:
+            - generic [ref=e171]: 주문자 연락처
+            - textbox "주문자 연락처" [ref=e172]:
+              - /placeholder: 010-1234-5678
+        - group "수령인 정보 주문자 정보와 동일" [ref=e173]:
+          - generic [ref=e174]:
+            - generic [ref=e175]: 수령인 정보
+            - generic [ref=e176]:
+              - checkbox "주문자 정보와 동일" [ref=e177]
+              - generic [ref=e178]: 주문자 정보와 동일
+          - generic [ref=e179]:
+            - generic [ref=e180]: 수령인 이름
+            - textbox "수령인 이름" [ref=e181]
+          - generic [ref=e182]:
+            - generic [ref=e183]: 수령인 연락처
+            - textbox "수령인 연락처" [ref=e184]:
+              - /placeholder: 010-1234-5678
+        - group "배송지 정보" [ref=e185]:
+          - generic [ref=e186]: 배송지 정보
+          - generic [ref=e187]:
+            - button "주소 검색" [ref=e188] [cursor=pointer]
+            - button "닫기" [ref=e206] [cursor=pointer]
+          - iframe [active] [ref=e210]:
+            - iframe [active] [ref=f1e2]:
+              - generic [ref=f2e1]:
+                - generic [ref=f2e3]:
+                  - generic [ref=f2e4]:
+                    - heading "우편번호 검색" [level=1]
+                    - group "우편번호 검색 입력폼" [ref=f2e6]:
+                      - generic: 우편번호 검색 입력폼
+                      - generic [ref=f2e7]:
+                        - generic: 검색할 도로명/지번주소를 입력, 예시) 판교역로 166, 분당 주공, 백현동 532
+                        - textbox "검색할 도로명/지번주소를 입력, 예시) 판교역로 166, 분당 주공, 백현동 532" [ref=f2e9]: 판교역로 166
+                        - button "취소" [ref=f2e10] [cursor=pointer]:
+                          - generic [ref=f2e11]: 취소
+                        - button "검색" [ref=f2e12] [cursor=pointer]:
+                          - generic [ref=f2e13]: 검색
+                  - generic [active] [ref=f2e14]:
+                    - heading "검색 결과 보기" [level=2]
+                    - list [ref=f2e15]:
+                      - listitem [ref=f2e16]:
+                        - emphasis: 기초구역번호(새 우편번호)
+                        - text: "13529"
+                        - emphasis: 아래에서 주소 선택
+                        - generic [ref=f2e17]:
+                          - term [ref=f2e18]: 도로명
+                          - definition [ref=f2e19]:
+                            - button "경기 성남시 분당구 판교역로 166 (카카오 판교 아지트)" [ref=f2e21]
+                          - term [ref=f2e22]: 지 번
+                          - definition [ref=f2e23]:
+                            - button "경기 성남시 분당구 백현동 532" [ref=f2e25]
+                        - generic [ref=f2e26]:
+                          - button "주소 영문보기" [ref=f2e27] [cursor=pointer]:
+                            - generic: 주소
+                            - text: 영문보기
+                          - button "도로명 주소(경기 성남시 분당구 판교역로 166)를 지도 에서 확인하기" [ref=f2e29] [cursor=pointer]:
+                            - generic: 도로명 주소(경기 성남시 분당구 판교역로 166)를
+                            - text: 지도
+                            - generic: 에서 확인하기
+                    - generic [ref=f2e31]:
+                      - generic [ref=f2e32]:
+                        - generic: 이전 페이지 없음
+                      - generic: 현재페이지
+                      - text: 1 / 1
+                      - generic [ref=f2e33]:
+                        - generic: 다음 페이지 없음
+                - generic [ref=f2e35]:
+                  - generic [ref=f2e36]: Powered by
+                  - strong [ref=f2e37]: kakao
+                  - link "우편번호 서비스 안내" [ref=f2e39] [cursor=pointer]:
+                    - /url: //postcode.map.kakao.com/guide
+          - generic [ref=e189]:
+            - generic [ref=e190]: 우편번호
+            - textbox "우편번호" [disabled] [ref=e191]:
+              - /placeholder: 주소 검색으로 자동 입력
+          - generic [ref=e192]:
+            - generic [ref=e193]: 기본 주소
+            - textbox "기본 주소" [disabled] [ref=e194]:
+              - /placeholder: 주소 검색으로 자동 입력
+          - generic [ref=e195]:
+            - generic [ref=e196]: 상세 주소
+            - textbox "상세 주소" [disabled] [ref=e197]:
+              - /placeholder: 주소 검색으로 자동 입력
+        - group "추가 요청" [ref=e198]:
+          - generic [ref=e199]: 추가 요청
+          - generic [ref=e200]:
+            - generic [ref=e201]: 요청사항
+            - textbox "요청사항" [ref=e202]:
+              - /placeholder: 배송 요청사항이나 제작 관련 메모를 남겨 주세요
+        - generic [ref=e203]:
+          - link "상품 상세로" [ref=e204] [cursor=pointer]:
+            - /url: /products/1
+          - button "결제하기" [disabled] [ref=e205]

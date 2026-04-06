@@ -1,0 +1,85 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - link "DODOMIII Handmade market" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e8]:
+          - strong [ref=e9]: DODOMIII
+          - generic [ref=e10]: Handmade market
+      - navigation "데스크탑 주요 메뉴" [ref=e11]:
+        - link "홈" [ref=e12] [cursor=pointer]:
+          - /url: /
+        - link "상품" [ref=e13] [cursor=pointer]:
+          - /url: /products
+        - link "주문조회" [ref=e14] [cursor=pointer]:
+          - /url: /orders
+        - link "공지사항" [ref=e15] [cursor=pointer]:
+          - /url: /notices
+        - link "QnA" [ref=e16] [cursor=pointer]:
+          - /url: /qna
+      - link "신상품 보기" [ref=e18] [cursor=pointer]:
+        - /url: /products?sort=latest
+  - main [ref=e52]:
+    - generic [ref=e54]:
+      - generic [ref=e55]:
+        - img "모루 튤립 꽃다발" [ref=e56]
+        - generic [ref=e57]:
+          - generic [ref=e58]: 판매 중
+          - generic [ref=e59]: 상담 필요
+      - generic "상품 이미지 선택" [ref=e60]:
+        - button "1번 이미지 보기" [ref=e61] [cursor=pointer]:
+          - img "모루 튤립 꽃다발" [ref=e62]
+        - button "2번 이미지 보기" [ref=e63] [cursor=pointer]:
+          - img "모루 튤립 꽃다발" [ref=e64]
+    - generic [ref=e65]:
+      - generic [ref=e66]:
+        - paragraph [ref=e67]: 꽃다발
+        - heading "모루 튤립 꽃다발" [level=1] [ref=e68]
+        - paragraph [ref=e69]: 핸드메이드 모루 꽃다발
+        - generic [ref=e70]:
+          - strong [ref=e71]: 29,000원
+          - generic [ref=e72]: 남은 수량 10개
+      - generic [ref=e73]:
+        - generic [ref=e74]:
+          - generic [ref=e75]: 배송
+          - paragraph [ref=e76]: 주문 후 제작이 시작되며 지역/재고 상황에 따라 배송일이 달라질 수 있습니다.
+        - generic [ref=e77]:
+          - generic [ref=e78]: 환불
+          - paragraph [ref=e79]: 핸드메이드 특성상 단순 변심 반품이 제한될 수 있으니 주문 전 옵션을 확인해주세요.
+        - generic [ref=e80]:
+          - generic [ref=e81]: 주문 방식
+          - paragraph [ref=e82]: 상담 후 주문이 필요한 상품입니다.
+      - generic [ref=e83]:
+        - generic [ref=e84]:
+          - generic [ref=e85]:
+            - paragraph [ref=e86]: Options
+            - heading "옵션 선택" [level=2] [ref=e87]
+            - paragraph [ref=e88]: 원하시는 옵션을 선택하세요.
+          - link "주문서 열기" [ref=e89] [cursor=pointer]:
+            - /url: /products/1/order
+        - generic [ref=e91]:
+          - generic [ref=e92]:
+            - generic [ref=e93]: 색상
+            - button "접기" [expanded] [ref=e94] [cursor=pointer]
+          - generic [ref=e95]:
+            - generic [ref=e96]:
+              - checkbox "핑크 +0원" [ref=e97]
+              - generic [ref=e98]: 핑크
+              - strong [ref=e99]: +0원
+            - generic [ref=e100]:
+              - checkbox "화이트 +1,000원" [ref=e101]
+              - generic [ref=e102]: 화이트
+              - strong [ref=e103]: +1,000원
+        - paragraph [ref=e104]: 주문 접수 뒤 상담 확인이 이어질 수 있습니다.
+      - generic [ref=e105]:
+        - generic [ref=e106]:
+          - paragraph [ref=e107]: 총액
+          - strong [ref=e108]: 29,000원
+        - link "주문서 이동" [ref=e109] [cursor=pointer]:
+          - /url: /products/1/order
+    - generic [ref=e111]:
+      - tablist "상품 세부 정보" [ref=e112]:
+        - tab "상세정보" [selected] [ref=e113] [cursor=pointer]
+        - tab "옵션" [ref=e114] [cursor=pointer]
+        - tab "안내" [ref=e115] [cursor=pointer]
+      - paragraph [ref=e118]: 한 송이씩 정성스럽게 제작된 모루 튤립 꽃다발입니다.

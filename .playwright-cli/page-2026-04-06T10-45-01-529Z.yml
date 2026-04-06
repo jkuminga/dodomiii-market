@@ -1,0 +1,109 @@
+- main [ref=e4]:
+  - generic [ref=e5]:
+    - complementary [ref=e6]:
+      - generic [ref=e7]:
+        - generic:
+          - generic:
+            - paragraph: Admin Console
+            - heading "관리자 페이지" [level=1]
+        - button "사이드바 펼치기" [active] [ref=e126] [cursor=pointer]:
+          - img [ref=e13]
+      - generic [ref=e16]:
+        - generic [ref=e17]: 도
+        - generic:
+          - strong: 도현정
+          - generic: dhj0406 · SUPER
+      - navigation "관리자 주요 메뉴" [ref=e21]:
+        - generic [ref=e22]:
+          - generic:
+            - paragraph: Section
+            - heading "운영 메뉴" [level=2]
+          - generic [ref=e26]:
+            - link "카테고리 관리" [ref=e27] [cursor=pointer]:
+              - /url: /admin/categories
+              - img [ref=e29]
+              - generic:
+                - strong: 카테고리 관리
+                - generic: 분류 구조와 노출 상태 정리
+            - link "상품 관리" [ref=e35] [cursor=pointer]:
+              - /url: /admin/products
+              - img [ref=e37]
+              - generic:
+                - strong: 상품 관리
+                - generic: 상품 등록, 수정, 판매 상태 운영
+            - link "홈 팝업" [ref=e43] [cursor=pointer]:
+              - /url: /admin/home-popup
+              - img [ref=e45]
+              - generic:
+                - strong: 홈 팝업
+                - generic: 메인 진입 팝업 이미지 운영
+            - link "커스텀 주문" [ref=e50] [cursor=pointer]:
+              - /url: /admin/custom-orders
+              - img [ref=e52]
+              - generic:
+                - strong: 커스텀 주문
+                - generic: 개별 링크 생성과 사용 상태 확인
+            - link "주문 관리" [ref=e57] [cursor=pointer]:
+              - /url: /admin/orders
+              - img [ref=e59]
+              - generic:
+                - strong: 주문 관리
+                - generic: 주문 상태, 입금, 배송 운영
+      - button "로그아웃" [ref=e65] [cursor=pointer]:
+        - img [ref=e67]
+        - generic:
+          - strong: 로그아웃
+          - generic: 현재 운영 세션 종료
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - generic [ref=e76]:
+          - paragraph [ref=e77]: Categories
+          - heading "카테고리 관리" [level=2] [ref=e78]
+          - paragraph [ref=e79]: 목록 조회와 생성, 수정, 삭제를 한 화면에서 처리할 수 있도록 폼과 목록을 분리했습니다.
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - text: 전체
+            - strong [ref=e82]: "0"
+          - generic [ref=e83]:
+            - text: 노출 중
+            - strong [ref=e84]: "0"
+          - generic [ref=e85]:
+            - text: 비노출
+            - strong [ref=e86]: "0"
+      - generic [ref=e87]:
+        - generic [ref=e88]:
+          - generic [ref=e89]:
+            - generic [ref=e90]:
+              - paragraph [ref=e91]: List
+              - heading "카테고리 구조" [level=3] [ref=e92]
+            - generic [ref=e93]:
+              - button "순서 적용" [disabled] [ref=e94]
+              - button "+" [ref=e95] [cursor=pointer]
+              - button "새로고침" [ref=e96] [cursor=pointer]:
+                - img [ref=e97]
+          - generic [ref=e100]:
+            - paragraph [ref=e101]: Empty
+            - heading "등록된 카테고리가 없습니다" [level=4] [ref=e102]
+            - paragraph [ref=e103]: 오른쪽 입력 폼에서 첫 카테고리를 바로 생성할 수 있습니다.
+        - generic [ref=e104]:
+          - generic [ref=e106]:
+            - paragraph [ref=e107]: Create
+            - heading "카테고리 생성" [level=3] [ref=e108]
+          - generic [ref=e109]:
+            - generic [ref=e110]: 상위 카테고리
+            - combobox "상위 카테고리" [ref=e111]:
+              - option "최상위" [selected]
+          - generic [ref=e112]:
+            - generic [ref=e113]: 카테고리명
+            - textbox "카테고리명" [ref=e114]
+          - generic [ref=e115]:
+            - generic [ref=e116]: 슬러그
+            - textbox "슬러그" [ref=e117]:
+              - /placeholder: bouquet
+          - generic [ref=e118]:
+            - generic [ref=e119]: 정렬 순서
+            - spinbutton "정렬 순서" [ref=e120]: "0"
+          - generic [ref=e121]:
+            - checkbox "스토어에 노출" [checked] [ref=e122]
+            - generic [ref=e123]: 스토어에 노출
+          - button "카테고리 생성" [ref=e125] [cursor=pointer]

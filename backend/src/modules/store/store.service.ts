@@ -25,6 +25,7 @@ import {
   StoreTrackingEvent,
 } from './store.types';
 import { normalizeOrderContactAddress } from './utils/order-contact.util';
+import { StoreCacheService } from './store-cache.service';
 
 export type CategoryTreeNode = {
   id: number;
@@ -128,6 +129,10 @@ const DEPOSIT_REQUEST_REASON = '입금 요청 접수';
 const CUSTOM_ORDER_PRODUCT_NAME = '커스텀 주문';
 const CUSTOM_ORDER_TOKEN_PREFIX = 'cus_';
 const CUSTOM_ORDER_TOKEN_BYTES = 24;
+const STORE_CATEGORIES_CACHE_TTL_MS = 5 * 60 * 1000;
+const STORE_HOME_POPUP_CACHE_TTL_MS = 30 * 1000;
+const STORE_PRODUCTS_CACHE_TTL_MS = 20 * 1000;
+const STORE_PRODUCT_DETAIL_CACHE_TTL_MS = 20 * 1000;
 
 const storeOrderDetailArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
   select: {
@@ -263,85 +268,90 @@ export class StoreService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly orderNotifications: OrderNotificationsService,
+    private readonly storeCache: StoreCacheService,
   ) {}
 
   async getVisibleCategories() {
-    const categories = await this.prisma.category.findMany({
-      where: { isVisible: true },
-      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-      select: {
-        id: true,
-        parentId: true,
-        name: true,
-        slug: true,
-        imageUrl: true,
-        isOnLandingPage: true,
-        sortOrder: true,
-      },
+    return this.storeCache.getOrSet('store:categories:v1', STORE_CATEGORIES_CACHE_TTL_MS, async () => {
+      const categories = await this.prisma.category.findMany({
+        where: { isVisible: true },
+        orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          parentId: true,
+          name: true,
+          slug: true,
+          imageUrl: true,
+          isOnLandingPage: true,
+          sortOrder: true,
+        },
+      });
+
+      const map = new Map<string, CategoryTreeNode>();
+      const roots: CategoryTreeNode[] = [];
+
+      for (const category of categories) {
+        const node: CategoryTreeNode = {
+          id: Number(category.id),
+          parentId: category.parentId ? Number(category.parentId) : null,
+          name: category.name,
+          slug: category.slug,
+          imageUrl: category.imageUrl,
+          isOnLandingPage: category.isOnLandingPage,
+          sortOrder: category.sortOrder,
+          children: [],
+        };
+
+        map.set(category.id.toString(), node);
+      }
+
+      for (const category of categories) {
+        const node = map.get(category.id.toString());
+        if (!node) {
+          continue;
+        }
+
+        if (!category.parentId) {
+          roots.push(node);
+          continue;
+        }
+
+        const parent = map.get(category.parentId.toString());
+        if (!parent) {
+          roots.push(node);
+          continue;
+        }
+
+        parent.children.push(node);
+      }
+
+      return { items: roots };
     });
-
-    const map = new Map<string, CategoryTreeNode>();
-    const roots: CategoryTreeNode[] = [];
-
-    for (const category of categories) {
-      const node: CategoryTreeNode = {
-        id: Number(category.id),
-        parentId: category.parentId ? Number(category.parentId) : null,
-        name: category.name,
-        slug: category.slug,
-        imageUrl: category.imageUrl,
-        isOnLandingPage: category.isOnLandingPage,
-        sortOrder: category.sortOrder,
-        children: [],
-      };
-
-      map.set(category.id.toString(), node);
-    }
-
-    for (const category of categories) {
-      const node = map.get(category.id.toString());
-      if (!node) {
-        continue;
-      }
-
-      if (!category.parentId) {
-        roots.push(node);
-        continue;
-      }
-
-      const parent = map.get(category.parentId.toString());
-      if (!parent) {
-        roots.push(node);
-        continue;
-      }
-
-      parent.children.push(node);
-    }
-
-    return { items: roots };
   }
 
   async getActiveHomePopup(): Promise<StoreHomePopupResponse | null> {
-    const popup = await this.prisma.homePopup.findFirst({
-      where: {
-        isActive: true,
-      },
-      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    return this.storeCache.getOrSet('store:home-popup:v1', STORE_HOME_POPUP_CACHE_TTL_MS, async () => {
+      const popup = await this.prisma.homePopup.findFirst({
+        where: {
+          isActive: true,
+        },
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      });
+
+      if (!popup) {
+        return null;
+      }
+
+      return {
+        id: Number(popup.id),
+        title: popup.title,
+        imageUrl: popup.imageUrl,
+        linkUrl: popup.linkUrl,
+        isActive: popup.isActive,
+        createdAt: popup.createdAt.toISOString(),
+        updatedAt: popup.updatedAt.toISOString(),
+      };
     });
-
-    if (!popup) {
-      return null;
-    }
-
-    return {
-      id: Number(popup.id),
-      title: popup.title,
-      imageUrl: popup.imageUrl,
-      linkUrl: popup.linkUrl,
-      isActive: popup.isActive,
-      createdAt: popup.createdAt.toISOString(),
-      updatedAt: popup.updatedAt.toISOString(),
-    };
   }
 
   async getVisibleProducts(query: GetProductsQueryDto) {
@@ -391,54 +401,64 @@ export class StoreService {
           ? [{ basePrice: 'desc' }, { id: 'desc' }]
           : [{ createdAt: 'desc' }, { id: 'desc' }];
 
-    const [totalItems, products] = await this.prisma.$transaction([
-      this.prisma.product.count({ where }),
-      this.prisma.product.findMany({
-        where,
-        orderBy,
-        skip: (page - 1) * size,
-        take: size,
-        include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
+    const cacheKey = `store:products:v1:${JSON.stringify({
+      q: query.q ?? '',
+      categorySlug: query.categorySlug ?? '',
+      sort: query.sort ?? 'latest',
+      page,
+      size,
+    })}`;
+
+    return this.storeCache.getOrSet(cacheKey, STORE_PRODUCTS_CACHE_TTL_MS, async () => {
+      const [totalItems, products] = await this.prisma.$transaction([
+        this.prisma.product.count({ where }),
+        this.prisma.product.findMany({
+          where,
+          orderBy,
+          skip: (page - 1) * size,
+          take: size,
+          include: {
+            category: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            images: {
+              where: { imageType: 'THUMBNAIL' },
+              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+              take: 1,
+              select: {
+                imageUrl: true,
+              },
             },
           },
-          images: {
-            where: { imageType: 'THUMBNAIL' },
-            orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-            take: 1,
-            select: {
-              imageUrl: true,
-            },
-          },
+        }),
+      ]);
+
+      const totalPages = Math.ceil(totalItems / size);
+
+      return {
+        items: products.map((product) => ({
+          id: Number(product.id),
+          categoryId: Number(product.categoryId),
+          categoryName: product.category.name,
+          name: product.name,
+          slug: product.slug,
+          shortDescription: product.shortDescription,
+          basePrice: product.basePrice,
+          isSoldOut: product.isSoldOut,
+          consultationRequired: product.consultationRequired,
+          thumbnailImageUrl: product.images[0]?.imageUrl ?? null,
+        })),
+        meta: {
+          page,
+          size,
+          totalItems,
+          totalPages,
         },
-      }),
-    ]);
-
-    const totalPages = Math.ceil(totalItems / size);
-
-    return {
-      items: products.map((product) => ({
-        id: Number(product.id),
-        categoryId: Number(product.categoryId),
-        categoryName: product.category.name,
-        name: product.name,
-        slug: product.slug,
-        shortDescription: product.shortDescription,
-        basePrice: product.basePrice,
-        isSoldOut: product.isSoldOut,
-        consultationRequired: product.consultationRequired,
-        thumbnailImageUrl: product.images[0]?.imageUrl ?? null,
-      })),
-      meta: {
-        page,
-        size,
-        totalItems,
-        totalPages,
-      },
-    };
+      };
+    });
   }
 
   async getVisibleProductById(productId: string) {
@@ -450,81 +470,87 @@ export class StoreService {
       });
     }
 
-    const product = await this.prisma.product.findFirst({
-      where: {
-        id: BigInt(parsedId),
-        isVisible: true,
-        deletedAt: null,
-      },
-      include: {
-        category: {
-          select: {
-            id: true,
-            name: true,
+    return this.storeCache.getOrSet(
+      `store:product-detail:v1:${parsedId}`,
+      STORE_PRODUCT_DETAIL_CACHE_TTL_MS,
+      async () => {
+        const product = await this.prisma.product.findFirst({
+          where: {
+            id: BigInt(parsedId),
+            isVisible: true,
+            deletedAt: null,
           },
-        },
-        images: {
-          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-          select: {
-            id: true,
-            imageType: true,
-            imageUrl: true,
-            sortOrder: true,
+          include: {
+            category: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            images: {
+              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+              select: {
+                id: true,
+                imageType: true,
+                imageUrl: true,
+                sortOrder: true,
+              },
+            },
+            options: {
+              where: { isActive: true },
+              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+              select: {
+                id: true,
+                optionGroupName: true,
+                optionValue: true,
+                extraPrice: true,
+                isActive: true,
+                sortOrder: true,
+              },
+            },
           },
-        },
-        options: {
-          where: { isActive: true },
-          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-          select: {
-            id: true,
-            optionGroupName: true,
-            optionValue: true,
-            extraPrice: true,
-            isActive: true,
-            sortOrder: true,
-          },
-        },
-      },
-    });
+        });
 
-    if (!product) {
-      throw new NotFoundException({
-        code: 'PRODUCT_NOT_FOUND',
-        message: '상품을 찾을 수 없습니다.',
-      });
-    }
+        if (!product) {
+          throw new NotFoundException({
+            code: 'PRODUCT_NOT_FOUND',
+            message: '상품을 찾을 수 없습니다.',
+          });
+        }
 
-    return {
-      id: Number(product.id),
-      categoryId: Number(product.categoryId),
-      categoryName: product.category.name,
-      name: product.name,
-      slug: product.slug,
-      shortDescription: product.shortDescription,
-      description: product.description,
-      basePrice: product.basePrice,
-      isSoldOut: product.isSoldOut,
-      consultationRequired: product.consultationRequired,
-      stockQuantity: product.stockQuantity,
-      images: product.images.map((image) => ({
-        id: Number(image.id),
-        imageType: image.imageType,
-        imageUrl: image.imageUrl,
-        sortOrder: image.sortOrder,
-      })),
-      options: product.options.map((option) => ({
-        id: Number(option.id),
-        optionGroupName: option.optionGroupName,
-        optionValue: option.optionValue,
-        extraPrice: option.extraPrice,
-        isActive: option.isActive,
-        sortOrder: option.sortOrder,
-      })),
-      policy: {
-        shippingInfo: '주문 후 제작이 시작되며 지역/재고 상황에 따라 배송일이 달라질 수 있습니다.',
-        refundInfo: '핸드메이드 특성상 단순 변심 반품이 제한될 수 있으니 주문 전 옵션을 확인해주세요.',
+        return {
+          id: Number(product.id),
+          categoryId: Number(product.categoryId),
+          categoryName: product.category.name,
+          name: product.name,
+          slug: product.slug,
+          shortDescription: product.shortDescription,
+          description: product.description,
+          basePrice: product.basePrice,
+          isSoldOut: product.isSoldOut,
+          consultationRequired: product.consultationRequired,
+          stockQuantity: product.stockQuantity,
+          images: product.images.map((image) => ({
+            id: Number(image.id),
+            imageType: image.imageType,
+            imageUrl: image.imageUrl,
+            sortOrder: image.sortOrder,
+          })),
+          options: product.options.map((option) => ({
+            id: Number(option.id),
+            optionGroupName: option.optionGroupName,
+            optionValue: option.optionValue,
+            extraPrice: option.extraPrice,
+            isActive: option.isActive,
+            sortOrder: option.sortOrder,
+          })),
+          policy: {
+            shippingInfo: '주문 후 제작이 시작되며 지역/재고 상황에 따라 배송일이 달라질 수 있습니다.',
+            refundInfo: '핸드메이드 특성상 단순 변심 반품이 제한될 수 있으니 주문 전 옵션을 확인해주세요.',
+          },
+        };
       },
-    };
+    );
   }
 
   async createOrder(dto: CreateOrderDto) {

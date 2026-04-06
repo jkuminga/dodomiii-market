@@ -1,0 +1,17 @@
+- main [ref=e4]:
+  - generic [ref=e5]:
+    - paragraph [ref=e6]: Admin Access
+    - heading "관리자 로그인" [level=1] [ref=e7]
+    - paragraph [ref=e8]: 운영자 세션을 확인한 뒤 카테고리와 상품 관리 화면으로 바로 연결합니다.
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e11]: 아이디
+      - textbox "아이디" [ref=e12]:
+        - /placeholder: admin
+    - generic [ref=e13]:
+      - generic [ref=e14]: 비밀번호
+      - textbox "비밀번호" [ref=e15]:
+        - /placeholder: 비밀번호 입력
+    - button "로그인" [disabled] [ref=e16]
+    - link "홈으로 돌아가기" [ref=e17] [cursor=pointer]:
+      - /url: /

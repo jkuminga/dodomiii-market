@@ -60,6 +60,8 @@ model Category {
 
   @@unique([parentId, slug], map: "uq_categories_parent_slug")
   @@index([parentId], map: "idx_categories_parent_id")
+  @@index([slug], map: "idx_categories_slug")
+  @@index([isVisible, sortOrder, id], map: "idx_categories_visible_sort")
   @@map("categories")
 }
 
@@ -86,6 +88,9 @@ model Product {
 
   @@index([categoryId], map: "idx_products_category_id")
   @@index([isVisible, isSoldOut], map: "idx_products_visibility_stock")
+  @@index([isVisible, deletedAt, createdAt(sort: Desc), id(sort: Desc)], map: "idx_products_visible_deleted_created")
+  @@index([isVisible, deletedAt, basePrice, id(sort: Desc)], map: "idx_products_visible_deleted_price")
+  @@index([categoryId, isVisible, deletedAt, createdAt(sort: Desc), id(sort: Desc)], map: "idx_products_category_visible_deleted_created")
   @@map("products")
 }
 
@@ -145,6 +150,7 @@ model Order {
   customOrderLinkUsed CustomOrderLink?     @relation("CustomOrderLinkUsedOrder")
 
   @@index([orderStatus, createdAt], map: "idx_orders_status_created_at")
+  @@index([createdAt(sort: Desc), id(sort: Desc)], map: "idx_orders_created_id_desc")
   @@map("orders")
 }
 

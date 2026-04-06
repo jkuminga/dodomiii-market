@@ -7,6 +7,7 @@ import {
 import { Prisma, ProductImageType } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { StoreCacheService } from '../store/store-cache.service';
 import type {
   AdminCategoryResponse,
   AdminHomePopupResponse,
@@ -72,9 +73,22 @@ type CategoryNode = {
 
 const CATEGORY_LANDING_SELECTION_LIMIT = 3;
 
+function extractGroupedCount(
+  count: true | { id?: number } | undefined,
+): number {
+  if (!count || count === true) {
+    return 0;
+  }
+
+  return count.id ?? 0;
+}
+
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storeCache: StoreCacheService,
+  ) {}
 
   async getLatestHomePopup(): Promise<AdminHomePopupResponse | null> {
     const popup = await this.prisma.homePopup.findFirst({
@@ -87,7 +101,7 @@ export class AdminService {
   async upsertHomePopup(dto: UpdateAdminHomePopupDto): Promise<AdminHomePopupResponse> {
     const popupId = dto.popupId ? BigInt(dto.popupId) : null;
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const isActive = dto.isActive ?? true;
 
       if (isActive) {
@@ -145,6 +159,9 @@ export class AdminService {
 
       return this.mapHomePopup(created);
     });
+
+    this.storeCache.invalidateByPrefix('store:home-popup:');
+    return result;
   }
 
   async createCategory(dto: CreateAdminCategoryDto): Promise<AdminCategoryResponse> {
@@ -179,6 +196,9 @@ export class AdminService {
         return category.id;
       });
 
+      this.storeCache.invalidateByPrefix('store:categories:');
+      this.storeCache.invalidateByPrefix('store:products:');
+      this.storeCache.invalidateByPrefix('store:product-detail:');
       return this.getCategoryById(categoryId);
     } catch (error) {
       this.handleCategoryWriteError(error);
@@ -186,7 +206,7 @@ export class AdminService {
   }
 
   async getCategories() {
-    const [categories, products] = await this.prisma.$transaction([
+    const [categories, totalProductCounts, activeProductCounts] = await this.prisma.$transaction([
       this.prisma.category.findMany({
         orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
         include: {
@@ -203,10 +223,25 @@ export class AdminService {
           },
         },
       }),
-      this.prisma.product.findMany({
-        select: {
-          categoryId: true,
-          deletedAt: true,
+      this.prisma.product.groupBy({
+        by: ['categoryId'],
+        orderBy: {
+          categoryId: 'asc',
+        },
+        _count: {
+          id: true,
+        },
+      }),
+      this.prisma.product.groupBy({
+        by: ['categoryId'],
+        orderBy: {
+          categoryId: 'asc',
+        },
+        where: {
+          deletedAt: null,
+        },
+        _count: {
+          id: true,
         },
       }),
     ]);
@@ -221,17 +256,12 @@ export class AdminService {
         },
       ]),
     );
-    const totalProductCountMap = new Map<string, number>();
-    const activeProductCountMap = new Map<string, number>();
-
-    for (const product of products) {
-      const key = product.categoryId.toString();
-
-      totalProductCountMap.set(key, (totalProductCountMap.get(key) ?? 0) + 1);
-      if (!product.deletedAt) {
-        activeProductCountMap.set(key, (activeProductCountMap.get(key) ?? 0) + 1);
-      }
-    }
+    const totalProductCountMap = new Map<string, number>(
+      totalProductCounts.map((row) => [row.categoryId.toString(), extractGroupedCount(row._count)]),
+    );
+    const activeProductCountMap = new Map<string, number>(
+      activeProductCounts.map((row) => [row.categoryId.toString(), extractGroupedCount(row._count)]),
+    );
 
     return {
       items: categories.map((category) => {
@@ -317,6 +347,9 @@ export class AdminService {
         return updatedCategory.id;
       });
 
+      this.storeCache.invalidateByPrefix('store:categories:');
+      this.storeCache.invalidateByPrefix('store:products:');
+      this.storeCache.invalidateByPrefix('store:product-detail:');
       return this.getCategoryById(categoryRecordId);
     } catch (error) {
       this.handleCategoryWriteError(error);
@@ -373,10 +406,15 @@ export class AdminService {
           },
         });
 
-        return {
+        const result = {
           categoryId: Number(existingCategory.id),
           deleted: true,
         };
+
+        this.storeCache.invalidateByPrefix('store:categories:');
+        this.storeCache.invalidateByPrefix('store:products:');
+        this.storeCache.invalidateByPrefix('store:product-detail:');
+        return result;
       });
     } catch (error) {
       this.handleCategoryDeleteError(error);
@@ -433,6 +471,8 @@ export class AdminService {
         return product.id;
       });
 
+      this.storeCache.invalidateByPrefix('store:products:');
+      this.storeCache.invalidateByPrefix('store:product-detail:');
       return this.getProductById(BigInt(productId));
     } catch (error) {
       this.handleProductWriteError(error);
@@ -646,6 +686,8 @@ export class AdminService {
         return existingProduct.id;
       });
 
+      this.storeCache.invalidateByPrefix('store:products:');
+      this.storeCache.invalidateByPrefix('store:product-detail:');
       return this.getProductById(updatedProductId);
     } catch (error) {
       this.handleProductWriteError(error);
@@ -679,6 +721,8 @@ export class AdminService {
         },
       });
 
+      this.storeCache.invalidateByPrefix('store:products:');
+      this.storeCache.invalidateByPrefix('store:product-detail:');
       return {
         productId: Number(product.id),
         deleted: true,

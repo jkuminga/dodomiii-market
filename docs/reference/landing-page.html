@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Analog Sanctuary</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,600;0,800;1,700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#666559",
+                        "on-secondary-container": "#43573f",
+                        "secondary-container": "#d2e9c9",
+                        "on-secondary-fixed": "#31442d",
+                        "secondary-dim": "#495e45",
+                        "secondary-fixed": "#d2e9c9",
+                        "surface-container-highest": "#ece8d9",
+                        "inverse-surface": "#0f0e0a",
+                        "surface-container": "#f7f4e7",
+                        "secondary-fixed-dim": "#c4dbbc",
+                        "on-tertiary-fixed": "#513e21",
+                        "error-dim": "#67040d",
+                        "on-tertiary-container": "#645032",
+                        "inverse-primary": "#f8c4cf",
+                        "on-error": "#ffffff",
+                        "on-surface": "#39382e",
+                        "on-primary-container": "#623d46",
+                        "tertiary-fixed-dim": "#f0d3ac",
+                        "inverse-on-surface": "#9f9d95",
+                        "on-error-container": "#6e0a12",
+                        "primary-fixed": "#f8c4cf",
+                        "tertiary-container": "#ffe1b9",
+                        "error": "#af3d3b",
+                        "background": "#fffbff",
+                        "primary-dim": "#744d56",
+                        "on-primary-fixed": "#4c2a33",
+                        "on-tertiary-fixed-variant": "#6f5a3b",
+                        "outline-variant": "#bcb9ab",
+                        "surface-dim": "#e6e3d4",
+                        "error-container": "#fa746f",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-high": "#f1eee0",
+                        "primary-fixed-dim": "#e9b7c1",
+                        "tertiary-fixed": "#ffe1b9",
+                        "surface-variant": "#ece8d9",
+                        "on-tertiary": "#ffffff",
+                        "surface-tint": "#825962",
+                        "tertiary-dim": "#6a5536",
+                        "on-primary-fixed-variant": "#6c464f",
+                        "tertiary": "#776141",
+                        "primary": "#825962",
+                        "on-secondary-fixed-variant": "#4c6148",
+                        "on-secondary": "#ffffff",
+                        "outline": "#838174",
+                        "surface-bright": "#fffbff",
+                        "surface-container-low": "#fdf9ee",
+                        "secondary": "#556a50",
+                        "surface": "#fffbff",
+                        "primary-container": "#f8c4cf",
+                        "on-background": "#39382e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>body {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    background-color: #fffbff;
+    position: relative
+    }
+/* Film Grain Overlay */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.04;
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuBAUSdu0zMsYMC05pGNwiLDR-xEj7IKAWuSEaG9cPKriFG2JEw56wgKGzyJTqa67doFphbor7XFs0LGea9rXpUpAzIkTGdx9Zr-j2c72ETCeKsdzw2N0m_l6zhZFtjTsMPwu4lftqT8ap21FELcqQ9B0b1gtz6SjRBYPASJ1uRozRg-O3fCNKEbyHlZ0YqVKTnsdLOMjnnhpg5Ayp4cDJGhoV5r3-gBbgoLMLBuf3yvwR0d5lkUJ6RKXXTuF_8RxonKaI4Lfms2dUM)
+    }
+.glow-soft {
+    box-shadow: 0 0 20px rgba(130, 89, 98, 0.1)
+    }
+.anime-vignette {
+    box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.1)
+    }
+.mochi-shadow {
+    box-shadow: 0 20px 50px rgba(130, 89, 98, 0.05)
+    }
+.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24
+    }</style>
+</head>
+<body class="bg-background text-on-surface overflow-x-hidden">
+<!-- TopNavBar -->
+<nav class="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-8 py-3 max-w-6xl mx-auto rounded-full mt-4 mx-4 bg-[#fffbff]/80 dark:bg-[#1a1c1e]/80 backdrop-blur-xl shadow-[0_20px_50px_rgba(130,89,98,0.05)] font-['Plus_Jakarta_Sans'] tracking-tight">
+<div class="text-2xl font-bold italic text-[#825962] dark:text-[#D8A7B1]">
+            The Analog Sanctuary
+        </div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-[#556a50] dark:text-[#b7cfb2] font-semibold border-b-2 border-[#556a50] transition-colors duration-500" href="#">Sanctuary</a>
+<a class="text-[#666559] dark:text-[#bcb9ab] hover:text-[#556a50] transition-colors duration-500" href="#">Memories</a>
+<a class="text-[#666559] dark:text-[#bcb9ab] hover:text-[#556a50] transition-colors duration-500" href="#">Glow</a>
+<a class="text-[#666559] dark:text-[#bcb9ab] hover:text-[#556a50] transition-colors duration-500" href="#">Archive</a>
+</div>
+<button class="bg-primary text-on-primary px-6 py-2 rounded-full font-semibold ease-in-out hover:scale-[1.02] transition-transform duration-300">
+            Join the Dream
+        </button>
+</nav>
+<!-- Hero Section -->
+<section class="relative w-full min-h-[921px] flex items-center justify-center pt-24 px-4">
+<div class="relative w-full max-w-7xl aspect-[21/9] rounded-xl overflow-hidden shadow-2xl anime-vignette group">
+<img alt="Retro anime style dogs" class="w-full h-full object-cover opacity-90 transition-transform duration-700 group-hover:scale-105" data-alt="90s Japanese retro anime still showing several cool natural-looking dogs relaxing in a sun-drenched cozy living room, soft glow, film grain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfDQyb3CjRbZ2HQUXX0OXhPO0QYc3dX17Y4AM-BzOHNIGAfyvf43KUTmclOcrARKnMMrkKDpk2xJgcwRfgw4u8GpTf2wLwx5l-wryhpRz8c-4a4FZiSQazc9AnPS5-tAtzdd7fltovHrt_Ha0q629BNqqMrNo75_KR1oXicGBDxBT7If2a8S1tCsQV2kjD-_izTfGOmQzAi5jQZArO35y3H6TJob8teLusBlWDYpg5si2BNY4vwzU6YBYFZM31CnjPlqotPa8obNs"/>
+<div class="absolute inset-0 bg-gradient-to-t from-[#825962]/40 to-transparent"></div>
+<div class="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+<h1 class="text-on-primary text-4xl md:text-7xl font-extrabold tracking-tight drop-shadow-xl font-headline max-w-4xl leading-tight">
+                    Curate Your Soulful Digital Space
+                </h1>
+<p class="text-primary-container mt-6 text-lg md:text-xl font-medium max-w-2xl drop-shadow-md">
+                    Step into a nostalgic realm where memories breathe and the digital hum fades into a soft, cel-animated dream.
+                </p>
+<div class="mt-10 flex gap-4">
+<button class="bg-primary-container text-on-primary-container px-8 py-4 rounded-full font-bold shadow-lg hover:brightness-105 transition-all">
+                        Enter the Archive
+                    </button>
+</div>
+</div>
+</div>
+</section>
+<!-- What's New Section (Bento-style Horizontal Cards) -->
+<section class="max-w-7xl mx-auto py-24 px-6">
+<div class="flex justify-between items-end mb-12 px-4">
+<div>
+<span class="text-primary font-bold tracking-widest uppercase text-xs">The Latest Pulse</span>
+<h2 class="text-on-surface text-3xl font-bold mt-2">What's New in the Sanctuary</h2>
+</div>
+<span class="material-symbols-outlined text-secondary text-4xl" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Card 1 -->
+<div class="bg-surface-container-low p-8 rounded-full flex flex-col items-center text-center group hover:bg-secondary-container transition-all duration-500 mochi-shadow">
+<div class="w-20 h-20 bg-tertiary-container rounded-full flex items-center justify-center mb-6 shadow-inner">
+<span class="material-symbols-outlined text-tertiary text-4xl" data-icon="palette">palette</span>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-3">Vintage Palettes</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">
+                    Hand-picked tones inspired by the dusk of 1994. Warm, hazy, and full of soul.
+                </p>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-low p-8 rounded-full flex flex-col items-center text-center group hover:bg-primary-container transition-all duration-500 mochi-shadow">
+<div class="w-20 h-20 bg-primary-fixed-dim rounded-full flex items-center justify-center mb-6 shadow-inner">
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="history_edu">history_edu</span>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-3">Analog Scripts</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">
+                    A collection of handwritten memories captured in the quiet moments between frames.
+                </p>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-low p-8 rounded-full flex flex-col items-center text-center group hover:bg-secondary-container transition-all duration-500 mochi-shadow">
+<div class="w-20 h-20 bg-secondary-fixed rounded-full flex items-center justify-center mb-6 shadow-inner">
+<span class="material-symbols-outlined text-secondary text-4xl" data-icon="camera_roll">camera_roll</span>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-3">Cel Archives</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">
+                    Explore the raw textures of hand-painted backgrounds from forgotten masterpieces.
+                </p>
+</div>
+</div>
+</section>
+<!-- Curator's Pick Section -->
+<section class="w-full py-24 bg-surface-container-high overflow-hidden">
+<div class="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+<!-- Polaroid Frame -->
+<div class="relative rotate-[-2deg] transition-transform hover:rotate-0 duration-700">
+<div class="bg-white p-6 pb-20 shadow-2xl rounded-sm max-w-md mx-auto">
+<div class="aspect-square bg-surface-variant rounded-sm overflow-hidden">
+<img alt="Maru character dog" class="w-full h-full object-cover grayscale-[0.2] sepia-[0.2]" data-alt="Close up of a friendly Shiba Inu with soft focus retro anime lighting, nostalgic warm Japanese 90s aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3UVljWHmkhiK_e5aXLh3CbTO6tCv0p6PvOA5gs4919Rj4OOjd0vMKMEDKup97MrTMY-1QiWY7hVC3wkTlRI29hqPjzTsM1zggIlac0hi_e8zAgtIx1lHNsCwJ05xAd7rCjOs-1Voe1tVYVzDQUtokAAo5G0bX3gOhd6SYAPi9qciVLwAzqeGloO5_mEED-9v3OBfUc9Y6iKmZZN78cf8k_AvTQTq1gW3qxByjoIR1vTOZqachW-IClgc1AC1eDogZlOnZOFC2M40"/>
+</div>
+<div class="mt-8 text-center">
+<span class="font-['Plus_Jakarta_Sans'] italic text-[#825962] text-2xl font-bold opacity-60">Maru in the Morning Light</span>
+</div>
+</div>
+<!-- Hand-drawn sticker decorative -->
+<div class="absolute -top-6 -left-6 w-24 h-24 rotate-[-15deg] bg-tertiary-container rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+<span class="material-symbols-outlined text-on-tertiary-container text-4xl" data-icon="stars">stars</span>
+</div>
+</div>
+<!-- Text Content -->
+<div class="relative">
+<div class="absolute -top-12 -left-8 text-8xl font-bold text-primary/5 select-none">PICK</div>
+<span class="text-secondary font-bold tracking-widest uppercase text-sm">Featured Profile</span>
+<h2 class="text-on-surface text-5xl font-extrabold mt-4 mb-8 leading-tight">Meet Maru, our Resident Dreamer</h2>
+<div class="bg-surface-container p-8 rounded-xl border-l-4 border-primary italic text-on-surface-variant text-lg leading-relaxed shadow-sm">
+                    "The beauty of the analog world lies in its imperfections. Maru reminds us that even in a digital sanctuary, the softest moments are the ones that linger the longest."
+                </div>
+<p class="mt-8 text-on-surface-variant leading-relaxed">
+                    Every week, we spotlight a soul that embodies the quiet, reflective nature of our sanctuary. Maru's presence brings a sense of calm that only a 90s afternoon can provide.
+                </p>
+<button class="mt-10 flex items-center gap-2 text-primary font-bold hover:gap-4 transition-all">
+                    READ MARU'S STORY <span class="material-symbols-outlined" data-icon="arrow_right_alt">arrow_right_alt</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Newsletter: Join the Dream -->
+<section class="max-w-4xl mx-auto py-32 px-6">
+<div class="bg-primary-container/30 backdrop-blur-md rounded-full p-12 md:p-20 text-center relative overflow-hidden shadow-[0_40px_100px_rgba(130,89,98,0.1)]">
+<div class="relative z-10">
+<h2 class="text-on-primary-container text-4xl font-bold mb-4 tracking-tight">Join the Dream</h2>
+<p class="text-on-primary-container/80 mb-10 max-w-lg mx-auto">
+                    Subscribe to our weekly frequency. No noise, just soft memories and hand-drawn inspiration delivered to your sanctuary.
+                </p>
+<form class="flex flex-col md:flex-row gap-4 max-w-md mx-auto">
+<input class="flex-1 bg-white/60 border-none rounded-full px-8 py-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/50 text-on-surface" placeholder="your@dream.com" type="email"/>
+<button class="bg-secondary text-on-secondary px-8 py-4 rounded-full font-bold shadow-lg hover:shadow-secondary/30 transition-all">
+                        Subscribe
+                    </button>
+</form>
+</div>
+<!-- Background Decorative Glows -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary-container rounded-full blur-[100px] -z-0 opacity-40"></div>
+<div class="absolute bottom-0 left-0 w-64 h-64 bg-secondary-container rounded-full blur-[100px] -z-0 opacity-40"></div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="w-full flex flex-col items-center gap-6 py-16 px-4 bg-[#f4f0e6] dark:bg-[#2a2a24] rounded-t-[100px] mt-20">
+<div class="text-lg font-bold text-[#825962] tracking-tight uppercase">The Analog Sanctuary</div>
+<div class="flex gap-8 text-[#666559] font-['Plus_Jakarta_Sans'] text-sm uppercase tracking-widest">
+<a class="hover:opacity-70 transition-opacity duration-700" href="#">The Vibe</a>
+<a class="hover:opacity-70 transition-opacity duration-700" href="#">Legal</a>
+<a class="hover:opacity-70 transition-opacity duration-700" href="#">Privacy</a>
+<a class="hover:opacity-70 transition-opacity duration-700" href="#">Contact</a>
+</div>
+<div class="mt-8 text-on-surface-variant/60 text-xs tracking-widest text-center px-4 max-w-md">
+            © 1994-2024 The Analog Sanctuary. A Cel-Animated Dream. 
+            Designed to feel like a soft memory.
+        </div>
+<div class="flex gap-4 mt-4">
+<span class="material-symbols-outlined text-secondary opacity-40" data-icon="videocam">videocam</span>
+<span class="material-symbols-outlined text-secondary opacity-40" data-icon="album">album</span>
+<span class="material-symbols-outlined text-secondary opacity-40" data-icon="auto_awesome_motion">auto_awesome_motion</span>
+</div>
+</footer>
+</body></html>
