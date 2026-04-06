@@ -1,17 +1,42 @@
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 import logoMain from '../../assets/images/logo_main3.jpg';
+import { apiClient, CategoryTreeNode } from '../../lib/api';
 
 const primaryNavItems = [
   { to: '/', label: '홈' },
-  { to: '/products', label: '상품' },
-  { to: '/orders', label: '주문조회' },
+  { to: '/products', label: '카테고리' },
   { to: '/notices', label: '공지사항' },
   { to: '/qna', label: 'QnA' },
 ];
 
 export function DesktopHeader() {
   const location = useLocation();
+  const [categoryRoots, setCategoryRoots] = useState<CategoryTreeNode[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        const result = await apiClient.getCategories();
+        if (!cancelled) {
+          setCategoryRoots(result.items);
+        }
+      } catch {
+        if (!cancelled) {
+          setCategoryRoots([]);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <header className="d-header">
@@ -33,6 +58,43 @@ export function DesktopHeader() {
                 ? location.pathname === '/'
                 : location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
 
+            if (item.to === '/products') {
+              return (
+                <div key={item.to} className={`d-nav-item has-dropdown ${active ? 'is-active' : ''}`}>
+                  <Link className={`d-nav-link ${active ? 'is-active' : ''}`} to={item.to} aria-current={active ? 'page' : undefined}>
+                    {item.label}
+                  </Link>
+
+                  <div className="d-category-dropdown" role="menu" aria-label="카테고리 전체 목록">
+                    {categoryRoots.length === 0 ? (
+                      <p className="d-category-empty">표시할 카테고리가 없습니다.</p>
+                    ) : (
+                      <ul className="d-category-root-list">
+                        {categoryRoots.map((root) => (
+                          <li key={root.slug} className="d-category-root-item">
+                            <Link className="d-category-root-link" to={`/products?categorySlug=${root.slug}`}>
+                              {root.name}
+                            </Link>
+                            {root.children.length > 0 ? (
+                              <ul className="d-category-child-list">
+                                {root.children.map((child) => (
+                                  <li key={child.slug}>
+                                    <Link className="d-category-child-link" to={`/products?categorySlug=${child.slug}`}>
+                                      {child.name}
+                                    </Link>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <Link key={item.to} className={`d-nav-link ${active ? 'is-active' : ''}`} to={item.to} aria-current={active ? 'page' : undefined}>
                 {item.label}
@@ -42,8 +104,8 @@ export function DesktopHeader() {
         </nav>
 
         <div className="d-header-actions">
-          <Link className="button button-secondary d-header-button" to="/products?sort=latest">
-            신상품 보기
+          <Link className="button button-secondary d-header-button" to="/orders">
+            주문조회
           </Link>
         </div>
       </div>

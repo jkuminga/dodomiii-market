@@ -230,9 +230,9 @@ function HomePage() {
           <img className="hero-landing-bg" src={logoMain} alt="" />
           <div className="hero-landing-gradient" />
           <div className="hero-landing-grain" />
-          <div className="hero-landing-stamp">
+          {/* <div className="hero-landing-stamp">
             <img className="hero-logo-image" src={logoMain} alt="" />
-          </div>
+          </div> */}
         </div>
 
         <div className="hero-copy hero-copy-polished hero-copy-landing">

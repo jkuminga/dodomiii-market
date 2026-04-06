@@ -321,6 +321,10 @@ img {
   justify-content: center;
 }
 
+.d-nav-item {
+  position: relative;
+}
+
 .d-nav-link {
   display: inline-flex;
   align-items: center;
@@ -343,6 +347,106 @@ img {
 
 .d-nav-link.is-active {
   border-color: rgb(var(--primary-rgb) / 0.22);
+  background: rgb(var(--primary-rgb) / 0.12);
+  color: var(--primary-deep);
+}
+
+.d-nav-item.has-dropdown .d-category-dropdown {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+.d-nav-item.has-dropdown::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 14px;
+}
+
+.d-nav-item.has-dropdown:hover .d-category-dropdown,
+.d-nav-item.has-dropdown:focus-within .d-category-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.d-category-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(460px, 70vw);
+  max-height: 420px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid rgb(var(--primary-rgb) / 0.16);
+  background: rgb(var(--surface-cream-rgb) / 0.98);
+  box-shadow: 0 20px 38px rgba(41, 72, 53, 0.16);
+  transition: opacity 160ms ease, visibility 160ms ease, transform 180ms ease;
+  z-index: 70;
+}
+
+.d-category-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  padding: 8px 10px;
+}
+
+.d-category-root-list,
+.d-category-child-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.d-category-root-list {
+  display: grid;
+  gap: 8px;
+}
+
+.d-category-root-item {
+  border-radius: 12px;
+  border: 1px solid rgb(var(--primary-rgb) / 0.12);
+  background: rgb(var(--surface-warm-rgb) / 0.84);
+  padding: 6px;
+}
+
+.d-category-root-link,
+.d-category-child-link {
+  display: block;
+  border-radius: 9px;
+  color: var(--text);
+}
+
+.d-category-root-link {
+  padding: 8px 10px;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.d-category-child-list {
+  display: grid;
+  gap: 4px;
+  padding: 2px 0 2px 6px;
+}
+
+.d-category-child-link {
+  padding: 7px 10px;
+  font-size: 0.81rem;
+  color: var(--muted);
+}
+
+.d-category-root-link:hover,
+.d-category-root-link:focus-visible,
+.d-category-child-link:hover,
+.d-category-child-link:focus-visible {
   background: rgb(var(--primary-rgb) / 0.12);
   color: var(--primary-deep);
 }
