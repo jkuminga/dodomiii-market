@@ -51,6 +51,56 @@ body {
   letter-spacing: -0.01em;
 }
 
+@media (pointer: fine) {
+  html.custom-cursor-enabled,
+  html.custom-cursor-enabled body,
+  html.custom-cursor-enabled a,
+  html.custom-cursor-enabled button,
+  html.custom-cursor-enabled input,
+  html.custom-cursor-enabled textarea,
+  html.custom-cursor-enabled select,
+  html.custom-cursor-enabled [role='button'],
+  html.custom-cursor-enabled [data-cursor='pointer'] {
+    cursor: none !important;
+  }
+}
+
+.animated-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 150px;
+  height: 100px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-20px, -18px) scale(0.94);
+  transform-origin: center center;
+  transition:
+    opacity 120ms ease,
+    transform 180ms ease;
+  will-change: transform, opacity, left, top;
+}
+
+.animated-cursor.is-visible {
+  opacity: 0.95;
+  transform: translate(-20px, -18px) scale(1);
+}
+
+.animated-cursor.is-interactive {
+  transform: translate(-20px, -18px) scale(1.08);
+}
+
+.animated-cursor.is-pressed {
+  transform: translate(-20px, -18px) scale(0.96);
+}
+
+.animated-cursor-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 body,
 button,
 input,

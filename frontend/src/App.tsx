@@ -5,6 +5,7 @@ import logoMain from './assets/images/logo_main3.jpg';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { BottomNav } from './components/mobile/BottomNav';
 import { MobileHeader } from './components/mobile/MobileHeader';
+import { AnimatedCursor } from './components/store/AnimatedCursor';
 import { DesktopHeader } from './components/store/DesktopHeader';
 import { ProductArtwork } from './components/store/ProductArtwork';
 import { apiClient, CategoryTreeNode, ProductListItem, StoreHomePopup } from './lib/api';
@@ -473,6 +474,7 @@ function AppFrame() {
       </Routes>
 
       {isAdminRoute || isDesktopStoreRoute ? null : <BottomNav />}
+      <AnimatedCursor enabled={!isAdminRoute} />
     </div>
   );
 }
