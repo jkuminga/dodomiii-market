@@ -70,7 +70,9 @@ export class AdminMediaService {
     }
 
     const timestamp = Math.floor(Date.now() / 1000);
-    const folder = `${baseFolder.replace(/\/+$/g, '')}/${policy.folder}`;
+    const normalizedSuffix = this.normalizeFolderSuffix(dto.folderSuffix);
+    const folderBase = `${baseFolder.replace(/\/+$/g, '')}/${policy.folder}`;
+    const folder = normalizedSuffix ? `${folderBase}/${normalizedSuffix}` : folderBase;
     const publicId = `${dto.usage.toLowerCase()}-${randomUUID()}`;
 
     const paramsToSign = this.buildSignSource({
@@ -141,5 +143,21 @@ export class AdminMediaService {
 
   private sign(value: string, secret: string): string {
     return createHash('sha1').update(`${value}${secret}`).digest('hex');
+  }
+
+  private normalizeFolderSuffix(folderSuffix?: string): string | null {
+    if (!folderSuffix) {
+      return null;
+    }
+
+    const normalized = folderSuffix
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80);
+
+    return normalized || null;
   }
 }

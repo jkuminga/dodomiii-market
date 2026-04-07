@@ -19,6 +19,11 @@ export class AdminMediaSignUploadDto {
   contentType?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  folderSuffix?: string;
+
+  @IsOptional()
   @IsInt()
   @Min(1)
   @Max(20 * 1024 * 1024)

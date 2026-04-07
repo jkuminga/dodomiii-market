@@ -143,7 +143,20 @@ export function ProductDetailPage() {
 
     return left.sortOrder - right.sortOrder;
   });
-  const activeImage = orderedImages[selectedImageIndex] ?? orderedImages[0];
+  const thumbnailImages = orderedImages.filter((image) => image.imageType === 'THUMBNAIL');
+  const detailImages = orderedImages.filter((image) => image.imageType === 'DETAIL');
+  const activeImage = thumbnailImages[selectedImageIndex] ?? thumbnailImages[0] ?? orderedImages[0];
+  const selectedThumbnailIndex =
+    thumbnailImages.length === 0 ? 0 : Math.min(selectedImageIndex, Math.max(thumbnailImages.length - 1, 0));
+
+  const handleSelectImage = (nextIndex: number) => {
+    if (thumbnailImages.length === 0) {
+      return;
+    }
+
+    const normalizedIndex = ((nextIndex % thumbnailImages.length) + thumbnailImages.length) % thumbnailImages.length;
+    setSelectedImageIndex(normalizedIndex);
+  };
 
   const orderParams = new URLSearchParams();
   const selectedOptionIdSet = new Set(
@@ -180,20 +193,49 @@ export function ProductDetailPage() {
               <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`}>{product.isSoldOut ? '품절' : '판매 중'}</span>
               {product.consultationRequired ? <span className="status-pill">상담 필요</span> : null}
             </div>
+
+            {thumbnailImages.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  className="detail-carousel-nav is-prev"
+                  onClick={() => handleSelectImage(selectedThumbnailIndex - 1)}
+                  aria-label="이전 이미지"
+                >
+                  <span aria-hidden="true">‹</span>
+                </button>
+                <button
+                  type="button"
+                  className="detail-carousel-nav is-next"
+                  onClick={() => handleSelectImage(selectedThumbnailIndex + 1)}
+                  aria-label="다음 이미지"
+                >
+                  <span aria-hidden="true">›</span>
+                </button>
+              </>
+            ) : null}
           </div>
 
-          {orderedImages.length > 1 ? (
+          {thumbnailImages.length > 1 ? (
             <div className="detail-thumb-row" aria-label="상품 이미지 선택">
-              {orderedImages.map((image, index) => (
+              {thumbnailImages.map((image, index) => (
                 <button
                   key={image.id}
-                  className={`detail-thumb ${index === selectedImageIndex ? 'is-active' : ''}`}
+                  className={`detail-thumb ${index === selectedThumbnailIndex ? 'is-active' : ''}`}
                   type="button"
-                  onClick={() => setSelectedImageIndex(index)}
+                  onClick={() => handleSelectImage(index)}
                   aria-label={`${index + 1}번 이미지 보기`}
                 >
                   <ProductArtwork src={image.imageUrl} name={product.name} category={product.categoryName} />
                 </button>
+              ))}
+            </div>
+          ) : null}
+
+          {thumbnailImages.length > 1 ? (
+            <div className="detail-carousel-indicators" aria-hidden="true">
+              {thumbnailImages.map((image, index) => (
+                <span key={image.id} className={`detail-carousel-dot ${index === selectedThumbnailIndex ? 'is-active' : ''}`} />
               ))}
             </div>
           ) : null}
@@ -361,6 +403,19 @@ export function ProductDetailPage() {
           {activeTab === 'story' ? (
             <div className="policy-copy">
               <p>{product.description ?? '상품 상세 설명이 아직 등록되지 않았습니다.'}</p>
+              {detailImages.length > 0 ? (
+                <div className="detail-story-images" aria-label="상품 상세 이미지">
+                  {detailImages.map((image, index) => (
+                    <div className="detail-story-image-frame" key={image.id}>
+                      <ProductArtwork
+                        src={image.imageUrl}
+                        name={`${product.name} 상세 이미지 ${index + 1}`}
+                        category={product.categoryName}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : null}
 

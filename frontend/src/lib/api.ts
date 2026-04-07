@@ -255,6 +255,7 @@ export type AdminMediaSignUploadPayload = {
   usage: AdminMediaUsage;
   fileName?: string;
   contentType?: string;
+  folderSuffix?: string;
   size?: number;
 };
 
