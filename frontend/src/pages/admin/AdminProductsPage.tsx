@@ -28,6 +28,7 @@ export function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [togglingSoldOutId, setTogglingSoldOutId] = useState<number | null>(null);
 
   const categoryIdParam = searchParams.get('categoryId') ?? '';
   const q = searchParams.get('q') ?? '';
@@ -132,6 +133,24 @@ export function AdminProductsPage() {
     }
   };
 
+  const onToggleSoldOut = async (product: AdminProductListItem) => {
+    const nextIsSoldOut = !product.isSoldOut;
+    const nextLabel = nextIsSoldOut ? '품절' : '판매중';
+
+    setTogglingSoldOutId(product.id);
+    setError('');
+
+    try {
+      await apiClient.updateAdminProduct(product.id, { isSoldOut: nextIsSoldOut });
+      setProducts((current) => current.map((item) => (item.id === product.id ? { ...item, isSoldOut: nextIsSoldOut } : item)));
+      showToast(`'${product.name}' 상태를 ${nextLabel}으로 변경했습니다.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : '상품 상태 변경에 실패했습니다.');
+    } finally {
+      setTogglingSoldOutId(null);
+    }
+  };
+
   return (
     <section className="admin-section">
       <section className="surface-hero compact-hero admin-hero-card">
@@ -142,17 +161,17 @@ export function AdminProductsPage() {
 
         <div className="admin-stat-grid">
           <div className="admin-stat-card">
-            <span>검색 결과</span>
+            <span>상품 수</span>
             <strong>{meta.totalItems}</strong>
           </div>
-          <div className="admin-stat-card">
+          {/* <div className="admin-stat-card">
             <span>현재 페이지</span>
             <strong>{meta.page}</strong>
           </div>
           <div className="admin-stat-card">
             <span>총 페이지</span>
             <strong>{meta.totalPages || 1}</strong>
-          </div>
+          </div> */}
         </div>
       </section>
 
@@ -162,9 +181,6 @@ export function AdminProductsPage() {
             <p className="section-kicker">Filters</p>
             <h3 className="section-subtitle">상품 조회 조건</h3>
           </div>
-          <Link className="button" to="/admin/products/new">
-            상품 등록
-          </Link>
         </div>
 
         <div className="admin-field-grid">
@@ -218,7 +234,10 @@ export function AdminProductsPage() {
             <p className="section-kicker">List</p>
             <h3 className="section-subtitle">상품 목록</h3>
           </div>
-          <span className="admin-inline-note">{meta.totalItems}건</span>
+          {/* <span className="admin-inline-note">{meta.totalItems}건</span> */}
+          <Link className="button" to="/admin/products/new">
+            +
+          </Link>
         </div>
 
         {loading ? <LoadingScreen mode="inline" title="상품 목록 로딩 중" message="상품 목록을 불러오고 있습니다." /> : null}
@@ -240,42 +259,64 @@ export function AdminProductsPage() {
             <div className="admin-list-grid">
               {products.map((product) => (
                 <article className="admin-list-card admin-product-list-card" key={product.id}>
-                  <div className="admin-list-card-head">
-                    <div>
-                      <strong>{product.name}</strong>
-                      <p>{getAdminCategoryLabel(product.categoryId, categories)}</p>
+                  <div className="admin-product-list-thumbnail">
+                    {product.thumbnailImageUrl ? (
+                      <img src={product.thumbnailImageUrl} alt={`${product.name} 썸네일`} loading="lazy" />
+                    ) : (
+                      <span>THUMB 0</span>
+                    )}
+                  </div>
+
+                  <div className="admin-product-list-content">
+                    <div className="admin-list-card-head">
+                      <div>
+                        <strong>{product.name}</strong>
+                        <p>{getAdminCategoryLabel(product.categoryId, categories)}</p>
+                      </div>
+                      <div className="admin-pill-row">
+                        <span className={`status-pill ${product.isVisible ? '' : 'is-muted'}`}>{product.isVisible ? '노출' : '숨김'}</span>
+                        <div className="admin-status-toggle-wrap">
+                          <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`}>{product.isSoldOut ? '품절' : '판매중'}</span>
+                          <button
+                            className="admin-status-toggle-pill"
+                            type="button"
+                            disabled={togglingSoldOutId === product.id}
+                            onClick={() => void onToggleSoldOut(product)}
+                            aria-label={`${product.name} 상태를 ${product.isSoldOut ? '판매중' : '품절'}으로 변경`}
+                          >
+                            {togglingSoldOutId === product.id ? '변경 중...' : product.isSoldOut ? '판매 중' : '품절'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="admin-pill-row">
-                      <span className={`status-pill ${product.isVisible ? '' : 'is-muted'}`}>{product.isVisible ? '노출' : '숨김'}</span>
-                      <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`}>{product.isSoldOut ? '품절' : '판매중'}</span>
+
+                    <div className="admin-product-summary">
+                      <span>{formatCurrency(product.basePrice)}</span>
+                      <span>{product.stockQuantity === null ? '재고 추적 안 함' : `재고 ${product.stockQuantity}개`}</span>
+                    </div>
+
+                    <div className="inline-actions">
+                      <Link className="button button-secondary" to={`/admin/products/${product.id}`}>
+                        상세/수정
+                      </Link>
+                      <button
+                        className="button button-ghost"
+                        type="button"
+                        onClick={() => void onDelete(product)}
+                        disabled={deletingId === product.id}
+                      >
+                        {deletingId === product.id ? '삭제 중...' : '삭제'}
+                      </button>
                     </div>
                   </div>
 
-                  <div className="admin-product-summary">
-                    <span>{formatCurrency(product.basePrice)}</span>
-                    <span>{product.stockQuantity === null ? '재고 추적 안 함' : `재고 ${product.stockQuantity}개`}</span>
-                  </div>
-
-                  <div className="admin-meta-row">
+                  {/* <div className="admin-meta-row">
                     <span>{product.slug}</span>
                     <span>{product.consultationRequired ? '상담 필요' : '일반 주문'}</span>
-                  </div>
+                  </div> */}
 
-                  <small>수정 {formatAdminDateTime(product.updatedAt)}</small>
+                  {/* <small>수정 {formatAdminDateTime(product.updatedAt)}</small> */}
 
-                  <div className="inline-actions">
-                    <Link className="button button-secondary" to={`/admin/products/${product.id}`}>
-                      상세/수정
-                    </Link>
-                    <button
-                      className="button button-ghost"
-                      type="button"
-                      onClick={() => void onDelete(product)}
-                      disabled={deletingId === product.id}
-                    >
-                      {deletingId === product.id ? '삭제 중...' : '삭제'}
-                    </button>
-                  </div>
                 </article>
               ))}
             </div>

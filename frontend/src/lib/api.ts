@@ -198,6 +198,7 @@ export type AdminProductListItem = {
   isSoldOut: boolean;
   consultationRequired: boolean;
   stockQuantity: number | null;
+  thumbnailImageUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
