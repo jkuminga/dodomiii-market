@@ -753,6 +753,11 @@ export function AdminProductEditorPage() {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (!hasUnsavedChanges || submitting || deleting) {
+      return;
+    }
+
     setSubmitSuccess(false);
     setSubmitting(true);
     setError('');
@@ -936,7 +941,7 @@ export function AdminProductEditorPage() {
           <AdminFloatingSubmitButton
             busy={submitting}
             busyLabel="저장 중..."
-            disabled={submitting || deleting}
+            disabled={submitting || deleting || !hasUnsavedChanges}
             label={isCreateMode ? '상품 생성' : '상품 저장'}
             success={submitSuccess}
           />
@@ -1066,12 +1071,14 @@ export function AdminProductEditorPage() {
               </label>
             </div>
           </section>
+          <br/>
 
           <section className="admin-form-section">
             <div className="admin-section-head">
               <div>
                 <p className="section-kicker">Images</p>
                 <h3 className="section-subtitle">이미지</h3>
+                <span style={{fontSize:"12px"}}>※ 드래그로 출력 순서 변경</span>
               </div>
               <div className="inline-actions">
                 {!isCreateMode ? (
@@ -1300,12 +1307,14 @@ export function AdminProductEditorPage() {
               </div>
             )}
           </section>
+          <br/>
 
           <section className="admin-form-section">
             <div className="admin-section-head">
               <div>
                 <p className="section-kicker">Options</p>
                 <h3 className="section-subtitle">옵션</h3>
+                <span style={{fontSize:"12px"}}>※ 드래그로 출력 순서 변경</span>
               </div>
               <div className="inline-actions">
                 {!isCreateMode ? (
@@ -1406,7 +1415,7 @@ export function AdminProductEditorPage() {
                   const extraPrice = Number(option.extraPrice || '0');
                   const extraPriceLabel = Number.isFinite(extraPrice)
                     ? extraPrice === 0
-                      ? '추가 금액 없음'
+                      ? '추가 금액 x'
                       : `${extraPrice > 0 ? '+' : ''}${formatCurrency(extraPrice)}`
                     : '금액 확인 필요';
 
@@ -1437,16 +1446,16 @@ export function AdminProductEditorPage() {
                             <div className="admin-list-card-head">
                               <div>
                                 <strong>
-                                  {index + 1}. {option.optionGroupName.trim() || '옵션 그룹 미입력'}
+                                  {index + 1}. {option.optionGroupName.trim() || '옵션 그룹 미입력'} |   {option.optionValue.trim() || '옵션 값 미입력'}
                                 </strong>
-                                <p>{option.optionValue.trim() || '옵션 값 미입력'}</p>
+                                {/* <p>{option.optionValue.trim() || '옵션 값 미입력'}</p> */}
                               </div>
-                              <span className={`status-pill ${option.isActive ? '' : 'is-muted'}`}>{option.isActive ? '활성' : '비활성'}</span>
                             </div>
-                            <div className="admin-product-summary">
-                              <span>{extraPriceLabel}</span>
-                              <span>정렬 {option.sortOrder || '-'}</span>
-                              <span>드래그로 순서 변경</span>
+                            <div className="admin-product-summary" style={{marginTop: "5px"}}>
+                              <span className={`status-pill ${option.isActive ? '' : 'is-muted'}`} style={{marginRight : "10px"}}>{option.isActive ? '활성' : '비활성'}</span>
+                              <span style={{marginTop: "6px"}}>{extraPriceLabel}</span>
+                              {/* <span>정렬 {option.sortOrder || '-'}</span>
+                              <span>드래그로 순서 변경</span> */}
                             </div>
                           </div>
                         </button>
@@ -1515,7 +1524,7 @@ export function AdminProductEditorPage() {
                                 checked={option.isActive}
                                 onChange={(event) => replaceOption(option.key, { isActive: event.target.checked })}
                               />
-                              <span>활성 옵션</span>
+                              <span>옵션 활성화</span>
                             </label>
                           </div>
                         </div>
@@ -1534,7 +1543,7 @@ export function AdminProductEditorPage() {
           ) : null}
 
           <div className="inline-actions">
-            <button className="button" type="submit" disabled={submitting || deleting}>
+            <button className="button" type="submit" disabled={submitting || deleting || !hasUnsavedChanges}>
               {submitting ? '저장 중...' : isCreateMode ? '상품 생성' : '저장'}
             </button>
             {!isCreateMode ? (
@@ -1551,7 +1560,14 @@ export function AdminProductEditorPage() {
               <p className="section-kicker">Summary</p>
               <h3 className="section-subtitle">상품 요약</h3>
             </div>
-            {!isCreateMode && product ? <span className="admin-inline-note">ID {product.id}</span> : null}
+            {!isCreateMode && product ? <span className="status-pill">ID {product.id}</span> : null}
+          </div>
+
+          <div className="admin-pill-row">
+            <span className={`status-pill ${form.isVisible ? '' : 'is-muted'}`}>{form.isVisible ? '노출' : '숨김'}</span>
+            <span className={`status-pill ${form.isSoldOut ? 'is-muted' : ''}`}>{form.isSoldOut ? '품절' : '판매중'}</span>
+            <span className={`status-pill ${form.consultationRequired ? '' : 'is-muted'}`}>{form.consultationRequired ? '상담 필요' : '일반 주문'}</span>
+            {product?.deletedAt ? <span className="status-pill is-muted">삭제됨</span> : null}
           </div>
 
           <div className="admin-summary-grid">
@@ -1567,41 +1583,35 @@ export function AdminProductEditorPage() {
               <span>재고</span>
               <strong>{form.stockQuantity ? `${form.stockQuantity}개` : '재고 추적 안 함'}</strong>
             </div>
-            <div className="admin-summary-item">
+            {/* <div className="admin-summary-item">
               <span>변경 상태</span>
               <strong>{hasUnsavedChanges ? '저장 필요' : '최신 상태'}</strong>
-            </div>
+            </div> */}
           </div>
 
-          <div className="admin-pill-row">
-            <span className={`status-pill ${form.isVisible ? '' : 'is-muted'}`}>{form.isVisible ? '노출' : '숨김'}</span>
-            <span className={`status-pill ${form.isSoldOut ? 'is-muted' : ''}`}>{form.isSoldOut ? '품절' : '판매중'}</span>
-            <span className={`status-pill ${form.consultationRequired ? '' : 'is-muted'}`}>{form.consultationRequired ? '상담 필요' : '일반 주문'}</span>
-            {product?.deletedAt ? <span className="status-pill is-muted">삭제됨</span> : null}
-          </div>
 
           {product ? (
             <>
               <div className="admin-summary-grid">
                 <div className="admin-summary-item">
-                  <span>생성 일시</span>
+                  <span>최초 생성</span>
                   <strong>{formatAdminDateTime(product.createdAt)}</strong>
                 </div>
                 <div className="admin-summary-item">
-                  <span>수정 일시</span>
+                  <span>마지막 수정</span>
                   <strong>{formatAdminDateTime(product.updatedAt)}</strong>
                 </div>
               </div>
 
               <section className="admin-subcard">
-                <p className="section-kicker">Operations</p>
+                <p className="section-kicker">운영 지표</p>
                 <div className="admin-summary-grid">
                   <div className="admin-summary-item">
                     <span>카테고리 슬러그</span>
                     <strong>{product.category.slug}</strong>
                   </div>
                   <div className="admin-summary-item">
-                    <span>주문 반영 수</span>
+                    <span>주문된 횟수</span>
                     <strong>{product.orderItemCount}건</strong>
                   </div>
                   <div className="admin-summary-item">
@@ -1616,15 +1626,15 @@ export function AdminProductEditorPage() {
           )}
 
           <section className="admin-subcard">
-            <p className="section-kicker">Draft Snapshot</p>
+            <p className="section-kicker">저장 전 미리보기</p>
             <div className="admin-summary-grid">
               <div className="admin-summary-item">
                 <span>이미지</span>
-                <strong>{configuredImageCount}개 준비됨</strong>
+                <strong>{configuredImageCount}개 </strong>
               </div>
               <div className="admin-summary-item">
                 <span>옵션</span>
-                <strong>{configuredOptionCount}개 구성됨</strong>
+                <strong>{configuredOptionCount}개</strong>
               </div>
               <div className="admin-summary-item">
                 <span>활성 옵션</span>
