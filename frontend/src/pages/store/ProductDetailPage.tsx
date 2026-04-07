@@ -407,10 +407,11 @@ export function ProductDetailPage() {
                 <div className="detail-story-images" aria-label="상품 상세 이미지">
                   {detailImages.map((image, index) => (
                     <div className="detail-story-image-frame" key={image.id}>
-                      <ProductArtwork
+                      <img
+                        className="detail-story-original-image"
                         src={image.imageUrl}
-                        name={`${product.name} 상세 이미지 ${index + 1}`}
-                        category={product.categoryName}
+                        alt={`${product.name} 상세 이미지 ${index + 1}`}
+                        loading="lazy"
                       />
                     </div>
                   ))}

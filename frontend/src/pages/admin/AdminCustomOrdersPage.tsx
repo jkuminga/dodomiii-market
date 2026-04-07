@@ -745,9 +745,18 @@ export function AdminCustomOrdersPage() {
                 </div>
               </div>
 
-              <label className="field">
+              <label className="field custom-link-url-field">
                 <span>커스텀 주문 URL</span>
-                <input value={detail.checkoutUrl} readOnly />
+                <div className="custom-link-url-row">
+                  <input value={detail.checkoutUrl} readOnly />
+                  <button
+                    className="button button-secondary"
+                    type="button"
+                    onClick={() => void handleCopy(detail.checkoutUrl, '커스텀 주문 URL을 복사했습니다.')}
+                  >
+                    복사
+                  </button>
+                </div>
               </label>
 
               {selectedRecentLink?.note?.trim() ? (
