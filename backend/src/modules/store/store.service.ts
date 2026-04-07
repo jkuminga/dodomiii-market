@@ -391,7 +391,10 @@ export class StoreService {
         };
       }
 
-      where.categoryId = category.id;
+      const categoryIds = await this.collectVisibleDescendantCategoryIds(category.id);
+      where.categoryId = {
+        in: categoryIds.map((id) => BigInt(id)),
+      };
     }
 
     const orderBy: Prisma.ProductOrderByWithRelationInput[] =
@@ -551,6 +554,52 @@ export class StoreService {
         };
       },
     );
+  }
+
+  private async collectVisibleDescendantCategoryIds(rootCategoryId: bigint): Promise<number[]> {
+    const visibleCategories = await this.prisma.category.findMany({
+      where: { isVisible: true },
+      select: {
+        id: true,
+        parentId: true,
+      },
+    });
+
+    const childMap = new Map<string, bigint[]>();
+    for (const category of visibleCategories) {
+      if (!category.parentId) {
+        continue;
+      }
+
+      const parentKey = category.parentId.toString();
+      const siblings = childMap.get(parentKey) ?? [];
+      siblings.push(category.id);
+      childMap.set(parentKey, siblings);
+    }
+
+    const queue: bigint[] = [rootCategoryId];
+    const visited = new Set<string>();
+    const collected: number[] = [];
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      if (!current) {
+        continue;
+      }
+
+      const currentKey = current.toString();
+      if (visited.has(currentKey)) {
+        continue;
+      }
+      visited.add(currentKey);
+      collected.push(Number(current));
+
+      for (const childId of childMap.get(currentKey) ?? []) {
+        queue.push(childId);
+      }
+    }
+
+    return collected;
   }
 
   async createOrder(dto: CreateOrderDto) {

@@ -238,9 +238,9 @@ function HomePage() {
 
         <div className="hero-copy hero-copy-polished hero-copy-landing">
           <p className="hero-badge">DODOMII MARKET</p>
-          <h1 className="section-title hero-title">꽃다발처럼 남는 선물, 오늘 바로 고르는 홈</h1>
+          <h1 className="section-title hero-title">DODOMIIII MARKET</h1>
           <p className="section-copy hero-summary">
-            레트로 무드의 메인 비주얼 위에서 뜨개 꽃다발과 모루 오브제를 빠르게 탐색하고 주문까지 이어지는 첫 화면입니다.
+            시들지 않는 마음을 선물하세요
           </p>
           <div className="hero-actions">
             <Link className="button" to="/products">
