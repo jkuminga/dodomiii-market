@@ -1,6 +1,7 @@
 import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 
+import { AdminFloatingSubmitButton } from '../../components/admin/AdminFloatingSubmitButton';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
 import {
   apiClient,
@@ -48,6 +49,8 @@ type ProductFormState = {
   images: ProductImageDraft[];
   options: ProductOptionDraft[];
 };
+
+const FLOATING_SUBMIT_SUCCESS_MS = 700;
 
 let draftSequence = 0;
 
@@ -328,6 +331,7 @@ export function AdminProductEditorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [expandedImageKey, setExpandedImageKey] = useState<string | null>(null);
   const [expandedOptionKey, setExpandedOptionKey] = useState<string | null>(null);
@@ -749,6 +753,7 @@ export function AdminProductEditorPage() {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setSubmitSuccess(false);
     setSubmitting(true);
     setError('');
 
@@ -758,6 +763,8 @@ export function AdminProductEditorPage() {
       if (isCreateMode) {
         const created = await apiClient.createAdminProduct(payload);
         showToast('상품을 생성했습니다.');
+        setSubmitSuccess(true);
+        await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
         navigate(`/admin/products/${created.id}`, { replace: true });
         return;
       }
@@ -768,11 +775,15 @@ export function AdminProductEditorPage() {
 
       await apiClient.updateAdminProduct(productId, payload);
       showToast('상품 정보를 저장했습니다.');
+      setSubmitSuccess(true);
+      await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
       await loadPage();
     } catch (caught) {
+      setSubmitSuccess(false);
       setError(caught instanceof Error ? caught.message : '상품 저장에 실패했습니다.');
     } finally {
       setSubmitting(false);
+      setSubmitSuccess(false);
     }
   };
 
@@ -922,6 +933,13 @@ export function AdminProductEditorPage() {
 
       <div className="admin-two-column admin-product-editor-grid">
         <form className="surface-card admin-card-stack admin-editor-card" onSubmit={onSubmit}>
+          <AdminFloatingSubmitButton
+            busy={submitting}
+            busyLabel="저장 중..."
+            disabled={submitting || deleting}
+            label={isCreateMode ? '상품 생성' : '상품 저장'}
+            success={submitSuccess}
+          />
           <div className="admin-section-head">
             <div>
               <p className="section-kicker">Editor</p>

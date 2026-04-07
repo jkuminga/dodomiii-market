@@ -1,6 +1,7 @@
 import { CSSProperties, DragEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
+import { AdminFloatingSubmitButton } from '../../components/admin/AdminFloatingSubmitButton';
 import { AdminRefreshButton } from '../../components/admin/AdminRefreshButton';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { apiClient, AdminCategoryItem, AdminCategoryPayload } from '../../lib/api';
@@ -11,6 +12,8 @@ import {
   formatAdminDateTime,
   sortAdminCategories,
 } from './adminUtils';
+
+const FLOATING_SUBMIT_SUCCESS_MS = 700;
 
 type CategoryFormState = {
   parentId: string;
@@ -87,6 +90,7 @@ export function AdminCategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [form, setForm] = useState<CategoryFormState>(createEmptyForm());
@@ -225,6 +229,7 @@ export function AdminCategoriesPage() {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setSubmitSuccess(false);
     setSubmitting(true);
     setError('');
 
@@ -234,20 +239,26 @@ export function AdminCategoriesPage() {
       if (selectedCategoryId === null) {
         const created = await apiClient.createAdminCategory(payload);
         showToast('카테고리를 생성했습니다.');
+        setSubmitSuccess(true);
+        await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
         await loadCategories();
         setSelectedCategoryId(created.id);
         setForm(formFromCategory(created));
       } else {
         const updated = await apiClient.updateAdminCategory(selectedCategoryId, payload);
         showToast('카테고리 정보를 저장했습니다.');
+        setSubmitSuccess(true);
+        await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
         await loadCategories();
         setSelectedCategoryId(updated.id);
         setForm(formFromCategory(updated));
       }
     } catch (caught) {
+      setSubmitSuccess(false);
       setError(caught instanceof Error ? caught.message : '카테고리 저장에 실패했습니다.');
     } finally {
       setSubmitting(false);
+      setSubmitSuccess(false);
     }
   };
 
@@ -400,7 +411,7 @@ export function AdminCategoriesPage() {
         <div className="admin-hero-copy">
           <p className="section-kicker">Categories</p>
           <h2 className="section-title admin-section-title">카테고리 관리</h2>
-          <p className="section-copy">목록 조회와 생성, 수정, 삭제를 한 화면에서 처리할 수 있도록 폼과 목록을 분리했습니다.</p>
+          {/* <p className="section-copy">목록 조회와 생성, 수정, 삭제를 한 화면에서 처리할 수 있도록 폼과 목록을 분리했습니다.</p> */}
         </div>
 
         <div className="admin-stat-grid">
@@ -413,11 +424,11 @@ export function AdminCategoriesPage() {
             <strong>{visibleCount}</strong>
           </div>
           <div className="admin-stat-card">
-            <span>비노출</span>
+            <span>숨김</span>
             <strong>{categories.length - visibleCount}</strong>
           </div>
           <div className="admin-stat-card">
-            <span>랜딩 노출</span>
+            <span>홈 화면 노출</span>
             <strong>{landingSelectedCount}/3</strong>
           </div>
         </div>
@@ -558,13 +569,20 @@ export function AdminCategoriesPage() {
         </section>
 
         <form className="surface-card admin-card-stack admin-editor-card" onSubmit={onSubmit}>
+          <AdminFloatingSubmitButton
+            busy={submitting}
+            busyLabel="저장 중..."
+            disabled={submitting}
+            label={selectedCategory ? '카테고리 저장' : '카테고리 생성'}
+            success={submitSuccess}
+          />
           <div className="admin-section-head">
             <div>
               <p className="section-kicker">{selectedCategory ? 'Edit' : 'Create'}</p>
               <h3 className="section-subtitle">{selectedCategory ? '카테고리 수정' : '카테고리 생성'}</h3>
             </div>
             {selectedCategory ? (
-              <span className="admin-inline-note">생성 {formatAdminDateTime(selectedCategory.createdAt)}</span>
+              <span className="admin-inline-note">생성 : {formatAdminDateTime(selectedCategory.createdAt)}</span>
             ) : null}
           </div>
 
@@ -626,7 +644,7 @@ export function AdminCategoriesPage() {
           </label>
 
           <label className="field">
-            <span>슬러그</span>
+            <span>영문명</span>
             <input
               value={form.slug}
               onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))}
@@ -667,7 +685,7 @@ export function AdminCategoriesPage() {
               checked={form.isOnLandingPage}
               onChange={(event) => setForm((current) => ({ ...current, isOnLandingPage: event.target.checked }))}
             />
-            <span>랜딩 페이지 카테고리 섹션에 노출 (최대 3개)</span>
+            <span>홈 화면 카테고리 섹션에 노출 (최대 3개)</span>
           </label>
 
           {error ? (

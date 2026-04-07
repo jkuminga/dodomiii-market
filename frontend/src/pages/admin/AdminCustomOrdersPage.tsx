@@ -1,12 +1,14 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 
+import { AdminFloatingSubmitButton } from '../../components/admin/AdminFloatingSubmitButton';
 import { AdminRefreshButton } from '../../components/admin/AdminRefreshButton';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { AdminCustomOrderLinkDetail, AdminCustomOrderLinkSummary, apiClient } from '../../lib/api';
 import { AdminLayoutContext, formatAdminDateTime, formatCurrency } from './adminUtils';
 
 const RECENT_CUSTOM_LINKS_LIMIT = 10;
+const FLOATING_SUBMIT_SUCCESS_MS = 700;
 
 type CustomOrderFormState = {
   finalTotalPrice: string;
@@ -117,6 +119,7 @@ export function AdminCustomOrdersPage() {
   const [latestCreatedLink, setLatestCreatedLink] = useState<RecentCustomOrderLink | null>(null);
   const [detail, setDetail] = useState<AdminCustomOrderLinkDetail | null>(null);
   const [creating, setCreating] = useState(false);
+  const [createSuccess, setCreateSuccess] = useState(false);
   const [recentLoading, setRecentLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [createError, setCreateError] = useState('');
@@ -273,6 +276,7 @@ export function AdminCustomOrdersPage() {
     }
 
     setCreating(true);
+    setCreateSuccess(false);
     setCreateError('');
 
     try {
@@ -300,10 +304,14 @@ export function AdminCustomOrdersPage() {
         shippingFee: current.shippingFee,
       }));
       showToast('커스텀 주문 링크를 생성했습니다.');
+      setCreateSuccess(true);
+      await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
     } catch (caught) {
+      setCreateSuccess(false);
       setCreateError(caught instanceof Error ? caught.message : '링크 생성에 실패했습니다.');
     } finally {
       setCreating(false);
+      setCreateSuccess(false);
     }
   };
 
@@ -360,6 +368,13 @@ export function AdminCustomOrdersPage() {
       <div className="admin-two-column custom-order-admin-grid">
         <div className="admin-card-stack">
           <form className="surface-card admin-card-stack" onSubmit={onCreate}>
+            <AdminFloatingSubmitButton
+              busy={creating}
+              busyLabel="생성 중..."
+              disabled={creating}
+              label="링크 생성"
+              success={createSuccess}
+            />
             <div className="admin-section-head">
               <div>
                 <p className="section-kicker">Create</p>

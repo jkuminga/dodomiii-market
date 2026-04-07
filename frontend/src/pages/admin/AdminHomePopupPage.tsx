@@ -1,6 +1,7 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
+import { AdminFloatingSubmitButton } from '../../components/admin/AdminFloatingSubmitButton';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { AdminHomePopup, apiClient } from '../../lib/api';
 import { AdminLayoutContext, formatAdminDateTime } from './adminUtils';
@@ -12,6 +13,8 @@ type PopupFormState = {
   linkUrl: string;
   isActive: boolean;
 };
+
+const FLOATING_SUBMIT_SUCCESS_MS = 700;
 
 function toFormState(popup: AdminHomePopup | null): PopupFormState {
   if (popup === null) {
@@ -51,6 +54,7 @@ export function AdminHomePopupPage() {
   const [form, setForm] = useState<PopupFormState>(toFormState(null));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -180,6 +184,7 @@ export function AdminHomePopupPage() {
     }
 
     setSaving(true);
+    setSaveSuccess(false);
     setError('');
 
     try {
@@ -194,10 +199,14 @@ export function AdminHomePopupPage() {
       setPopup(result);
       setForm(toFormState(result));
       showToast('홈 팝업을 저장했습니다.');
+      setSaveSuccess(true);
+      await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
     } catch (caught) {
+      setSaveSuccess(false);
       setError(caught instanceof Error ? caught.message : '홈 팝업 저장에 실패했습니다.');
     } finally {
       setSaving(false);
+      setSaveSuccess(false);
     }
   };
 
@@ -240,6 +249,13 @@ export function AdminHomePopupPage() {
       </section>
 
       <form className="admin-two-column admin-home-popup-layout" onSubmit={onSubmit} aria-busy={loading || saving || uploading}>
+        <AdminFloatingSubmitButton
+          busy={saving}
+          busyLabel="저장 중..."
+          disabled={saving || loading}
+          label="팝업 저장"
+          success={saveSuccess}
+        />
         <section className="surface-card admin-card-stack admin-home-popup-editor">
           <div className="admin-section-head">
             <div>
