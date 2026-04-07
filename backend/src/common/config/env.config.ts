@@ -47,5 +47,7 @@ export default () => ({
   SOLAPI_API_KEY: process.env.SOLAPI_API_KEY ?? '',
   SOLAPI_API_SECRET: process.env.SOLAPI_API_SECRET ?? '',
   SOLAPI_SENDER: process.env.SOLAPI_SENDER ?? '',
+  DB_KEEP_WARM_ENABLED: parseBoolean(process.env.DB_KEEP_WARM_ENABLED, true),
+  DB_KEEP_WARM_INTERVAL_MS: Number(process.env.DB_KEEP_WARM_INTERVAL_MS ?? 600000),
   LOG_LEVEL: process.env.LOG_LEVEL ?? 'info',
 });
