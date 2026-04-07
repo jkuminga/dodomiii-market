@@ -222,7 +222,7 @@ export function AdminHomePopupPage() {
   const selectedFileMeta =
     selectedFile !== null
       ? `${selectedFile.type || '형식 미확인'} · ${formatFileSize(selectedFile.size)}`
-      : '권장 이미지를 선택한 뒤 업로드하면 URL이 자동으로 입력됩니다.';
+      : '이미지 선택 후 업로드하면 URL이 자동으로 입력됩니다.';
 
   return (
     <section className="admin-section">
@@ -261,9 +261,9 @@ export function AdminHomePopupPage() {
             <div>
               <p className="section-kicker">Content</p>
               <h3 className="section-subtitle">팝업 노출 설정</h3>
-              <p className="section-copy section-copy-compact admin-home-popup-header-copy">
+              {/* <p className="section-copy section-copy-compact admin-home-popup-header-copy">
                 홈 진입 팝업의 노출 상태, 연결 링크, 이미지 자산을 한 번에 관리합니다.
-              </p>
+              </p> */}
             </div>
             <button className="button" type="submit" disabled={saving || loading}>
               {saving ? '저장 중...' : '저장'}
@@ -283,17 +283,14 @@ export function AdminHomePopupPage() {
                 <div className="admin-overview-chip">
                   <span>노출 상태</span>
                   <strong>{form.isActive ? '표시됨' : '숨김'}</strong>
-                  <small>{form.isActive ? '스토어 홈 진입 시 팝업이 열립니다.' : '저장 후에는 팝업이 노출되지 않습니다.'}</small>
                 </div>
                 <div className="admin-overview-chip">
                   <span>이미지 자산</span>
                   <strong>{trimmedImageUrl !== '' ? '연결 완료' : '입력 필요'}</strong>
-                  <small>{trimmedImageUrl !== '' ? '현재 미리보기에 즉시 반영됩니다.' : 'Cloudinary 업로드 또는 직접 URL 입력이 필요합니다.'}</small>
                 </div>
                 <div className="admin-overview-chip">
                   <span>링크 이동</span>
                   <strong>{trimmedLinkUrl !== '' ? '설정됨' : '미사용'}</strong>
-                  <small>{trimmedLinkUrl !== '' ? '클릭 시 새 창으로 이동합니다.' : '링크 없이 이미지 팝업만 노출됩니다.'}</small>
                 </div>
               </section>
 
@@ -301,7 +298,6 @@ export function AdminHomePopupPage() {
                 <div className="admin-panel-head">
                   <div>
                     <strong>기본 정보</strong>
-                    <p>운영 제목과 연결 링크, 노출 상태를 먼저 정리하면 저장 전 검토가 쉬워집니다.</p>
                   </div>
                 </div>
 
@@ -316,7 +312,7 @@ export function AdminHomePopupPage() {
                   </label>
 
                   <label className="field">
-                    <span>링크 URL (선택)</span>
+                    <span>링크 URL (선택 : 이미지 클릭 시 이동할 페이지 주소)</span>
                     <input
                       value={form.linkUrl}
                       onChange={(event) => updateField('linkUrl', event.target.value)}
@@ -333,27 +329,28 @@ export function AdminHomePopupPage() {
                       onChange={(event) => updateField('isActive', event.target.checked)}
                     />
                     <span>
-                      <strong>메인 홈 진입 시 팝업 노출</strong>
-                      <small>{form.isActive ? '현재 저장 시 스토어에서 바로 보이도록 설정됩니다.' : '현재 저장 시 팝업이 비노출 상태로 유지됩니다.'}</small>
+                      <strong>홈 화면에 팝업 활성화</strong>
+                      <small>{form.isActive ? '현재 홈 화면에 팝업이 노출됩니다.' : '현재 홈 화면에 팝업이 노출되지 않습니다.'}</small>
                     </span>
                   </label>
                 </div>
               </section>
+              <br/>
 
               <section className="admin-form-section">
                 <div className="admin-section-head">
                   <div>
                     <p className="section-kicker">Upload</p>
-                    <h4 className="section-subtitle">이미지 자산 업로드</h4>
+                    <h4 className="section-subtitle">팝업 이미지</h4>
                   </div>
-                  <div className="admin-inline-note">Cloudinary 업로드 후 이미지 URL이 자동 입력됩니다.</div>
+                  <div className="admin-inline-note">※ Cloudinary 업로드 클릭 시 이미지 URL이 자동 입력됨.</div>
                 </div>
 
                 <div className="admin-home-popup-upload-grid">
                   <label className={`admin-home-popup-file-picker${uploadReady ? ' is-selected' : ''}`} htmlFor="admin-home-popup-file">
                     <span className="admin-home-popup-file-picker-kicker">Image Asset</span>
                     <strong>{selectedFile ? selectedFile.name : '팝업 이미지를 선택하세요'}</strong>
-                    <p>JPG, PNG, WEBP 등 브라우저에서 업로드 가능한 이미지를 선택할 수 있습니다.</p>
+                    <p>JPG, PNG, WEBP 등 이미지 확장자 선택 가능</p>
                     <span className="admin-home-popup-file-picker-action">{selectedFile ? '다른 파일 선택' : '파일 고르기'}</span>
                   </label>
 
@@ -398,7 +395,7 @@ export function AdminHomePopupPage() {
                 </label>
 
                 <p className="admin-inline-note admin-home-popup-upload-help" id="admin-home-popup-upload-help">
-                  업로드 없이 직접 입력해도 됩니다. 저장 전에 오른쪽 미리보기에서 이미지를 꼭 확인하세요.
+                  ※ 업로드 없이 직접 입력도 가능. 저장 전에 아래 미리보기에서 이미지를 확인하세요.
                 </p>
               </section>
 

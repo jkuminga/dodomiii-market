@@ -127,6 +127,7 @@ export function AdminCustomOrdersPage() {
   const [detailError, setDetailError] = useState('');
   const [detailReloadKey, setDetailReloadKey] = useState(0);
   const [statusFilter, setStatusFilter] = useState<'all' | CustomOrderStatus>('all');
+  const [isTokenVisible, setIsTokenVisible] = useState(false);
 
   const loadRecentLinks = async () => {
     setRecentLoading(true);
@@ -212,6 +213,10 @@ export function AdminCustomOrdersPage() {
 
     detailCardRef.current?.focus();
   }, [detail, detailLoading]);
+
+  useEffect(() => {
+    setIsTokenVisible(false);
+  }, [detail?.linkId]);
 
   const totalRecentCount = recentLinks.length;
   const activeRecentCount = recentLinks.filter((item) => getCustomOrderStatus(item) === 'active').length;
@@ -338,24 +343,20 @@ export function AdminCustomOrdersPage() {
       <section className="surface-hero compact-hero admin-hero-card">
         <div className="admin-hero-copy">
           <p className="section-kicker">Custom Orders</p>
-          <h2 className="section-title admin-section-title">커스텀 주문 링크 운영</h2>
-          <p className="section-copy">
-            M09 계약 기준으로 금액, 배송비, 만료 시각, 운영 메모를 묶어 링크를 발급하고 사용 상태를 재조회할 수 있게
-            구성했습니다.
-          </p>
+          <h2 className="section-title admin-section-title">커스텀 주문</h2>
         </div>
 
           <div className="admin-stat-grid">
           <div className="admin-stat-card">
-            <span>최근 링크</span>
+            <span>최근에 생성된 링크</span>
             <strong>{totalRecentCount}</strong>
           </div>
           <div className="admin-stat-card">
-            <span>운영 중</span>
+            <span>대기 중</span>
             <strong>{activeRecentCount}</strong>
           </div>
           <div className="admin-stat-card">
-            <span>사용 완료</span>
+            <span>주문 완료</span>
             <strong>{usedRecentCount}</strong>
           </div>
           <div className="admin-stat-card">
@@ -378,7 +379,7 @@ export function AdminCustomOrdersPage() {
             <div className="admin-section-head">
               <div>
                 <p className="section-kicker">Create</p>
-                <h3 className="section-subtitle">새 링크 생성</h3>
+                <h3 className="section-subtitle">새 커스텀 주문 생성</h3>
               </div>
               <button
                 className="button button-ghost"
@@ -395,7 +396,7 @@ export function AdminCustomOrdersPage() {
 
             <div className="admin-field-grid">
               <label className="field">
-                <span>상품 협의 금액</span>
+                <span>상품 금액</span>
                 <input
                   type="number"
                   min="1"
@@ -426,7 +427,7 @@ export function AdminCustomOrdersPage() {
               </label>
 
               <label className="field admin-field-span-2">
-                <span>운영 메모</span>
+                <span>메모</span>
                 <textarea
                   value={form.note}
                   onChange={updateFormField('note')}
@@ -437,7 +438,7 @@ export function AdminCustomOrdersPage() {
 
             <section className="custom-order-estimate-card" aria-label="예상 결제 안내">
               <div className="custom-order-estimate-row">
-                <span>상품 협의 금액</span>
+                <span>상품 금액</span>
                 <strong>{formatCurrency(Number(form.finalTotalPrice) || 0)}</strong>
               </div>
               <div className="custom-order-estimate-row">
@@ -445,7 +446,7 @@ export function AdminCustomOrdersPage() {
                 <strong>{formatCurrency(Number(form.shippingFee) || 0)}</strong>
               </div>
               <div className="custom-order-estimate-row is-total">
-                <span>예상 결제 합계</span>
+                <span>결제 금액 합계</span>
                 <strong>{formatCurrency((Number(form.finalTotalPrice) || 0) + (Number(form.shippingFee) || 0))}</strong>
               </div>
             </section>
@@ -498,7 +499,7 @@ export function AdminCustomOrdersPage() {
             <div className="admin-section-head">
               <div>
                 <p className="section-kicker">List</p>
-                <h3 className="section-subtitle">생된 링크 목록</h3>
+                <h3 className="section-subtitle">생성된 링크 목록</h3>
               </div>
               <span className="admin-inline-note">※ 최신 {RECENT_CUSTOM_LINKS_LIMIT}건 출력</span>
             </div>
@@ -553,29 +554,50 @@ export function AdminCustomOrdersPage() {
             {!recentLoading && !recentError && filteredRecentLinks.length > 0 ? (
               <div className="custom-link-list">
                 {filteredRecentLinks.map((link) => {
-                   const status = getCustomOrderStatus(link);
+                  const status = getCustomOrderStatus(link);
 
                   return (
                     <article
                       className={`admin-list-card custom-link-list-card ${selectedLinkId === link.linkId ? 'is-selected' : ''}`}
                       key={link.linkId}
                     >
-                      <div className="admin-list-card-head">
-                        <div>
-                          <strong>링크 #{link.linkId}</strong>
+                      <div className="custom-link-card-top">
+                        <div className="custom-link-card-heading">
+                          <span className="section-kicker">Custom Link</span>
+                          <span>링크 #{link.linkId}</span>
                           <p>생성 {formatAdminDateTime(link.createdAt)}</p>
                         </div>
-                        <span className={`status-pill ${status === 'expired' ? 'is-muted' : ''}`}>
-                          {getCustomOrderStatusLabel(status)}
-                        </span>
+                        <div className="custom-link-card-status">
+                          <span className={`status-pill ${status === 'expired' ? 'is-muted' : ''}`}>
+                            {getCustomOrderStatusLabel(status)}
+                          </span>
+                          {selectedLinkId === link.linkId ? <small>선택됨</small> : null}
+                        </div>
                       </div>
 
-                      <div className="custom-link-list-grid">
-                        <span>상품 협의 금액 {formatCurrency(link.finalTotalPrice)}</span>
-                        <span>배송비 {formatCurrency(link.shippingFee)}</span>
-                        <span>만료 {formatAdminDateTime(link.expiresAt)}</span>
-                        <span>{link.note?.trim() ? link.note : '메모 없음'}</span>
+                      <div className="custom-link-card-metrics">
+                        <div className="custom-link-card-metric">
+                          <span>상품 협의 금액</span>
+                          <strong>{formatCurrency(link.finalTotalPrice)}</strong>
+                        </div>
+                        <div className="custom-link-card-metric">
+                          <span>배송비 포함 금액</span>
+                          <strong>{formatCurrency(link.shippingFee + link.finalTotalPrice)}</strong>
+                        </div>
                       </div>
+
+                      <div className="custom-link-card-meta">
+                        
+                        <div className="custom-link-card-note">
+                          <span>메모</span>
+                          <p>{link.note?.trim() ? link.note : '남겨진 메모가 없습니다.'}</p>
+                        </div>
+                      </div>
+
+                      <div className="custom-link-card-meta-row">
+                          <span>만료 시각</span>
+                          <strong>{formatAdminDateTime(link.expiresAt)}</strong>
+                        </div>
 
                       <div className="inline-actions custom-link-card-actions">
                         <button
@@ -610,7 +632,7 @@ export function AdminCustomOrdersPage() {
           <div className="admin-section-head">
             <div>
               <p className="section-kicker">Detail</p>
-              <h3 className="section-subtitle">링크 상세</h3>
+              <h3 className="section-subtitle">커스텀 주문 상세정보</h3>
             </div>
             <div className="inline-actions">
               <AdminRefreshButton onClick={refreshSelectedDetail} disabled={selectedLinkId === null || detailLoading} />
@@ -664,7 +686,50 @@ export function AdminCustomOrdersPage() {
               <div className="custom-link-detail-block">
                 <div className="custom-order-estimate-row">
                   <span>토큰</span>
-                  <strong>{detail.token}</strong>
+                  <strong className="custom-link-token-value">
+                    <span>{isTokenVisible ? detail.token : '클릭 시 표시'}</span>
+                    <button
+                      className="custom-link-token-toggle"
+                      type="button"
+                      onClick={() => setIsTokenVisible((current) => !current)}
+                      aria-label={isTokenVisible ? '토큰 숨기기' : '토큰 보기'}
+                      aria-pressed={isTokenVisible}
+                    >
+                      {isTokenVisible ? (
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path d="M3 3L21 21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                          <path
+                            d="M10.6 10.6C10.24 10.96 10 11.46 10 12C10 13.1 10.9 14 12 14C12.54 14 13.04 13.76 13.4 13.4"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M9.88 5.09A10.1 10.1 0 0 1 12 4.9c4.62 0 8.16 2.7 9.5 7.1a9.95 9.95 0 0 1-4.02 5.34"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M6.58 6.58A9.9 9.9 0 0 0 2.5 12c1.34 4.4 4.88 7.1 9.5 7.1 1.47 0 2.83-.27 4.05-.78"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M2.5 12C3.84 7.6 7.38 4.9 12 4.9C16.62 4.9 20.16 7.6 21.5 12C20.16 16.4 16.62 19.1 12 19.1C7.38 19.1 3.84 16.4 2.5 12Z"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                          />
+                          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+                        </svg>
+                      )}
+                    </button>
+                  </strong>
                 </div>
                 <div className="custom-order-estimate-row">
                   <span>생성 시각</span>
@@ -675,13 +740,13 @@ export function AdminCustomOrdersPage() {
                   <strong>{formatAdminDateTime(detail.expiresAt)}</strong>
                 </div>
                 <div className="custom-order-estimate-row">
-                  <span>사용 주문 ID</span>
-                  <strong>{detail.usedOrderId ?? '미사용'}</strong>
+                  <span>연결된 주문 ID</span>
+                  <strong>{detail.usedOrderId ?? '주문 미생성'}</strong>
                 </div>
               </div>
 
               <label className="field">
-                <span>체크아웃 URL</span>
+                <span>커스텀 주문 URL</span>
                 <input value={detail.checkoutUrl} readOnly />
               </label>
 
