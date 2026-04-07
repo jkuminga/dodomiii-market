@@ -276,7 +276,9 @@ export function AdminProductsPage() {
                       <div className="admin-pill-row">
                         <span className={`status-pill ${product.isVisible ? '' : 'is-muted'}`}>{product.isVisible ? '노출' : '숨김'}</span>
                         <div className="admin-status-toggle-wrap">
-                          <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`}>{product.isSoldOut ? '품절' : '판매중'}</span>
+                          <span className={`status-pill admin-status-display-pill ${product.isSoldOut ? 'is-muted' : ''}`}>
+                            {product.isSoldOut ? '품절' : '판매중'}
+                          </span>
                           <button
                             className="admin-status-toggle-pill"
                             type="button"
