@@ -4343,6 +4343,222 @@ button.admin-list-card {
   font-size: 0.82rem;
 }
 
+.admin-accounts-panel {
+  gap: 18px;
+}
+
+.admin-accounts-copy {
+  max-width: 48rem;
+  margin: 6px 0 0;
+}
+
+.admin-accounts-actions {
+  align-items: center;
+}
+
+.admin-accounts-table-shell {
+  display: none;
+}
+
+.admin-accounts-mobile-list {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-accounts-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.admin-accounts-table thead th {
+  padding: 14px 16px;
+  border-top: 1px solid rgb(var(--primary-rgb) / 0.12);
+  border-bottom: 1px solid rgb(var(--primary-rgb) / 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 249, 244, 0.98) 0%, rgba(255, 252, 249, 0.96) 100%);
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-accounts-table thead th:first-child {
+  border-top-left-radius: 18px;
+}
+
+.admin-accounts-table thead th:last-child {
+  border-top-right-radius: 18px;
+}
+
+.admin-accounts-table tbody td {
+  padding: 16px;
+  border-bottom: 1px solid rgb(var(--primary-rgb) / 0.08);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+
+.admin-accounts-table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: 18px;
+}
+
+.admin-accounts-table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: 18px;
+}
+
+.admin-accounts-table tbody tr:hover td {
+  background: rgba(255, 250, 246, 0.96);
+}
+
+.admin-accounts-table tbody td:nth-child(1) {
+  width: 14%;
+}
+
+.admin-accounts-table tbody td:nth-child(2) {
+  width: 11%;
+}
+
+.admin-accounts-table tbody td:nth-child(3),
+.admin-accounts-table tbody td:nth-child(4),
+.admin-accounts-table tbody td:nth-child(5) {
+  width: 8%;
+}
+
+.admin-accounts-table tbody td:nth-child(6) {
+  width: 12%;
+}
+
+.admin-accounts-table tbody td:nth-child(7) {
+  width: 14%;
+}
+
+.admin-accounts-table tbody td:nth-child(8) {
+  width: 23%;
+}
+
+.admin-accounts-name-cell,
+.admin-accounts-bank-cell,
+.admin-accounts-mobile-head {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.admin-accounts-name-cell strong,
+.admin-accounts-bank-cell strong,
+.admin-accounts-mobile-head strong {
+  font-size: 0.94rem;
+  line-height: 1.25;
+  letter-spacing: -0.012em;
+}
+
+.admin-accounts-name-cell span,
+.admin-accounts-bank-cell span,
+.admin-accounts-mobile-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.admin-accounts-inline-code {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(123, 103, 91, 0.08);
+  color: var(--primary-deep);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.admin-accounts-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.admin-accounts-badge.is-super {
+  background: rgba(91, 50, 26, 0.12);
+  color: var(--primary-deep);
+}
+
+.admin-accounts-badge.is-staff,
+.admin-accounts-badge.is-muted {
+  background: rgba(123, 103, 91, 0.08);
+  color: var(--muted);
+}
+
+.admin-accounts-badge.is-active {
+  background: rgba(65, 129, 87, 0.14);
+  color: #24573b;
+}
+
+.admin-accounts-badge.is-inactive {
+  background: rgba(150, 85, 74, 0.12);
+  color: #8a4a3f;
+}
+
+.admin-accounts-badge.is-primary {
+  background: rgba(184, 94, 65, 0.12);
+  color: var(--primary);
+}
+
+.admin-accounts-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.admin-accounts-row-actions .button {
+  min-height: 36px;
+  padding-inline: 14px;
+}
+
+.admin-accounts-mobile-card {
+  gap: 14px;
+}
+
+.admin-accounts-mobile-grid {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.admin-accounts-mobile-grid div {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-accounts-mobile-grid dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-accounts-mobile-grid dd {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
 .admin-meta-row {
   font-size: 0.8rem;
 }
@@ -4643,6 +4859,17 @@ button.admin-list-card {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+@media (min-width: 1100px) {
+  .admin-accounts-table-shell {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .admin-accounts-mobile-list {
+    display: none;
+  }
 }
 
 .admin-item-preview span {

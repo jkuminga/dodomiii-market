@@ -109,6 +109,38 @@ export type AdminSession = {
   isActive: boolean;
 };
 
+export type AdminAccount = {
+  adminId: number;
+  loginId: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  role: AdminRole;
+  isActive: boolean;
+  depositBankName: string | null;
+  depositAccountHolder: string | null;
+  depositAccountNumber: string | null;
+  isPrimaryDepositAccount: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminAccountCreatePayload = {
+  loginId: string;
+  password: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  role?: AdminRole;
+  isActive?: boolean;
+  depositBankName?: string | null;
+  depositAccountHolder?: string | null;
+  depositAccountNumber?: string | null;
+  isPrimaryDepositAccount?: boolean;
+};
+
+export type AdminAccountUpdatePayload = Partial<AdminAccountCreatePayload>;
+
 export type CategoryTreeNode = {
   id: number;
   parentId: number | null;
@@ -1008,6 +1040,25 @@ export const apiClient = {
     }),
 
   me: () => request<AdminSession>('/admin/auth/me'),
+
+  getAdminAccounts: () => request<{ items: AdminAccount[] }>('/admin/accounts'),
+
+  createAdminAccount: (payload: AdminAccountCreatePayload) =>
+    request<AdminAccount>('/admin/accounts', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  updateAdminAccount: (adminId: number, payload: AdminAccountUpdatePayload) =>
+    request<AdminAccount>(`/admin/accounts/${adminId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteAdminAccount: (adminId: number) =>
+    request<{ deleted: boolean }>(`/admin/accounts/${adminId}`, {
+      method: 'DELETE',
+    }),
 
   getCategories: () => request<{ items: CategoryTreeNode[] }>('/store/categories'),
 

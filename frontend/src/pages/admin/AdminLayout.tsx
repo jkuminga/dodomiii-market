@@ -14,6 +14,7 @@ type AdminNavItem = {
   description: string;
   icon: (props: AdminIconProps) => ReactNode;
   label: string;
+  superOnly?: boolean;
   to: string;
 };
 
@@ -33,6 +34,13 @@ const adminPrimaryNavItems: AdminNavItem[] = [
     description: '상품 등록, 수정, 판매 상태 운영',
     to: '/admin/products',
     icon: ProductIcon,
+  },
+  {
+    label: '관리자 계정 관리',
+    description: '운영 계정과 대표 입금계좌 설정',
+    to: '/admin/accounts',
+    icon: AdminAccountIcon,
+    superOnly: true,
   },
   {
     label: '홈 팝업',
@@ -99,6 +107,18 @@ function HomePopupIcon(props: AdminIconProps) {
       <path d="M8 9.5h8" />
       <path d="M8 13h5.5" />
       <path d="M15.5 6.5h1" />
+    </SidebarIcon>
+  );
+}
+
+function AdminAccountIcon(props: AdminIconProps) {
+  return (
+    <SidebarIcon {...props}>
+      <circle cx="9" cy="9" r="3" />
+      <path d="M4.5 18a4.5 4.5 0 0 1 9 0" />
+      <path d="M16 8.5h4" />
+      <path d="M18 6.5v4" />
+      <path d="M15.5 15.5h5" />
     </SidebarIcon>
   );
 }
@@ -403,7 +423,9 @@ export function AdminLayout() {
                 </div>
 
                 <div className="admin-nav-list">
-                  {adminPrimaryNavItems.map((item) => {
+                  {adminPrimaryNavItems
+                    .filter((item) => !item.superOnly || admin.role === 'SUPER')
+                    .map((item) => {
                     const Icon = item.icon;
 
                     return (

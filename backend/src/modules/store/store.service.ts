@@ -1131,7 +1131,7 @@ export class StoreService {
     },
   ): Promise<StoreCreatedOrderResponse> {
     const depositDeadlineAt = this.getDepositDeadlineAt(params.now);
-    const depositInfo = this.getDepositAccountInfo();
+    const depositInfo = await this.getDepositAccountInfo();
     const normalizedContactAddress = normalizeOrderContactAddress(params.contact);
 
     const order = await tx.order.create({
@@ -1217,7 +1217,35 @@ export class StoreService {
     return Number(this.configService.get<number>('ORDER_SHIPPING_FEE', 3000));
   }
 
-  private getDepositAccountInfo(): DepositAccountInfo {
+  private async getDepositAccountInfo(): Promise<DepositAccountInfo> {
+    const primaryAdminDepositAccount = await this.prisma.admin.findFirst({
+      where: {
+        isActive: true,
+        isPrimaryDepositAccount: true,
+        depositBankName: { not: null },
+        depositAccountHolder: { not: null },
+        depositAccountNumber: { not: null },
+      },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      select: {
+        depositBankName: true,
+        depositAccountHolder: true,
+        depositAccountNumber: true,
+      },
+    });
+
+    if (
+      primaryAdminDepositAccount?.depositBankName &&
+      primaryAdminDepositAccount.depositAccountHolder &&
+      primaryAdminDepositAccount.depositAccountNumber
+    ) {
+      return {
+        bankName: primaryAdminDepositAccount.depositBankName,
+        accountHolder: primaryAdminDepositAccount.depositAccountHolder,
+        accountNumber: primaryAdminDepositAccount.depositAccountNumber,
+      };
+    }
+
     return {
       bankName: this.configService.get<string>('ORDER_DEPOSIT_BANK_NAME', '국민은행'),
       accountHolder: this.configService.get<string>(
@@ -1603,7 +1631,7 @@ export class StoreService {
       case 'PAYMENT_CONFIRMED':
         return '입금 확인 완료';
       case 'PREPARING':
-        return '제작 및 출고 준비';
+        return '상품 준비 중';
       case 'SHIPPED':
         return '배송 중';
       case 'DELIVERED':

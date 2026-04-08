@@ -10,6 +10,8 @@ import { DesktopHeader } from './components/store/DesktopHeader';
 import { ProductArtwork } from './components/store/ProductArtwork';
 import { apiClient, CategoryTreeNode, ProductListItem, StoreHomePopup } from './lib/api';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
+import { AdminAccountFormPage } from './pages/admin/AdminAccountFormPage';
+import { AdminAccountsPage } from './pages/admin/AdminAccountsPage';
 import { AdminCustomOrdersPage } from './pages/admin/AdminCustomOrdersPage';
 import { AdminHomePopupPage } from './pages/admin/AdminHomePopupPage';
 import { AdminLayout } from './pages/admin/AdminLayout';
@@ -462,6 +464,9 @@ function AppFrame() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="categories" replace />} />
           <Route path="categories" element={<AdminCategoriesPage />} />
+          <Route path="accounts" element={<AdminAccountsPage />} />
+          <Route path="accounts/new" element={<AdminAccountFormPage />} />
+          <Route path="accounts/:adminId/edit" element={<AdminAccountFormPage />} />
           <Route path="custom-orders" element={<AdminCustomOrdersPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="orders/:orderId" element={<AdminOrderDetailPage />} />

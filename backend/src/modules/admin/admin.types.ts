@@ -245,3 +245,19 @@ export type AdminHomePopupResponse = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type AdminAccountResponse = {
+  adminId: number;
+  loginId: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  role: AdminRole;
+  isActive: boolean;
+  depositBankName: string | null;
+  depositAccountHolder: string | null;
+  depositAccountNumber: string | null;
+  isPrimaryDepositAccount: boolean;
+  createdAt: string;
+  updatedAt: string;
+};

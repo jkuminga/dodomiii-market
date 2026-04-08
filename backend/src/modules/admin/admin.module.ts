@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 
 import { NotificationsModule } from '../notifications/notifications.module';
 import { StoreModule } from '../store/store.module';
+import { AdminAccountsController } from './admin-accounts.controller';
+import { AdminAccountsService } from './admin-accounts.service';
 import { AdminCategoriesController } from './admin-categories.controller';
 import { AdminMediaController } from './admin-media.controller';
 import { AdminMediaService } from './admin-media.service';
@@ -17,6 +19,7 @@ import { AdminService } from './admin.service';
   imports: [StoreModule, NotificationsModule],
   controllers: [
     AdminCategoriesController,
+    AdminAccountsController,
     AdminProductsController,
     AdminOrdersController,
     AdminCustomOrdersController,
@@ -25,6 +28,7 @@ import { AdminService } from './admin.service';
   ],
   providers: [
     AdminService,
+    AdminAccountsService,
     AdminOrdersService,
     AdminOrderNotificationsService,
     AdminMediaService,
