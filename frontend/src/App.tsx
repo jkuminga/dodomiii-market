@@ -69,7 +69,6 @@ function collectLandingCategories(nodes: CategoryTreeNode[]): LandingCategory[] 
 }
 
 function HomePage() {
-  const HOME_INTRO_SEEN_KEY = 'dodomi.home.intro.seen';
   const HOME_POPUP_HIDE_UNTIL_PREFIX = 'dodomi.home.popup.hideUntil.';
   const [landingCategories, setLandingCategories] = useState<LandingCategory[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<ProductListItem[]>([]);
@@ -78,20 +77,12 @@ function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
-  const [showIntroLoading, setShowIntroLoading] = useState(() => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    return window.sessionStorage.getItem(HOME_INTRO_SEEN_KEY) !== '1';
-  });
   const [heroReveal, setHeroReveal] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     const run = async () => {
-      const startedAt = Date.now();
       setLoading(true);
       setError('');
 
@@ -172,16 +163,13 @@ function HomePage() {
   };
 
   useEffect(() => {
-    if (!showIntroLoading || loading) {
+    if (loading) {
+      setHeroReveal(false);
       return;
     }
 
-    setShowIntroLoading(false);
     setHeroReveal(true);
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem(HOME_INTRO_SEEN_KEY, '1');
-    }
-  }, [loading, showIntroLoading]);
+  }, [loading]);
 
   const homePopupLayer =
     showHomePopup && homePopup ? (
@@ -215,7 +203,7 @@ function HomePage() {
       </div>
     ) : null;
 
-  if (showIntroLoading) {
+  if (loading) {
     return (
       <main className="m-page home-page">
         <LoadingScreen title="도도미 마켓 준비 중" message="잠시만 기다려 주세요." />
@@ -257,60 +245,50 @@ function HomePage() {
 
 
       <div className="landing-category-block">
-        {loading ? (
-          <div className="home-status-card" role="status" aria-live="polite">
-            <LoadingScreen mode="inline" title="카테고리 준비 중" message="카테고리를 불러오고 있습니다." />
-          </div>
+        {error ? (
+          <p className="feedback-copy is-error" role="alert">
+            카테고리 데이터를 불러오지 못해 기본 카드로 표시합니다.
+          </p>
         ) : null}
+        <div className="landing-category-grid">
+          {[0, 1, 2].map((index) => {
+            const category = landingCategories[index] ?? null;
+            if (!category) {
+              return (
+                <div key={`empty-${index}`} className="landing-category-card is-empty" aria-hidden="true">
+                  <div className="landing-category-content">
+                    <span>준비 중</span>
+                  </div>
+                </div>
+              );
+            }
 
-        {!loading ? (
-          <>
-            {error ? (
-              <p className="feedback-copy is-error" role="alert">
-                카테고리 데이터를 불러오지 못해 기본 카드로 표시합니다.
-              </p>
-            ) : null}
-            <div className="landing-category-grid">
-              {[0, 1, 2].map((index) => {
-                const category = landingCategories[index] ?? null;
-                if (!category) {
-                  return (
-                    <div key={`empty-${index}`} className="landing-category-card is-empty" aria-hidden="true">
-                      <div className="landing-category-content">
-                        <span>준비 중</span>
-                      </div>
-                    </div>
-                  );
+            const cardStyle = category.imageUrl
+              ? {
+                  backgroundImage: `linear-gradient(180deg, rgba(18, 46, 26, 0.18), rgba(12, 34, 20, 0.72)), url(${category.imageUrl})`,
                 }
+              : undefined;
 
-                const cardStyle = category.imageUrl
-                  ? {
-                      backgroundImage: `linear-gradient(180deg, rgba(18, 46, 26, 0.18), rgba(12, 34, 20, 0.72)), url(${category.imageUrl})`,
-                    }
-                  : undefined;
-
-                return (
-                  <Link
-                    key={category.slug}
-                    className={`landing-category-card ${category.imageUrl ? 'has-image' : 'has-theme'}`}
-                    to={`/products?categorySlug=${category.slug}`}
-                    style={cardStyle}
-                  >
-                    <div className="landing-category-content">
-                      <span>{category.name}</span>
-                    </div>
-                  </Link>
-                );
-              })}
-
-              <Link className="landing-category-card landing-category-card-all has-theme" to="/products">
+            return (
+              <Link
+                key={category.slug}
+                className={`landing-category-card ${category.imageUrl ? 'has-image' : 'has-theme'}`}
+                to={`/products?categorySlug=${category.slug}`}
+                style={cardStyle}
+              >
                 <div className="landing-category-content">
-                  <span>모든 상품 보기</span>
+                  <span>{category.name}</span>
                 </div>
               </Link>
+            );
+          })}
+
+          <Link className="landing-category-card landing-category-card-all has-theme" to="/products">
+            <div className="landing-category-content">
+              <span>모든 상품 보기</span>
             </div>
-          </>
-        ) : null}
+          </Link>
+        </div>
       </div>
 
       {/* <section className="promo-card section-rhythm-card">
@@ -339,11 +317,6 @@ function HomePage() {
           </Link>
         </div>
 
-        {loading ? (
-          <div className="home-status-card" role="status" aria-live="polite">
-            <LoadingScreen mode="inline" title="상품 준비 중" message="최근 등록 상품을 불러오고 있습니다." />
-          </div>
-        ) : null}
         {error ? (
           <div className="home-status-card home-status-card-error" role="alert">
             <p className="feedback-copy is-error">{error}</p>
@@ -352,13 +325,13 @@ function HomePage() {
             </button>
           </div>
         ) : null}
-        {!loading && !error && featuredProducts.length === 0 ? (
+        {!error && featuredProducts.length === 0 ? (
           <div className="home-status-card">
             <p className="feedback-copy">추천할 최신 상품이 아직 없습니다.</p>
           </div>
         ) : null}
 
-        {!loading && !error && featuredProducts.length > 0 ? (
+        {!error && featuredProducts.length > 0 ? (
           <div className="feature-grid">
             {featuredProducts.map((product) => (
               <Link className="feature-card" key={product.id} to={`/products/${product.id}`}>
