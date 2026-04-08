@@ -635,7 +635,7 @@ export function OrderPage() {
               <input
                 value={contact.buyerPhone}
                 onChange={onContactChange('buyerPhone')}
-                placeholder="010-1234-5678"
+                placeholder="-, 공백 없이 입력해주세요"
                 inputMode="tel"
                 required
               />
@@ -683,7 +683,7 @@ export function OrderPage() {
               <input
                 value={contact.receiverPhone}
                 onChange={onContactChange('receiverPhone')}
-                placeholder="010-1234-5678"
+                placeholder="-, 공백 없이 입력해주세요"
                 inputMode="tel"
                 disabled={receiverSameAsBuyer}
                 required

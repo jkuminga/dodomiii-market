@@ -263,12 +263,12 @@ export function AdminOrderDetailPage() {
                 <p className="section-kicker">Summary</p>
                 <h3 className="section-subtitle">주문 기본 정보</h3>
               </div>
-              <span className="admin-inline-note">ID {order.id}</span>
+              <span className="status-pill">ID : {order.id}</span>
             </div>
 
             <div className="admin-summary-grid">
               <div className="admin-summary-item">
-                <span>주문 상태</span>
+                <span>전체 주문 상태</span>
                 <strong>{getOrderStatusLabel(order.orderStatus)}</strong>
               </div>
               <div className="admin-summary-item">
@@ -280,7 +280,7 @@ export function AdminOrderDetailPage() {
                 <strong>{getShipmentStatusLabel(order.shipment.shipmentStatus)}</strong>
               </div>
               <div className="admin-summary-item">
-                <span>주문 생성</span>
+                <span>주문 접수 날짜</span>
                 <strong>{formatAdminDateTime(order.createdAt)}</strong>
               </div>
               <div className="admin-summary-item">
@@ -288,7 +288,7 @@ export function AdminOrderDetailPage() {
                 <strong>{formatAdminDateTime(order.updatedAt)}</strong>
               </div>
               <div className="admin-summary-item">
-                <span>고객 요청</span>
+                <span>고객 요청 사항</span>
                 <strong>{order.customerRequest?.trim() || '없음'}</strong>
               </div>
             </div>
@@ -401,11 +401,11 @@ export function AdminOrderDetailPage() {
                 </strong>
               </div>
               <div className="admin-summary-item">
-                <span>요청 접수</span>
+                <span>입금 확인 요청 시각</span>
                 <strong>{formatAdminDateTime(order.deposit.requestedAt)}</strong>
               </div>
               <div className="admin-summary-item">
-                <span>확인 완료</span>
+                <span>입금 확인 완료 시각</span>
                 <strong>{formatAdminDateTime(order.deposit.confirmedAt)}</strong>
               </div>
               <div className="admin-summary-item admin-summary-item-span-2">
@@ -612,7 +612,7 @@ export function AdminOrderDetailPage() {
 
               <div className="admin-summary-grid">
                 <div className="admin-summary-item">
-                  <span>발송 시각</span>
+                  <span>배송 시작 시각</span>
                   <strong>{formatAdminDateTime(order.shipment.shippedAt)}</strong>
                 </div>
                 <div className="admin-summary-item">

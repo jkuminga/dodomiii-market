@@ -24,7 +24,7 @@ const ORDER_STATUS_FILTER_OPTIONS: Array<{ value: 'all' | StoreOrderStatus; labe
   { value: 'PENDING_PAYMENT', label: '입금 대기' },
   { value: 'PAYMENT_REQUESTED', label: '입금 요청 확인 중' },
   { value: 'PAYMENT_CONFIRMED', label: '입금 확인 완료' },
-  { value: 'PREPARING', label: '제작 및 출고 준비' },
+  { value: 'PREPARING', label: '상품 준비 중' },
   { value: 'SHIPPED', label: '배송 중' },
   { value: 'DELIVERED', label: '배송 완료' },
   { value: 'CANCELLED', label: '주문 취소' },

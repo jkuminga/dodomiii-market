@@ -67,7 +67,7 @@ function getOrderStatusLabel(status: StoreOrderStatus): string {
     case 'PAYMENT_CONFIRMED':
       return '입금 확인 완료';
     case 'PREPARING':
-      return '제작 및 출고 준비';
+      return '상품 준비 중';
     case 'SHIPPED':
       return '배송 중';
     case 'DELIVERED':

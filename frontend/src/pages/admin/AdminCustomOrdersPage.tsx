@@ -757,6 +757,7 @@ export function AdminCustomOrdersPage() {
                     복사
                   </button>
                 </div>
+                <span>※ 복사한 url을 구매자에게 보내주세요.</span>
               </label>
 
               {selectedRecentLink?.note?.trim() ? (
