@@ -299,8 +299,8 @@ img {
 .app-shell.is-store .order-option-basket-item,
 .app-shell.is-store .loading-screen-overlay,
 .app-shell.is-store .loading-screen-page-only {
-  /* background: rgb(var(--surface-cream-rgb) / 0.96); */
-  background : white
+  background: rgb(var(--surface-cream-rgb) / 0.96);
+  /* background : white */
 }
 
 .app-shell.is-store .m-bottom-nav-inner {
@@ -1001,8 +1001,8 @@ img {
   max-height: 92vh;
   border-radius: 15px;
   padding: 10px;
-  border : rgb(var(--primary-deep-rgb));
-  box-shadow: 0px 10px 10px 10px rgb(var(--primary-deep-rgb) / 0.70);
+  /* border : rgb(var(--primary-deep-rgb)); */
+  box-shadow: 0px 35px 45px 30px rgb(var(--primary-deep-rgb) / 0.4);
 }
 
 .loading-screen-inline .loading-copy {
