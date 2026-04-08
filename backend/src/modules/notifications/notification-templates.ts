@@ -50,7 +50,7 @@ export type AdminShipmentSummaryContext = {
 const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   PENDING_PAYMENT: '입금 대기',
   PAYMENT_REQUESTED: '입금 확인 중',
-  PAYMENT_CONFIRMED: '결제 확인 완료',
+  PAYMENT_CONFIRMED: '입금 확인 완료',
   PREPARING: '상품 준비 중',
   SHIPPED: '배송 중',
   DELIVERED: '배송 완료',
@@ -118,47 +118,47 @@ const renderOrderItemsHtml = (items: OrderItemTemplateData[]): string => {
 const formatOrderStatus = (status: OrderStatus): string => ORDER_STATUS_LABELS[status];
 const formatShipmentStatus = (status: ShipmentStatus): string => SHIPMENT_STATUS_LABELS[status];
 
-// export const renderAdminNewOrderEmail = (order: OrderTemplateContext): RenderedEmail => {
-//   const subject = `[신규 주문] ${order.orderNumber}`;
-//   const text = [
-//     `${order.orderNumber} 신규 주문이 접수되었습니다.`,
-//     '',
-//     `주문 시각: ${formatDateTime(order.createdAt)}`,
-//     `주문 상태: ${formatOrderStatus(order.orderStatus)}`,
-//     `구매자: ${order.buyerName ?? '-'} / ${order.buyerPhone ?? '-'}`,
-//     `수령인: ${order.receiverName ?? '-'} / ${order.receiverPhone ?? '-'}`,
-//     `상품 금액: ${formatCurrency(order.totalProductPrice)}`,
-//     `배송비: ${formatCurrency(order.shippingFee)}`,
-//     `최종 금액: ${formatCurrency(order.finalTotalPrice)}`,
-//     `고객 요청사항: ${order.customerRequest ?? '-'}`,
-//     '',
-//     '주문 항목',
-//     renderOrderItemsText(order.items),
-//   ].join('\n');
-//   const html = `
-//     <h1>${escapeHtml(order.orderNumber)} 신규 주문</h1>
-//     <p>주문 시각: ${escapeHtml(formatDateTime(order.createdAt))}</p>
-//     <p>주문 상태: ${escapeHtml(formatOrderStatus(order.orderStatus))}</p>
-//     <p>구매자: ${escapeHtml(order.buyerName ?? '-')} / ${escapeHtml(order.buyerPhone ?? '-')}</p>
-//     <p>수령인: ${escapeHtml(order.receiverName ?? '-')} / ${escapeHtml(order.receiverPhone ?? '-')}</p>
-//     <p>상품 금액: ${escapeHtml(formatCurrency(order.totalProductPrice))}</p>
-//     <p>배송비: ${escapeHtml(formatCurrency(order.shippingFee))}</p>
-//     <p>최종 금액: ${escapeHtml(formatCurrency(order.finalTotalPrice))}</p>
-//     <p>고객 요청사항: ${escapeHtml(order.customerRequest ?? '-')}</p>
-//     <h2>주문 항목</h2>
-//     <ul>${renderOrderItemsHtml(order.items)}</ul>
-//   `.trim();
+export const renderAdminNewOrderEmail = (order: OrderTemplateContext): RenderedEmail => {
+  const subject = `[신규 주문] ${order.orderNumber}`;
+  const text = [
+    `${order.orderNumber} 신규 주문이 접수되었습니다.`,
+    '',
+    `주문 시각: ${formatDateTime(order.createdAt)}`,
+    `주문 상태: ${formatOrderStatus(order.orderStatus)}`,
+    `구매자: ${order.buyerName ?? '-'} / ${order.buyerPhone ?? '-'}`,
+    `수령인: ${order.receiverName ?? '-'} / ${order.receiverPhone ?? '-'}`,
+    `상품 금액: ${formatCurrency(order.totalProductPrice)}`,
+    `배송비: ${formatCurrency(order.shippingFee)}`,
+    `최종 금액: ${formatCurrency(order.finalTotalPrice)}`,
+    `고객 요청사항: ${order.customerRequest ?? '-'}`,
+    '',
+    '주문 항목',
+    renderOrderItemsText(order.items),
+  ].join('\n');
+  const html = `
+    <h1>${escapeHtml(order.orderNumber)} 신규 주문</h1>
+    <p>주문 시각: ${escapeHtml(formatDateTime(order.createdAt))}</p>
+    <p>주문 상태: ${escapeHtml(formatOrderStatus(order.orderStatus))}</p>
+    <p>구매자: ${escapeHtml(order.buyerName ?? '-')} / ${escapeHtml(order.buyerPhone ?? '-')}</p>
+    <p>수령인: ${escapeHtml(order.receiverName ?? '-')} / ${escapeHtml(order.receiverPhone ?? '-')}</p>
+    <p>상품 금액: ${escapeHtml(formatCurrency(order.totalProductPrice))}</p>
+    <p>배송비: ${escapeHtml(formatCurrency(order.shippingFee))}</p>
+    <p>최종 금액: ${escapeHtml(formatCurrency(order.finalTotalPrice))}</p>
+    <p>고객 요청사항: ${escapeHtml(order.customerRequest ?? '-')}</p>
+    <h2>주문 항목</h2>
+    <ul>${renderOrderItemsHtml(order.items)}</ul>
+  `.trim();
 
-//   return { subject, text, html };
-// };
+  return { subject, text, html };
+};
 
 // To 관리자 : 새 주문 생성(입금 대기)
 export const renderAdminNewOrderSms = (order: OrderTemplateContext): string =>
-  `[도도미마켓 - 신규 주문]\n주문 번호 : ${order.orderNumber}\n구매인 성함 : ${order.buyerName ?? '-'}\n금액 : ${formatCurrency(order.finalTotalPrice)}\n상태 : ${formatOrderStatus(order.orderStatus)}`;
+  `[도도미마켓 - 신규 주문]\n◼︎주문 번호 : ${order.orderNumber}\n◼︎구매인 성함 : ${order.buyerName ?? '-'}\n◼︎금액 : ${formatCurrency(order.finalTotalPrice)}\n◼︎상태 : ${formatOrderStatus(order.orderStatus)}`;
 
 // To 관리자 : 새 주문 생성(입금 확인 요청)
 export const renderAdminDepositRequestedSms = (order: OrderTemplateContext): string =>
-  `[도도미마켓 - 입금 확인 요청]\n주문 번호 : ${order.orderNumber}\n구매인 성함 : ${order.buyerName ?? '-'}\n금액 : ${formatCurrency(order.finalTotalPrice)}\n상태 : ${formatOrderStatus(order.orderStatus)}`;
+  `[도도미마켓 - 입금 확인 요청]\n◼︎주문 번호 : ${order.orderNumber}\n◼︎구매인 성함 : ${order.buyerName ?? '-'}\n◼︎금액 : ${formatCurrency(order.finalTotalPrice)}\n◼︎상태 : ${formatOrderStatus(order.orderStatus)}`;
 
 // To 구매자 : 주문 상태 변경 시
 export const renderCustomerOrderStatusSms = (
@@ -167,56 +167,59 @@ export const renderCustomerOrderStatusSms = (
   newStatus: OrderStatus,
 ): string => {
   const lines = [
-    `[도도미마켓] 주문 ${order.orderNumber}`,
-    `상태가 ${formatOrderStatus(previousStatus)}에서 ${formatOrderStatus(newStatus)}로 변경되었습니다.`,
+    `[도도미마켓]`,
+    `◼︎주문 번호 : ${order.orderNumber}`,
+    // `주문 상태가 ${formatOrderStatus(previousStatus)}에서 ${formatOrderStatus(newStatus)}로 변경되었습니다.`,
+    `◼︎주문하신 상품의 상태가 [${formatOrderStatus(newStatus)}]으로 변경되었습니다.`,
   ];
 
   if (order.shipmentStatus === 'SHIPPED' || order.shipmentStatus === 'DELIVERED') {
-    lines.push(`배송 상태 ${formatShipmentStatus(order.shipmentStatus)}`);
+    lines.push(`◼︎배송 상태 : ${formatShipmentStatus(order.shipmentStatus)}`);
   }
 
   if (order.courierName && order.trackingNumber) {
-    lines.push(`${order.courierName} ${order.trackingNumber}`);
+    lines.push(`◼︎${order.courierName} ${order.trackingNumber}`);
   }
 
   return lines.join('\n');
 };
 
-// export const renderAdminOrderStatusEmail = (
-//   context: AdminStatusSummaryContext,
-// ): RenderedEmail => {
-//   const subject = `[주문 상태 변경] ${context.order.orderNumber}`;
-//   const actor =
-//     context.changedByAdminName ??
-//     context.changedByAdminLoginId ??
-//     `admin:${context.order.orderNumber}`;
-//   const text = [
-//     `${context.order.orderNumber} 주문 상태가 변경되었습니다.`,
-//     '',
-//     `변경자: ${actor}`,
-//     `이전 상태: ${formatOrderStatus(context.previousStatus)}`,
-//     `현재 상태: ${formatOrderStatus(context.newStatus)}`,
-//     `변경 사유: ${context.changeReason ?? '-'}`,
-//     `구매자: ${context.order.buyerName ?? '-'} / ${context.order.buyerPhone ?? '-'}`,
-//     `최종 금액: ${formatCurrency(context.order.finalTotalPrice)}`,
-//   ].join('\n');
-//   const html = `
-//     <h1>${escapeHtml(context.order.orderNumber)} 주문 상태 변경</h1>
-//     <p>변경자: ${escapeHtml(actor)}</p>
-//     <p>이전 상태: ${escapeHtml(formatOrderStatus(context.previousStatus))}</p>
-//     <p>현재 상태: ${escapeHtml(formatOrderStatus(context.newStatus))}</p>
-//     <p>변경 사유: ${escapeHtml(context.changeReason ?? '-')}</p>
-//     <p>구매자: ${escapeHtml(context.order.buyerName ?? '-')} / ${escapeHtml(
-//       context.order.buyerPhone ?? '-',
-//     )}</p>
-//     <p>최종 금액: ${escapeHtml(formatCurrency(context.order.finalTotalPrice))}</p>
-//   `.trim();
+export const renderAdminOrderStatusEmail = (
+  context: AdminStatusSummaryContext,
+): RenderedEmail => {
+  const subject = `[주문 상태 변경] ${context.order.orderNumber}`;
+  const actor =
+    context.changedByAdminName ??
+    context.changedByAdminLoginId ??
+    `admin:${context.order.orderNumber}`;
+  const text = [
+    `${context.order.orderNumber} 주문 상태가 변경되었습니다.`,
+    '',
+    `변경자: ${actor}`,
+    `이전 상태: ${formatOrderStatus(context.previousStatus)}`,
+    `현재 상태: ${formatOrderStatus(context.newStatus)}`,
+    `변경 사유: ${context.changeReason ?? '-'}`,
+    `구매자: ${context.order.buyerName ?? '-'} / ${context.order.buyerPhone ?? '-'}`,
+    `최종 금액: ${formatCurrency(context.order.finalTotalPrice)}`,
+  ].join('\n');
+  const html = `
+    <h1>${escapeHtml(context.order.orderNumber)} 주문 상태 변경</h1>
+    <p>변경자: ${escapeHtml(actor)}</p>
+    <p>이전 상태: ${escapeHtml(formatOrderStatus(context.previousStatus))}</p>
+    <p>현재 상태: ${escapeHtml(formatOrderStatus(context.newStatus))}</p>
+    <p>변경 사유: ${escapeHtml(context.changeReason ?? '-')}</p>
+    <p>구매자: ${escapeHtml(context.order.buyerName ?? '-')} / ${escapeHtml(
+      context.order.buyerPhone ?? '-',
+    )}</p>
+    <p>최종 금액: ${escapeHtml(formatCurrency(context.order.finalTotalPrice))}</p>
+  `.trim();
 
-//   return { subject, text, html };
-// };
+  return { subject, text, html };
+};
 
+// To 관리자 : 주문 상태 변경
 export const renderAdminOrderStatusSms = (context: AdminStatusSummaryContext): string =>
-  `[도도미마켓] 주문 ${context.order.orderNumber}\n${formatOrderStatus(context.previousStatus)} -> ${formatOrderStatus(context.newStatus)}\n구매자 ${context.order.buyerName ?? '-'}\n사유 ${context.changeReason ?? '-'}`;
+  `[도도미마켓 - 주문 상태 변경]\n ◼︎주문 번호 : ${context.order.orderNumber}\n ◼︎상태 : ${formatOrderStatus(context.previousStatus)} > ${formatOrderStatus(context.newStatus)}\n ◼︎구매자 : ${context.order.buyerName ?? '-'}\n ◼︎사유 : ${context.changeReason ?? '-'}`;
 
 export const renderAdminShipmentUpdatedEmail = (
   context: AdminShipmentSummaryContext,
@@ -245,6 +248,8 @@ export const renderAdminShipmentUpdatedEmail = (
   return { subject, text, html };
 };
 
+
+// To
 export const renderAdminShipmentUpdatedSms = (
   context: AdminShipmentSummaryContext,
 ): string =>
