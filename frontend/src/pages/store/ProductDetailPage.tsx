@@ -402,7 +402,6 @@ export function ProductDetailPage() {
         <div className="tab-panel">
           {activeTab === 'story' ? (
             <div className="policy-copy">
-              <p>{product.description ?? '상품 상세 설명이 아직 등록되지 않았습니다.'}</p>
               {detailImages.length > 0 ? (
                 <div className="detail-story-images" aria-label="상품 상세 이미지">
                   {detailImages.map((image, index) => (
@@ -440,8 +439,10 @@ export function ProductDetailPage() {
 
           {activeTab === 'policy' ? (
             <div className="policy-copy">
-              <p>{product.policy.shippingInfo}</p>
-              <p>{product.policy.refundInfo}</p>
+              <p>{product.description ?? '상품 상세 설명이 아직 등록되지 않았습니다.'}</p>
+              <hr style={{margin : '20px 20px 0 0 ', color:'gray'}}></hr>
+              <p>🚚 {product.policy.shippingInfo}</p>
+              <p>🙏 {product.policy.refundInfo}</p>
             </div>
           ) : null}
         </div>
