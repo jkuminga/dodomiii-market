@@ -69,6 +69,7 @@ function collectLandingCategories(nodes: CategoryTreeNode[]): LandingCategory[] 
 }
 
 function HomePage() {
+  const location = useLocation();
   const HOME_POPUP_HIDE_UNTIL_PREFIX = 'dodomi.home.popup.hideUntil.';
   const [landingCategories, setLandingCategories] = useState<LandingCategory[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<ProductListItem[]>([]);
@@ -78,6 +79,7 @@ function HomePage() {
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const [heroReveal, setHeroReveal] = useState(false);
+  const forceLoading = new URLSearchParams(location.search).get('debugLoading') === '1';
 
   useEffect(() => {
     let cancelled = false;
@@ -203,11 +205,14 @@ function HomePage() {
       </div>
     ) : null;
 
-  if (loading) {
+  if (loading || forceLoading) {
     return (
       <main className="m-page home-page">
-        <LoadingScreen title="도도미 마켓 준비 중" message="잠시만 기다려 주세요." />
-        {homePopupLayer}
+        <LoadingScreen
+          title="도도미 마켓 준비 중"
+          message={forceLoading ? '디버그 로딩 프리뷰 모드입니다.' : '잠시만 기다려 주세요.'}
+        />
+        {forceLoading ? null : homePopupLayer}
       </main>
     );
   }
