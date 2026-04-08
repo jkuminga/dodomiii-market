@@ -171,6 +171,7 @@ export class OrderNotificationsService {
       context,
       event.previousStatus,
       event.newStatus,
+      this.buildStoreOrderLookupUrl(order.orderNumber),
     );
 
     await this.deliverAll(
@@ -264,7 +265,7 @@ export class OrderNotificationsService {
 
     const adminRecipients = await this.findActiveAdminRecipients();
     const context = this.mapOrderTemplateContext(order);
-    const sms = renderAdminDepositRequestedSms(context);
+    const sms = renderAdminDepositRequestedSms(context, this.buildAdminOrderDetailUrl(order.id));
 
     await this.deliverAll(
       this.buildAdminSmsTargets(adminRecipients, sms),
@@ -475,6 +476,29 @@ export class OrderNotificationsService {
         lineTotalPrice: item.lineTotalPrice,
       })),
     };
+  }
+
+  private buildStoreOrderLookupUrl(orderNumber: string): string | null {
+    const baseUrl = this.normalizeBaseUrl(this.configService.get<string>('STORE_WEB_BASE_URL'));
+    if (!baseUrl) {
+      return null;
+    }
+
+    return `${baseUrl}/orders?orderNumber=${encodeURIComponent(orderNumber)}`;
+  }
+
+  private buildAdminOrderDetailUrl(orderId: bigint): string | null {
+    const baseUrl = this.normalizeBaseUrl(this.configService.get<string>('ADMIN_WEB_BASE_URL'));
+    if (!baseUrl) {
+      return null;
+    }
+
+    return `${baseUrl}/admin/orders/${orderId.toString()}`;
+  }
+
+  private normalizeBaseUrl(value: string | undefined): string | null {
+    const normalized = value?.trim().replace(/\/+$/, '') ?? '';
+    return normalized.length > 0 ? normalized : null;
   }
 
   private uniqueValues(values: Array<string | null | undefined>): string[] {

@@ -157,14 +157,31 @@ export const renderAdminNewOrderSms = (order: OrderTemplateContext): string =>
   `[도도미마켓 - 신규 주문]\n◼︎주문 번호 : ${order.orderNumber}\n◼︎구매인 성함 : ${order.buyerName ?? '-'}\n◼︎금액 : ${formatCurrency(order.finalTotalPrice)}\n◼︎상태 : ${formatOrderStatus(order.orderStatus)}`;
 
 // To 관리자 : 새 주문 생성(입금 확인 요청)
-export const renderAdminDepositRequestedSms = (order: OrderTemplateContext): string =>
-  `[도도미마켓 - 입금 확인 요청]\n◼︎주문 번호 : ${order.orderNumber}\n◼︎구매인 성함 : ${order.buyerName ?? '-'}\n◼︎금액 : ${formatCurrency(order.finalTotalPrice)}\n◼︎상태 : ${formatOrderStatus(order.orderStatus)}`;
+export const renderAdminDepositRequestedSms = (
+  order: OrderTemplateContext,
+  adminOrderUrl: string | null = null,
+): string => {
+  const lines = [
+    `[도도미마켓 - 입금 확인 요청]`,
+    `◼︎주문 번호 : ${order.orderNumber}`,
+    `◼︎구매인 성함 : ${order.buyerName ?? '-'}`,
+    `◼︎금액 : ${formatCurrency(order.finalTotalPrice)}`,
+    `◼︎상태 : ${formatOrderStatus(order.orderStatus)}`,
+  ];
+
+  if (adminOrderUrl) {
+    lines.push(`◼︎관리자 페이지 : ${adminOrderUrl}`);
+  }
+
+  return lines.join('\n');
+};
 
 // To 구매자 : 주문 상태 변경 시
 export const renderCustomerOrderStatusSms = (
   order: OrderTemplateContext,
   previousStatus: OrderStatus,
   newStatus: OrderStatus,
+  orderStatusUrl: string | null = null,
 ): string => {
   const lines = [
     `[도도미마켓]`,
@@ -179,6 +196,10 @@ export const renderCustomerOrderStatusSms = (
 
   if (order.courierName && order.trackingNumber) {
     lines.push(`◼︎${order.courierName} ${order.trackingNumber}`);
+  }
+
+  if (orderStatusUrl) {
+    lines.push(`◼︎주문 조회 : ${orderStatusUrl}`);
   }
 
   return lines.join('\n');

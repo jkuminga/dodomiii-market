@@ -26,6 +26,8 @@ export default () => ({
   ORDER_DEPOSIT_DEADLINE_DAYS: Number(process.env.ORDER_DEPOSIT_DEADLINE_DAYS ?? 1),
   CUSTOM_CHECKOUT_BASE_URL:
     process.env.CUSTOM_CHECKOUT_BASE_URL ?? 'http://localhost:5173/custom-checkout',
+  STORE_WEB_BASE_URL: process.env.STORE_WEB_BASE_URL ?? 'http://localhost:5173',
+  ADMIN_WEB_BASE_URL: process.env.ADMIN_WEB_BASE_URL ?? 'http://localhost:5173',
   NOTIFICATIONS_ENABLED: parseBoolean(process.env.NOTIFICATIONS_ENABLED, true),
   NOTIFICATIONS_DRY_RUN: parseBoolean(process.env.NOTIFICATIONS_DRY_RUN, false),
   NOTIFICATIONS_ADMIN_STATUS_SUMMARY_ENABLED: parseBoolean(
