@@ -315,8 +315,8 @@ export function OrderPaymentPage() {
     <main className="m-page order-lookup-page">
       <section className="surface-hero compact-hero payment-hero-align">
         <p className="section-kicker">Payment</p>
-        <h1 className="section-title payment-title">무통장 입금 결제</h1>
-        <p className="section-copy">아래 계좌로 입금 후, 입금 확인 요청 버튼을 눌러 주세요.</p>
+        <h1 className="section-title payment-title">계좌 입금 결제</h1>
+        <p className="section-copy">아래 계좌 정보로 입금 후, 입금 확인 요청 버튼을 눌러 주세요.</p>
       </section>
 
       <section className="surface-card order-lookup-summary payment-focus-card">
@@ -326,7 +326,7 @@ export function OrderPaymentPage() {
             <h2 className="section-subtitle payment-amount">{formatCurrency(order.pricing.finalTotalPrice)}</h2>
           </div>
         </div>
-        <p className="feedback-copy">입금 기한: {formatDateTime(order.deposit.depositDeadlineAt)}</p>
+        {/* <p className="feedback-copy">입금 기한: {formatDateTime(order.deposit.depositDeadlineAt)}</p> */}
       </section>
 
       <section className="surface-card order-lookup-summary">
@@ -334,11 +334,12 @@ export function OrderPaymentPage() {
           <div>
             <p className="section-kicker">Account</p>
             <h2 className="section-subtitle">입금 계좌 정보</h2>
+            <p className="feedback-copy">입금 기한: {formatDateTime(order.deposit.depositDeadlineAt)}</p>
           </div>
         </div>
         <div className="order-lookup-grid payment-account-grid">
           <div className="order-lookup-block">
-            <h3>계좌</h3>
+            {/* <h3>계좌</h3> */}
             <div className="order-summary-row">
               <span>은행</span>
               <strong>{order.deposit.bankName ?? '-'}</strong>

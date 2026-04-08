@@ -623,15 +623,15 @@ export function OrderPage() {
 
         <section className="surface-card order-form-card">
           <fieldset className="order-form-section">
-            <legend>주문자 정보</legend>
+            <legend>주문인 정보</legend>
 
             <label className="field">
-              <span>주문자 이름</span>
-              <input value={contact.buyerName} onChange={onContactChange('buyerName')} placeholder="주문자 이름" required />
+              <span>주문인 이름</span>
+              <input value={contact.buyerName} onChange={onContactChange('buyerName')} placeholder="주문인 이름" required />
             </label>
 
             <label className="field">
-              <span>주문자 연락처</span>
+              <span>주문인 연락처</span>
               <input
                 value={contact.buyerPhone}
                 onChange={onContactChange('buyerPhone')}
