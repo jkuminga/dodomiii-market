@@ -124,6 +124,19 @@ export function getShipmentStatusLabel(status: StoreShipmentStatus): string {
   }
 }
 
+export function getShipmentStatusPillClass(status: StoreShipmentStatus): string {
+  switch (status) {
+    case 'READY':
+      return 'is-shipment-ready';
+    case 'SHIPPED':
+      return 'is-shipment-shipped';
+    case 'DELIVERED':
+      return 'is-shipment-delivered';
+    default:
+      return '';
+  }
+}
+
 const ADMIN_ALLOWED_NEXT_ORDER_STATUSES: Record<StoreOrderStatus, StoreOrderStatus[]> = {
   PENDING_PAYMENT: ['PAYMENT_REQUESTED', 'EXPIRED', 'CANCELLED'],
   PAYMENT_REQUESTED: ['PAYMENT_CONFIRMED', 'CANCELLED'],

@@ -86,7 +86,7 @@ function getDepositStatusLabel(status: StoreDepositStatus): string {
     case 'WAITING':
       return '입금 대기';
     case 'REQUESTED':
-      return '입금 확인 요청 접수';
+      return '입금 확인 요청 완료';
     case 'CONFIRMED':
       return '입금 확인 완료';
     case 'REJECTED':
@@ -106,6 +106,19 @@ function getShipmentStatusLabel(status: StoreShipmentStatus): string {
       return '배송 완료';
     default:
       return status;
+  }
+}
+
+function getShipmentStatusPillClass(status: StoreShipmentStatus): string {
+  switch (status) {
+    case 'READY':
+      return 'is-shipment-ready';
+    case 'SHIPPED':
+      return 'is-shipment-shipped';
+    case 'DELIVERED':
+      return 'is-shipment-delivered';
+    default:
+      return '';
   }
 }
 
@@ -327,6 +340,7 @@ export function OrderLookupPage() {
 
   const timelineItems = order ? buildTimeline(order, tracking) : [];
   const activeTracking = tracking ?? (order ? buildFallbackTracking(order) : null);
+  const currentShipmentStatus = activeTracking?.shipmentStatus ?? order?.shipment.shipmentStatus ?? null;
   const depositExpectedAmount = order?.deposit.expectedAmount ?? order?.pricing.finalTotalPrice ?? 0;
 
   const onLookupSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -352,48 +366,43 @@ export function OrderLookupPage() {
 
   return (
     <main className="m-page order-lookup-page">
-      <section className="surface-hero compact-hero">
+      <section className="surface-hero compact-hero order-lookup-intro">
         <p className="section-kicker">Order Lookup</p>
-        <h1 className="section-title">주문번호로 상태 확인</h1>
+        <h1 className="section-title">주문 조회</h1>
         <p className="section-copy">
-          주문 접수 후 받은 주문번호를 입력하면 주문 상태, 입금 진행, 배송 흐름을 한 화면에서 확인할 수 있습니다.
+          주문번호를 통해 주문 상태, 입금 진행, 배송 상태를 확인할 수 있습니다.
         </p>
-      </section>
 
-      <form className="surface-card order-lookup-form" onSubmit={onLookupSubmit}>
-        <div className="section-head">
-          <div>
-            <p className="section-kicker">Find Order</p>
-            <h2 className="section-subtitle">주문 조회</h2>
-          </div>
-          {searchOrderNumber ? (
-            <button className="button-text" type="button" onClick={() => setRefreshKey((value) => value + 1)}>
-              새로고침
+        <form className="order-lookup-form" onSubmit={onLookupSubmit}>
+          {/* <div className="section-head">
+            <div>
+              <p className="section-kicker">Find Order</p>
+              <h2 className="section-subtitle">주문번호 입력</h2>
+            </div>
+            {searchOrderNumber ? (
+              <button className="button-text" type="button" onClick={() => setRefreshKey((value) => value + 1)}>
+                새로고침
+              </button>
+            ) : null}
+          </div> */}
+
+          <div className="lookup-input-row" style={{marginTop : '18px'}}>
+            <label className="field">
+              <input
+                value={orderNumberInput}
+                onChange={(event) => setOrderNumberInput(event.target.value)}
+                placeholder="예: DM20260327-0001"
+                autoComplete="off"
+                inputMode="text"
+              />
+            </label>
+
+            <button className="button" type="submit" disabled={lookupLoading}>
+              {lookupLoading ? '조회 중...' : '조회하기'}
             </button>
-          ) : null}
-        </div>
-
-        <div className="lookup-input-row">
-          <label className="field">
-            <span>주문번호</span>
-            <input
-              value={orderNumberInput}
-              onChange={(event) => setOrderNumberInput(event.target.value)}
-              placeholder="예: DM20260327-0001"
-              autoComplete="off"
-              inputMode="text"
-            />
-          </label>
-
-          <button className="button" type="submit" disabled={lookupLoading}>
-            {lookupLoading ? '조회 중...' : '조회하기'}
-          </button>
-        </div>
-
-        <p className="feedback-copy">
-          주문 생성 직후라면 결과 카드의 주문번호를 그대로 붙여 넣으면 됩니다.
-        </p>
-      </form>
+          </div>
+        </form>
+      </section>
 
       {(lookupError || order || searchOrderNumber) ? <div className="order-lookup-divider" aria-hidden="true" /> : null}
 
@@ -432,21 +441,21 @@ export function OrderLookupPage() {
                   <strong>{getOrderStatusLabel(order.orderStatus)}</strong>
                 </div>
                 <div className="order-summary-row">
-                  <span>최근 갱신</span>
-                  <strong>{formatDateTime(order.updatedAt)}</strong>
+                  <span>주문 시각</span>
+                  <strong>{formatDateTime(order.createdAt)}</strong>
                 </div>
-                <div className="order-summary-row">
+                {/* <div className="order-summary-row">
                   <span>배송 상태</span>
                   <strong>
                     {hasShipmentStarted(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)
                       ? getShipmentStatusLabel(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)
                       : '-'}
                   </strong>
-                </div>
+                </div> */}
               </div>
 
               <div className="order-lookup-block">
-                <h3>수령 정보</h3>
+                <h3>배송지 정보</h3>
                 <div className="lookup-contact-copy">
                   <strong>{order.contact.receiverName}</strong>
                   <span>{formatPhone(order.contact.receiverPhone)}</span>
@@ -465,7 +474,7 @@ export function OrderLookupPage() {
                 <p className="section-kicker">Order Items</p>
                 <h2 className="section-subtitle">주문 상품</h2>
               </div>
-              <strong className="detail-price">{formatCurrency(order.pricing.finalTotalPrice)}</strong>
+              {/* <strong className="detail-price">{formatCurrency(order.pricing.finalTotalPrice)}</strong> */}
             </div>
 
             <ul className="order-item-list">
@@ -498,7 +507,8 @@ export function OrderLookupPage() {
               ))}
             </ul>
 
-            <div className="order-lookup-block">
+              
+            <div className='order-lookup-grid'>
               <div className="order-summary-row">
                 <span>상품 금액</span>
                 <strong>{formatCurrency(order.pricing.totalProductPrice)}</strong>
@@ -512,55 +522,7 @@ export function OrderLookupPage() {
                 <strong>{formatCurrency(order.pricing.finalTotalPrice)}</strong>
               </div>
             </div>
-          </section>
-
-          <section className="surface-card order-lookup-summary">
-            <div className="section-head">
-              <div>
-                <p className="section-kicker">Deposit</p>
-                <h2 className="section-subtitle">입금 정보</h2>
-              </div>
-              <span className="status-pill">{getDepositStatusLabel(order.deposit.depositStatus)}</span>
-            </div>
-
-            <div className="order-lookup-grid">
-              <div className="order-lookup-block">
-                <div className="order-summary-row">
-                  <span>입금 상태</span>
-                  <strong>{getDepositStatusLabel(order.deposit.depositStatus)}</strong>
-                </div>
-                <div className="order-summary-row">
-                  <span>입금 예정 금액</span>
-                  <strong>{formatCurrency(depositExpectedAmount)}</strong>
-                </div>
-                <div className="order-summary-row">
-                  <span>요청 시각</span>
-                  <strong>{formatDateTime(order.deposit.requestedAt)}</strong>
-                </div>
-                <div className="order-summary-row">
-                  <span>확인 시각</span>
-                  <strong>{formatDateTime(order.deposit.confirmedAt)}</strong>
-                </div>
-              </div>
-
-              <div className="order-lookup-block">
-                <div className="order-summary-row">
-                  <span>은행</span>
-                  <strong>{order.deposit.bankName ?? '주문 접수 안내 기준'}</strong>
-                </div>
-                <div className="order-summary-row">
-                  <span>예금주</span>
-                  <strong>{order.deposit.accountHolder ?? '확인 후 안내'}</strong>
-                </div>
-                <div className="order-summary-row">
-                  <span>계좌번호</span>
-                  <strong className="lookup-value-break">
-                    {order.deposit.accountNumber ?? '주문 접수 화면에서 확인'}
-                  </strong>
-                </div>
-              </div>
-            </div>
-
+            
           </section>
 
           <section className="surface-card order-lookup-summary">
@@ -569,6 +531,11 @@ export function OrderLookupPage() {
                 <p className="section-kicker">Tracking</p>
                 <h2 className="section-subtitle">주문 트래킹</h2>
               </div>
+              {currentShipmentStatus ? (
+                <span className={`status-pill ${getShipmentStatusPillClass(currentShipmentStatus)}`}>
+                  {getShipmentStatusLabel(currentShipmentStatus)}
+                </span>
+              ) : null}
               {activeTracking?.trackingUrl && activeTracking.trackingNumber ? (
                 <a className="button-text" href={activeTracking.trackingUrl} target="_blank" rel="noreferrer">
                   운송장 보기
@@ -580,26 +547,24 @@ export function OrderLookupPage() {
               <div className="order-lookup-block">
                 <div className="order-summary-row">
                   <span>배송 상태</span>
-                  <strong>
-                    {hasShipmentStarted(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)
-                      ? getShipmentStatusLabel(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)
-                      : '-'}
-                  </strong>
+                  {currentShipmentStatus && currentShipmentStatus !== "READY" ? (
+                    <span className="order-summary-row">
+                      {getShipmentStatusLabel(currentShipmentStatus)}
+                    </span>
+                  ) : (
+                    <span className="order-summary-row">-</span>
+                  )}
                 </div>
                 <div className="order-summary-row">
                   <span>택배사</span>
                   <strong>
-                    {hasShipmentStarted(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)
-                      ? activeTracking?.courierName ?? '-'
-                      : '-'}
+                    {hasShipmentStarted(currentShipmentStatus) ? activeTracking?.courierName ?? '-' : '-'}
                   </strong>
                 </div>
                 <div className="order-summary-row">
                   <span>운송장 번호</span>
                   <strong>
-                    {hasShipmentStarted(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)
-                      ? activeTracking?.trackingNumber ?? '-'
-                      : '-'}
+                    {hasShipmentStarted(currentShipmentStatus) ? activeTracking?.trackingNumber ?? '-' : '-'}
                   </strong>
                 </div>
               </div>
@@ -636,6 +601,55 @@ export function OrderLookupPage() {
                 </li>
               ))}
             </ol>
+          </section>
+
+          <section className="surface-card order-lookup-summary">
+            <div className="section-head">
+              <div>
+                <p className="section-kicker">Deposit</p>
+                <h2 className="section-subtitle">입금 정보</h2>
+              </div>
+              <span className="status-pill">{getDepositStatusLabel(order.deposit.depositStatus)}</span>
+            </div>
+
+            <div className="order-lookup-grid">
+              <div className="order-lookup-block">
+                <div className="order-summary-row">
+                  <span>입금 상태</span>
+                  <strong>{getDepositStatusLabel(order.deposit.depositStatus)}</strong>
+                </div>
+                <div className="order-summary-row">
+                  <span>입금 예정 금액</span>
+                  <strong>{formatCurrency(depositExpectedAmount)}</strong>
+                </div>
+                <div className="order-summary-row">
+                  <span>입금 시각</span>
+                  <strong>{formatDateTime(order.deposit.requestedAt)}</strong>
+                </div>
+                <div className="order-summary-row">
+                  <span>확인 시각</span>
+                  <strong>{formatDateTime(order.deposit.confirmedAt)}</strong>
+                </div>
+              </div>
+
+              {/* <div className="order-lookup-block">
+                <div className="order-summary-row">
+                  <span>은행</span>
+                  <strong>{order.deposit.bankName ?? '주문 접수 안내 기준'}</strong>
+                </div>
+                <div className="order-summary-row">
+                  <span>예금주</span>
+                  <strong>{order.deposit.accountHolder ?? '확인 후 안내'}</strong>
+                </div>
+                <div className="order-summary-row">
+                  <span>계좌번호</span>
+                  <strong className="lookup-value-break">
+                    {order.deposit.accountNumber ?? '주문 접수 화면에서 확인'}
+                  </strong>
+                </div>
+              </div> */}
+            </div>
+
           </section>
         </>
       ) : null}

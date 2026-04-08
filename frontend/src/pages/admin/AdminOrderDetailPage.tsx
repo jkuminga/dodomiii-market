@@ -13,6 +13,7 @@ import {
   getAllowedNextOrderStatuses,
   getDepositStatusLabel,
   getOrderStatusLabel,
+  getShipmentStatusPillClass,
   getShipmentStatusLabel,
 } from './adminUtils';
 
@@ -277,7 +278,9 @@ export function AdminOrderDetailPage() {
               </div>
               <div className="admin-summary-item">
                 <span>배송 상태</span>
-                <strong>{getShipmentStatusLabel(order.shipment.shipmentStatus)}</strong>
+                <span className={`status-pill ${getShipmentStatusPillClass(order.shipment.shipmentStatus)}`}>
+                  {getShipmentStatusLabel(order.shipment.shipmentStatus)}
+                </span>
               </div>
               <div className="admin-summary-item">
                 <span>주문 접수 날짜</span>
@@ -547,7 +550,9 @@ export function AdminOrderDetailPage() {
               <div className="admin-summary-grid">
                 <div className="admin-summary-item">
                   <span>현재 배송 상태</span>
-                  <strong>{getShipmentStatusLabel(order.shipment.shipmentStatus)}</strong>
+                  <span className={`status-pill ${getShipmentStatusPillClass(order.shipment.shipmentStatus)}`}>
+                    {getShipmentStatusLabel(order.shipment.shipmentStatus)}
+                  </span>
                 </div>
                 <div className="admin-summary-item">
                   <span>운송장 링크</span>

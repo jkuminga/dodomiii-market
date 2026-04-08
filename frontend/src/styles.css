@@ -1593,6 +1593,24 @@ img {
   color: #6f6157;
 }
 
+.status-pill.is-shipment-ready {
+  background: #eef2f7;
+  color: #394a63;
+  border: 1px solid #d7e0ec;
+}
+
+.status-pill.is-shipment-shipped {
+  background: #e9f6ff;
+  color: #0f5f8f;
+  border: 1px solid #beddff;
+}
+
+.status-pill.is-shipment-delivered {
+  background: #e9f9ed;
+  color: #1e6b3d;
+  border: 1px solid #b9e7c6;
+}
+
 .home-section {
   display: grid;
   gap: 14px;
