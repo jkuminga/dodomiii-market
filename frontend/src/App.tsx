@@ -22,6 +22,7 @@ import { AdminProductEditorPage } from './pages/admin/AdminProductEditorPage';
 import { AdminProductsPage } from './pages/admin/AdminProductsPage';
 import { CatalogPage } from './pages/store/CatalogPage';
 import { CustomCheckoutPage } from './pages/store/CustomCheckoutPage';
+import { CustomOrderProductPage } from './pages/store/CustomOrderProductPage';
 import { DepositRequestCompletePage } from './pages/store/DepositRequestCompletePage';
 import { OrderLookupPage } from './pages/store/OrderLookupPage';
 import { OrderPaymentPage } from './pages/store/OrderPaymentPage';
@@ -435,6 +436,7 @@ function AppFrame() {
         <Route path="/orders/:orderNumber/payment" element={<OrderPaymentPage />} />
         <Route path="/orders/:orderNumber/deposit-request-complete" element={<DepositRequestCompletePage />} />
         <Route path="/products" element={<CatalogPage />} />
+        <Route path="/products/custom-order" element={<CustomOrderProductPage />} />
         <Route path="/products/:productId" element={<ProductDetailPage />} />
         <Route path="/products/:productId/order" element={<OrderPage />} />
         <Route path="/custom-checkout/:token" element={<CustomCheckoutPage />} />

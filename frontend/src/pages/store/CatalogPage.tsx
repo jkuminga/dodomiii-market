@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { ProductArtwork } from '../../components/store/ProductArtwork';
 import { apiClient, CategoryTreeNode, ProductListItem } from '../../lib/api';
+import logoMainImage from '../../assets/images/logo_main3.jpg';
 
 function findCategoryNameBySlug(nodes: CategoryTreeNode[], slug: string): string | null {
   for (const node of nodes) {
@@ -18,6 +19,31 @@ function findCategoryNameBySlug(nodes: CategoryTreeNode[], slug: string): string
     }
   }
   return null;
+}
+
+function findCategoryNodeBySlug(nodes: CategoryTreeNode[], slug: string): CategoryTreeNode | null {
+  for (const node of nodes) {
+    if (node.slug === slug) {
+      return node;
+    }
+
+    if (node.children.length > 0) {
+      const found = findCategoryNodeBySlug(node.children, slug);
+      if (found) {
+        return found;
+      }
+    }
+  }
+
+  return null;
+}
+
+function categoryTreeContainsSlug(node: CategoryTreeNode, slug: string): boolean {
+  if (node.slug === slug) {
+    return true;
+  }
+
+  return node.children.some((child) => categoryTreeContainsSlug(child, slug));
 }
 
 function formatCurrency(value: number): string {
@@ -107,6 +133,21 @@ export function CatalogPage() {
     return findCategoryNameBySlug(categories, categorySlug) ?? '상품';
   }, [categories, categorySlug]);
 
+  const showCustomBouquetItem = useMemo(() => {
+    if (!categorySlug) {
+      return false;
+    }
+
+    const bouquetCategory = findCategoryNodeBySlug(categories, 'bouquet');
+    if (!bouquetCategory) {
+      return categorySlug === 'bouquet';
+    }
+
+    return categoryTreeContainsSlug(bouquetCategory, categorySlug);
+  }, [categories, categorySlug]);
+
+  const hasVisibleItems = showCustomBouquetItem || products.length > 0;
+
   const onMovePage = (nextPage: number) => {
     const next = new URLSearchParams(searchParams);
     next.set('page', String(nextPage));
@@ -127,7 +168,7 @@ export function CatalogPage() {
       {loading ? <LoadingScreen mode="inline" title="상품 목록 로딩 중" message="상품 목록을 불러오고 있습니다." /> : null}
       {error ? <p className="feedback-copy is-error">{error}</p> : null}
 
-      {!loading && !error && products.length === 0 ? (
+      {!loading && !error && !hasVisibleItems ? (
         <section className="surface-card empty-state">
           <p className="section-kicker">No Results</p>
           {/* <h2 className="section-subtitle">조건에 맞는 상품이 없습니다</h2> */}
@@ -135,20 +176,37 @@ export function CatalogPage() {
         </section>
       ) : null}
 
-      {!loading && !error && products.length > 0 ? (
+      {!loading && !error && hasVisibleItems ? (
         <>
           <div className="catalog-grid">
+            {showCustomBouquetItem ? (
+              <Link className="product-tile" key="custom-bouquet-order-item" to="/products/custom-order">
+                <div className="product-media">
+                  <ProductArtwork src={logoMainImage} name="커스텀 주문용 상품" category="꽃다발" />
+                </div>
+
+                <div className="product-body">
+                  <p className="section-kicker">꽃다발</p>
+                  <h2 className="product-name">커스텀 주문용 상품</h2>
+                  <p className="product-description">원하는 색감/구성/예산에 맞춰 꽃다발을 맞춤 제작합니다.</p>
+
+                  <div className="product-meta-row">
+                    <strong className="price-text">상담 후 견적</strong>
+                    <span className="status-pill">상시 접수</span>
+                  </div>
+                </div>
+              </Link>
+            ) : null}
+
             {products.map((product) => (
-              <article className="product-tile" key={product.id}>
-                <Link className="product-media" to={`/products/${product.id}`}>
+              <Link className="product-tile" key={product.id} to={`/products/${product.id}`}>
+                <div className="product-media">
                   <ProductArtwork src={product.thumbnailImageUrl} name={product.name} category={product.categoryName} />
-                </Link>
+                </div>
 
                 <div className="product-body">
                   <p className="section-kicker">{product.categoryName}</p>
-                  <h2 className="product-name">
-                    <Link to={`/products/${product.id}`}>{product.name}</Link>
-                  </h2>
+                  <h2 className="product-name">{product.name}</h2>
                   <p className="product-description">{product.shortDescription ?? '상품 설명이 준비 중입니다.'}</p>
 
                   <div className="product-meta-row">
@@ -157,31 +215,29 @@ export function CatalogPage() {
                       {product.isSoldOut ? '품절' : '판매 중'}
                     </span>
                   </div>
-
-                  <Link className="button button-secondary button-block" to={`/products/${product.id}`}>
-                    상세 보기
-                  </Link>
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
 
-          <div className="pagination-bar">
-            <button className="button button-ghost" type="button" onClick={() => onMovePage(meta.page - 1)} disabled={meta.page <= 1}>
-              이전
-            </button>
-            <span className="pagination-status">
-              {meta.page} / {meta.totalPages || 1}
-            </span>
-            <button
-              className="button button-ghost"
-              type="button"
-              onClick={() => onMovePage(meta.page + 1)}
-              disabled={meta.totalPages === 0 || meta.page >= meta.totalPages}
-            >
-              다음
-            </button>
-          </div>
+          {products.length > 0 ? (
+            <div className="pagination-bar">
+              <button className="button button-ghost" type="button" onClick={() => onMovePage(meta.page - 1)} disabled={meta.page <= 1}>
+                이전
+              </button>
+              <span className="pagination-status">
+                {meta.page} / {meta.totalPages || 1}
+              </span>
+              <button
+                className="button button-ghost"
+                type="button"
+                onClick={() => onMovePage(meta.page + 1)}
+                disabled={meta.totalPages === 0 || meta.page >= meta.totalPages}
+              >
+                다음
+              </button>
+            </div>
+          ) : null}
         </>
       ) : null}
     </main>
