@@ -2313,6 +2313,31 @@ img {
 
 .detail-main-media {
   aspect-ratio: 1 / 1;
+  cursor: grab;
+  user-select: none;
+  touch-action: pan-y;
+  overflow: hidden;
+}
+
+.detail-main-media:active {
+  cursor: grabbing;
+}
+
+.detail-carousel-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+}
+
+.detail-carousel-slide {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+}
+
+.detail-carousel-track.is-dragging {
+  cursor: grabbing;
 }
 
 .detail-carousel-nav {
@@ -2409,6 +2434,7 @@ img {
   height: 6px;
   border-radius: 999px;
   background: rgb(var(--primary-rgb) / 0.2);
+  transition: width 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.3s ease;
 }
 
 .detail-carousel-dot.is-active {

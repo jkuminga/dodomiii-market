@@ -386,7 +386,7 @@ export function OrderLookupPage() {
             ) : null}
           </div> */}
 
-          <div className="lookup-input-row" style={{marginTop : '18px'}}>
+          <div className="lookup-input-row" style={{ marginTop: '18px' }}>
             <label className="field">
               <input
                 value={orderNumberInput}
@@ -414,13 +414,13 @@ export function OrderLookupPage() {
         </section>
       ) : null}
 
-      {!searchOrderNumber && !order ? (
+      {/* {!searchOrderNumber && !order ? (
         <section className="surface-card status-card">
           <p className="section-kicker">Ready</p>
           <h2 className="section-subtitle">조회 준비 완료</h2>
           <p className="feedback-copy">주문번호를 입력하면 최신 주문 상태와 트래킹 정보를 바로 불러옵니다.</p>
         </section>
-      ) : null}
+      ) : null} */}
 
       {order ? (
         <>
@@ -507,7 +507,7 @@ export function OrderLookupPage() {
               ))}
             </ul>
 
-              
+
             <div className='order-lookup-grid'>
               <div className="order-summary-row">
                 <span>상품 금액</span>
@@ -522,7 +522,7 @@ export function OrderLookupPage() {
                 <strong>{formatCurrency(order.pricing.finalTotalPrice)}</strong>
               </div>
             </div>
-            
+
           </section>
 
           <section className="surface-card order-lookup-summary">
@@ -654,11 +654,11 @@ export function OrderLookupPage() {
         </>
       ) : null}
 
-      <div className="inline-actions order-inline-actions">
+      {/* <div className="inline-actions order-inline-actions">
         <Link className="button button-secondary" to="/products">
           상품 둘러보기
         </Link>
-      </div>
+      </div> */}
     </main>
   );
 }
