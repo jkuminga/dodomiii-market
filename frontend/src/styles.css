@@ -1238,7 +1238,8 @@ img {
 }
 
 .loading-screen-page-only {
-  background: rgba(238, 232, 224, 0.96);
+  background: rgb(238, 232, 224);
+  backdrop-filter: none;
 }
 
 .loading-logo-wrap-large {
