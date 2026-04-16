@@ -158,10 +158,9 @@ export function CatalogPage() {
     <main className="m-page catalog-page">
       <section className="surface-hero compact-hero">
         <p className="section-kicker">{categorySlug || 'all'}</p>
-        <h1 className="section-title">{titleCategoryName}</h1>
-        <div className="hero-metrics">
+        <div className="section-title-row">
+          <h1 className="section-title">{titleCategoryName}</h1>
           <span className="metric-chip">{meta.totalItems} items</span>
-          {/* <span className="metric-chip">{sort === 'latest' ? '최신순' : sort === 'price_asc' ? '가격 낮은순' : '가격 높은순'}</span> */}
         </div>
       </section>
 
@@ -222,19 +221,30 @@ export function CatalogPage() {
 
           {products.length > 0 ? (
             <div className="pagination-bar">
-              <button className="button button-ghost" type="button" onClick={() => onMovePage(meta.page - 1)} disabled={meta.page <= 1}>
-                이전
+              <button
+                className="button button-ghost pagination-btn"
+                type="button"
+                onClick={() => onMovePage(meta.page - 1)}
+                disabled={meta.page <= 1}
+                aria-label="이전 페이지"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
               </button>
               <span className="pagination-status">
                 {meta.page} / {meta.totalPages || 1}
               </span>
               <button
-                className="button button-ghost"
+                className="button button-ghost pagination-btn"
                 type="button"
                 onClick={() => onMovePage(meta.page + 1)}
                 disabled={meta.totalPages === 0 || meta.page >= meta.totalPages}
+                aria-label="다음 페이지"
               >
-                다음
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
               </button>
             </div>
           ) : null}
