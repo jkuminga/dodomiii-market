@@ -183,16 +183,16 @@ export function CatalogPage() {
               <Link className="product-tile" key="custom-bouquet-order-item" to="/products/custom-order">
                 <div className="product-media">
                   <ProductArtwork src={logoMainImage} name="커스텀 주문용 상품" category="꽃다발" />
+                  <span className="status-pill">상시 접수</span>
                 </div>
 
                 <div className="product-body">
-                  <p className="section-kicker">꽃다발</p>
+                  <p className="section-kicker-category">꽃다발</p>
                   <h2 className="product-name">커스텀 주문용 상품</h2>
                   <p className="product-description">원하는 색감/구성/예산에 맞춰 꽃다발을 맞춤 제작합니다.</p>
 
                   <div className="product-meta-row">
                     <strong className="price-text">상담 후 견적</strong>
-                    <span className="status-pill">상시 접수</span>
                   </div>
                 </div>
               </Link>
@@ -202,18 +202,18 @@ export function CatalogPage() {
               <Link className="product-tile" key={product.id} to={`/products/${product.id}`}>
                 <div className="product-media">
                   <ProductArtwork src={product.thumbnailImageUrl} name={product.name} category={product.categoryName} />
+                  <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`}>
+                    {product.isSoldOut ? '품절' : '판매 중'}
+                  </span>
                 </div>
 
                 <div className="product-body">
-                  <p className="section-kicker">{product.categoryName}</p>
+                  <p className="section-kicker-category">{product.categoryName}</p>
                   <h2 className="product-name">{product.name}</h2>
                   <p className="product-description">{product.shortDescription ?? '상품 설명이 준비 중입니다.'}</p>
 
                   <div className="product-meta-row">
                     <strong className="price-text">{formatCurrency(product.basePrice)}</strong>
-                    <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`}>
-                      {product.isSoldOut ? '품절' : '판매 중'}
-                    </span>
                   </div>
                 </div>
               </Link>

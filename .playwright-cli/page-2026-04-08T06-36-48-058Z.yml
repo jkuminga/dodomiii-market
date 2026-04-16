@@ -1,0 +1,5 @@
+- main [ref=e4]:
+  - generic [ref=e5]:
+    - paragraph [ref=e6]: Admin Access
+    - heading "세션 확인 중" [level=1] [ref=e7]
+    - paragraph [ref=e8]: 로그인된 운영 계정이 있는지 먼저 확인하고 있습니다.

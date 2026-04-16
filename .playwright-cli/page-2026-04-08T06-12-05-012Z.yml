@@ -1,0 +1,51 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - link "DODOMIII Handmade market" [ref=e6]:
+        - /url: /
+        - generic [ref=e8]:
+          - strong [ref=e9]: DODOMIII
+          - generic [ref=e10]: Handmade market
+      - navigation "데스크탑 주요 메뉴" [ref=e11]:
+        - link "홈" [ref=e12]:
+          - /url: /
+        - link "카테고리" [ref=e14]:
+          - /url: /products
+        - link "공지사항" [ref=e15]:
+          - /url: /notices
+        - link "QnA" [ref=e16]:
+          - /url: /qna
+      - link "주문조회" [ref=e18]:
+        - /url: /orders
+  - main [ref=e19]:
+    - generic [ref=e24]:
+      - paragraph [ref=e25]: DODOMII MARKET
+      - heading "DODOMIIII MARKET" [level=1] [ref=e26]
+      - paragraph [ref=e27]: 시들지 않는 마음을 선물하세요
+      - generic [ref=e28]:
+        - link "상품 보기" [ref=e29]:
+          - /url: /products
+        - link "공지 확인" [ref=e30]:
+          - /url: /notices
+    - generic [ref=e31]:
+      - alert [ref=e32]: 카테고리 데이터를 불러오지 못해 기본 카드로 표시합니다.
+      - generic [ref=e33]:
+        - generic [ref=e36]: 준비 중
+        - generic [ref=e39]: 준비 중
+        - generic [ref=e42]: 준비 중
+        - link "모든 상품 보기" [ref=e43]:
+          - /url: /products
+          - generic [ref=e45]: 모든 상품 보기
+    - generic [ref=e46]:
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - paragraph [ref=e49]: Latest Picks
+          - heading "최근 등록된 상품" [level=2] [ref=e50]
+          - paragraph [ref=e51]: 홈 화면에서 바로 비교할 수 있도록 최근 등록 상품 4개만 선별해 노출합니다.
+        - link "신상품 보기" [ref=e52]:
+          - /url: /products?sort=latest
+      - alert [ref=e53]:
+        - paragraph [ref=e54]: Failed to fetch
+        - button "다시 불러오기" [ref=e55]
+    - link "관리자 로그인" [ref=e57]:
+      - /url: /admin/login

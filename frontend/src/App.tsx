@@ -271,8 +271,8 @@ function HomePage() {
 
             const cardStyle = category.imageUrl
               ? {
-                  backgroundImage: `linear-gradient(180deg, rgba(18, 46, 26, 0.18), rgba(12, 34, 20, 0.72)), url(${category.imageUrl})`,
-                }
+                backgroundImage: `linear-gradient(180deg, rgba(18, 46, 26, 0.18), rgba(12, 34, 20, 0.72)), url(${category.imageUrl})`,
+              }
               : undefined;
 
             return (
@@ -316,7 +316,6 @@ function HomePage() {
           <div>
             <p className="section-kicker">Latest Picks</p>
             <h2 className="section-subtitle">최근 등록된 상품</h2>
-            <p className="section-copy section-copy-compact">홈 화면에서 바로 비교할 수 있도록 최근 등록 상품 4개만 선별해 노출합니다.</p>
           </div>
           <Link className="button-text" to="/products?sort=latest">
             신상품 보기

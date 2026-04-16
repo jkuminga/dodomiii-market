@@ -1,0 +1,63 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button "이전 화면으로 이동" [ref=e7]:
+        - img [ref=e8]
+      - link "DODOMIII Handmade market" [ref=e10]:
+        - /url: /
+        - generic [ref=e12]:
+          - strong [ref=e13]: DODOMIII
+          - generic [ref=e14]: Handmade market
+      - link "상품 목록으로 이동" [ref=e16]:
+        - /url: /products
+        - img [ref=e17]
+  - complementary [ref=e20]:
+    - generic [ref=e21]:
+      - generic [ref=e22]:
+        - paragraph [ref=e23]: DODOMIII MARKET
+        - heading [level=2] [ref=e24]: Menu
+      - button [ref=e25]:
+        - img [ref=e26]
+    - navigation [ref=e28]:
+      - link [ref=e29]:
+        - /url: /
+        - generic [ref=e30]: 홈
+        - generic [ref=e31]: 메인 화면으로 이동
+      - region [ref=e32]:
+        - generic [ref=e33]: 카테고리
+        - paragraph [ref=e34]: 표시할 카테고리가 없습니다.
+      - link [ref=e35]:
+        - /url: /notices
+        - generic [ref=e36]: 공지사항
+        - generic [ref=e37]: 공지와 운영 소식 확인
+      - link [ref=e38]:
+        - /url: /qna
+        - generic [ref=e39]: QnA
+        - generic [ref=e40]: 자주 묻는 질문과 문의
+  - main [ref=e41]:
+    - generic [ref=e42]:
+      - img "커스텀 주문용 상품" [ref=e44]
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - generic [ref=e47]:
+            - paragraph [ref=e48]: 꽃다발
+            - heading "커스텀 주문용 상품" [level=1] [ref=e49]
+            - paragraph [ref=e50]: 원하시는 색감, 예산, 수령 일정에 맞춰 상담 후 제작해드리는 주문 전용 상품입니다.
+            - paragraph [ref=e51]: 요청 내용을 카카오톡으로 남겨주시면 확인 후 제작 가능 여부와 진행 방법을 안내드립니다.
+          - complementary "커스텀 주문 문의 액션" [ref=e52]:
+            - generic [ref=e53]:
+              - paragraph [ref=e54]: 빠른 상담
+              - paragraph [ref=e55]: 카카오톡 문의로 맞춤 제작 상담을 바로 시작할 수 있습니다.
+            - generic [ref=e56]:
+              - link "카카오톡 문의하기 열기" [ref=e57]:
+                - /url: https://open.kakao.com/o/sGNOJYJh
+                - img "카카오톡 문의하기" [ref=e58]
+              - link "상품 목록으로" [ref=e59]:
+                - /url: /products
+        - generic "커스텀 주문 안내" [ref=e60]:
+          - generic [ref=e61]:
+            - paragraph [ref=e62]: 추천 문의 내용
+            - paragraph [ref=e63]: 원하시는 색감, 행사 목적, 예상 예산을 함께 남겨주시면 상담이 더 빨라집니다.
+          - generic [ref=e64]:
+            - paragraph [ref=e65]: 진행 방식
+            - paragraph [ref=e66]: 상담 후 제작 가능 여부와 예상 일정, 수령 방법을 순서대로 안내드립니다.
