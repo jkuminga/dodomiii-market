@@ -1238,12 +1238,12 @@ img {
 }
 
 .loading-screen-page-only {
-  background: rgba(247, 241, 234, 0.96);
+  background: rgba(238, 232, 224, 0.96);
 }
 
 .loading-logo-wrap-large {
-  width: 1000px;
-  height: 1000px;
+  width: clamp(200px, 30vw, 1000px);
+  height: clamp(200px, 30vw, 1000px);
   max-width: 92vw;
   max-height: 92vh;
   border-radius: 56px;
@@ -1275,18 +1275,20 @@ img {
   height: 100px;
   border-radius: 16px;
   padding: 5px;
-  box-shadow: 0 8px 18px rgb(var(--primary-deep-rgb) / 0.1);
+  background: #ffffff;
+  box-shadow: 0 4px 12px -2px rgb(var(--primary-deep-rgb) / 0.24), 0 2px 6px -2px rgb(var(--primary-deep-rgb) / 0.18);
 }
 
 .loading-logo-wrap.loading-logo-wrap-large {
-  width: 400px;
-  height: 400px;
+  width: clamp(200px, 30vw, 400px);
+  height: clamp(200px, 30vw, 400px);
   max-width: 92vw;
   max-height: 92vh;
   border-radius: 15px;
   padding: 10px;
+  background: #ffffff;
   /* border : rgb(var(--primary-deep-rgb)); */
-  box-shadow: 0px 35px 45px 30px rgb(var(--primary-deep-rgb) / 0.4);
+  box-shadow: 0 12px 32px -8px rgb(var(--primary-deep-rgb) / 0.32), 0 4px 16px -4px rgb(var(--primary-deep-rgb) / 0.24);
 }
 
 .loading-screen-inline .loading-copy {
