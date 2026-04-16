@@ -1219,24 +1219,15 @@ img {
   gap: 12px;
 }
 
+.section-kicker,
 .section-kicker-category {
   margin: 0;
   color: var(--primary);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.15em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  box-shadow: var(--shadow);
   padding: 0 0 7px 0;
-}
-
-.section-kicker {
-  margin: 0;
-  color: var(--primary);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
 }
 
 .promo-card .section-kicker {
