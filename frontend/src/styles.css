@@ -1245,7 +1245,8 @@ img {
 
 .section-title-row {
   display: flex;
-  align-items: center; /* Switched to center for better vertical balance when spaced apart */
+  align-items: center;
+  /* Switched to center for better vertical balance when spaced apart */
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
@@ -1595,19 +1596,45 @@ img {
   margin: 0;
   padding: 8px 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgb(var(--primary-rgb) / 0.12);
-  color: var(--primary);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgb(var(--primary-rgb) / 0.25);
+  color: var(--primary-deep);
   font-size: 0.76rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   width: fit-content;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
 }
 
 .hero-copy-landing {
   align-content: end;
   padding: 20px 18px 24px;
+}
+
+@media (max-width: 959px) {
+  .hero-copy-landing .hero-title,
+  .hero-copy-landing .hero-summary,
+  .hero-copy-landing .hero-actions {
+    display: none;
+  }
+  
+  .hero-copy-landing {
+    padding-bottom: 32px;
+    display: block;
+  }
+
+  .hero-copy-landing .hero-badge {
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    font-size: 0.8rem;
+    margin: 0;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  }
 }
 
 .hero-actions,
@@ -1644,9 +1671,13 @@ img {
 .hero-landing-gradient {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 88% 16%, rgba(91, 194, 121, 0.18), transparent 34%),
-    linear-gradient(180deg, rgba(20, 46, 24, 0.12) 0%, rgba(18, 46, 26, 0.7) 64%, rgba(10, 30, 16, 0.84) 100%);
+  background: linear-gradient(
+    220deg,
+    transparent 45%,
+    rgba(0, 0, 0, 0.08) 65%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  pointer-events: none;
 }
 
 .hero-landing-grain {
@@ -1955,7 +1986,7 @@ img {
 .metric-chip {
   background: rgba(0, 0, 0, 0.035);
   border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 
+  box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.06),
     0 1px 0 rgba(255, 255, 255, 0.6);
   color: var(--primary-deep);
@@ -2153,7 +2184,7 @@ img {
   border-radius: 14px;
   background: rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(0, 0, 0, 0.04);
-  box-shadow: 
+  box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.06),
     0 1px 0 rgba(255, 255, 255, 0.6);
 }
@@ -2169,9 +2200,10 @@ img {
   border-radius: 999px;
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--primary); /* Green color for numbers */
+  color: var(--primary);
+  /* Green color for numbers */
   letter-spacing: 0.05em;
-  box-shadow: 
+  box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.06),
     0 1px 0 rgba(255, 255, 255, 0.6);
 }

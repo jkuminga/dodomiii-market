@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
-import logoMain from './assets/images/logo_main3.jpg';
+// import logoMain from './assets/images/logo_main3.jpg';
+import logoMain from './assets/images/Hero_image.png';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { BottomNav } from './components/mobile/BottomNav';
 import { MobileHeader } from './components/mobile/MobileHeader';
@@ -242,9 +243,9 @@ function HomePage() {
             <Link className="button" to="/products">
               상품 보기
             </Link>
-            <Link className="button-text" to="/notices">
+            {/* <Link className="button-text" to="/notices">
               공지 확인
-            </Link>
+            </Link> */}
           </div>
         </div>
       </section>
