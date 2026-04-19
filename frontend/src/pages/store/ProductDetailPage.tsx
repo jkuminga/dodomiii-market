@@ -71,8 +71,8 @@ export function ProductDetailPage() {
     () =>
       product
         ? [...product.options]
-            .filter((option) => option.isActive)
-            .sort((left, right) => left.sortOrder - right.sortOrder)
+          .filter((option) => option.isActive)
+          .sort((left, right) => left.sortOrder - right.sortOrder)
         : [],
     [product],
   );
@@ -353,9 +353,6 @@ export function ProductDetailPage() {
               <h2 className="section-subtitle">옵션 선택</h2>
               <p className="section-copy section-copy-compact">원하시는 옵션을 선택하세요.</p>
             </div>
-            <Link className="button-text" to={orderHref}>
-              주문서 열기
-            </Link>
           </div>
 
           {activeOptions.length > 0 ? (
@@ -446,83 +443,83 @@ export function ProductDetailPage() {
 
       <div className="detail-tab-column">
         <section className="surface-card detail-tab-card">
-        <div className="tab-bar" role="tablist" aria-label="상품 세부 정보">
-          <button
-            className={`tab-button ${activeTab === 'story' ? 'is-active' : ''}`}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'story'}
-            onClick={() => setActiveTab('story')}
-          >
-            상세정보
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'options' ? 'is-active' : ''}`}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'options'}
-            onClick={() => setActiveTab('options')}
-          >
-            옵션
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'policy' ? 'is-active' : ''}`}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'policy'}
-            onClick={() => setActiveTab('policy')}
-          >
-            안내
-          </button>
-        </div>
+          <div className="tab-bar" role="tablist" aria-label="상품 세부 정보">
+            <button
+              className={`tab-button ${activeTab === 'story' ? 'is-active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'story'}
+              onClick={() => setActiveTab('story')}
+            >
+              상세정보
+            </button>
+            <button
+              className={`tab-button ${activeTab === 'options' ? 'is-active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'options'}
+              onClick={() => setActiveTab('options')}
+            >
+              옵션
+            </button>
+            <button
+              className={`tab-button ${activeTab === 'policy' ? 'is-active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'policy'}
+              onClick={() => setActiveTab('policy')}
+            >
+              안내
+            </button>
+          </div>
 
-        <div className="tab-panel">
-          {activeTab === 'story' ? (
-            <div className="policy-copy">
-              {detailImages.length > 0 ? (
-                <div className="detail-story-images" aria-label="상품 상세 이미지">
-                  {detailImages.map((image, index) => (
-                    <div className="detail-story-image-frame" key={image.id}>
-                      <img
-                        className="detail-story-original-image"
-                        src={image.imageUrl}
-                        alt={`${product.name} 상세 이미지 ${index + 1}`}
-                        loading="lazy"
-                      />
-                    </div>
+          <div className="tab-panel">
+            {activeTab === 'story' ? (
+              <div className="policy-copy">
+                {detailImages.length > 0 ? (
+                  <div className="detail-story-images" aria-label="상품 상세 이미지">
+                    {detailImages.map((image, index) => (
+                      <div className="detail-story-image-frame" key={image.id}>
+                        <img
+                          className="detail-story-original-image"
+                          src={image.imageUrl}
+                          alt={`${product.name} 상세 이미지 ${index + 1}`}
+                          loading="lazy"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {activeTab === 'options' ? (
+              activeOptions.length === 0 ? (
+                <p className="feedback-copy">등록된 옵션이 없습니다.</p>
+              ) : (
+                <ul className="option-list">
+                  {activeOptions.map((option) => (
+                    <li className="option-item" key={option.id}>
+                      <div>
+                        <strong>{option.optionGroupName}</strong>
+                        <p>{option.optionValue}</p>
+                      </div>
+                      <span>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '추가 금액 없음'}</span>
+                    </li>
                   ))}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+                </ul>
+              )
+            ) : null}
 
-          {activeTab === 'options' ? (
-            activeOptions.length === 0 ? (
-              <p className="feedback-copy">등록된 옵션이 없습니다.</p>
-            ) : (
-              <ul className="option-list">
-                {activeOptions.map((option) => (
-                  <li className="option-item" key={option.id}>
-                    <div>
-                      <strong>{option.optionGroupName}</strong>
-                      <p>{option.optionValue}</p>
-                    </div>
-                    <span>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '추가 금액 없음'}</span>
-                  </li>
-                ))}
-              </ul>
-            )
-          ) : null}
-
-          {activeTab === 'policy' ? (
-            <div className="policy-copy">
-              <p>{product.description ?? '상품 상세 설명이 아직 등록되지 않았습니다.'}</p>
-              <hr style={{margin : '20px 20px 0 0 ', color:'gray'}}></hr>
-              <p>🚚 {product.policy.shippingInfo}</p>
-              <p>🙏 {product.policy.refundInfo}</p>
-            </div>
-          ) : null}
-        </div>
+            {activeTab === 'policy' ? (
+              <div className="policy-copy">
+                <p>{product.description ?? '상품 상세 설명이 아직 등록되지 않았습니다.'}</p>
+                <hr style={{ margin: '20px 20px 0 0 ', color: 'gray' }}></hr>
+                <p>🚚 {product.policy.shippingInfo}</p>
+                <p>🙏 {product.policy.refundInfo}</p>
+              </div>
+            ) : null}
+          </div>
         </section>
       </div>
 
