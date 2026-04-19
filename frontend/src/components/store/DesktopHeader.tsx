@@ -8,7 +8,7 @@ const primaryNavItems = [
   { to: '/', label: '홈' },
   { to: '/products', label: '카테고리' },
   { to: '/notices', label: '공지사항' },
-  { to: '/qna', label: 'QnA' },
+  { to: '/qna', label: 'Q&A' },
 ];
 
 export function DesktopHeader() {

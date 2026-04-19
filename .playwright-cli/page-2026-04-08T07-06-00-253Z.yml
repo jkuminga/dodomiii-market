@@ -1,0 +1,116 @@
+- main [ref=e27]:
+  - generic [ref=e28]:
+    - complementary [ref=e29]:
+      - generic [ref=e30]:
+        - generic [ref=e32]:
+          - paragraph [ref=e33]: Admin Console
+          - heading "관리자 페이지" [level=1] [ref=e34]
+        - button "사이드바 접기" [expanded] [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+      - generic [ref=e39]:
+        - generic [ref=e40]: 도
+        - generic [ref=e41]:
+          - strong [ref=e42]: 도현정
+          - generic [ref=e43]: dhj0406 · SUPER
+      - navigation "관리자 주요 메뉴" [ref=e44]:
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - paragraph [ref=e47]: Section
+            - heading "운영 메뉴" [level=2] [ref=e48]
+          - generic [ref=e49]:
+            - link "카테고리 관리" [ref=e50] [cursor=pointer]:
+              - /url: /admin/categories
+              - img [ref=e52]
+              - generic [ref=e55]:
+                - strong [ref=e56]: 카테고리 관리
+                - generic [ref=e57]: 분류 구조와 노출 상태 정리
+            - link "상품 관리" [ref=e58] [cursor=pointer]:
+              - /url: /admin/products
+              - img [ref=e60]
+              - generic [ref=e63]:
+                - strong [ref=e64]: 상품 관리
+                - generic [ref=e65]: 상품 등록, 수정, 판매 상태 운영
+            - link "관리자 계정 관리" [ref=e66] [cursor=pointer]:
+              - /url: /admin/accounts
+              - img [ref=e68]
+              - generic [ref=e71]:
+                - strong [ref=e72]: 관리자 계정 관리
+                - generic [ref=e73]: 운영 계정과 대표 입금계좌 설정
+            - link "홈 팝업" [ref=e74] [cursor=pointer]:
+              - /url: /admin/home-popup
+              - img [ref=e76]
+              - generic [ref=e78]:
+                - strong [ref=e79]: 홈 팝업
+                - generic [ref=e80]: 메인 진입 팝업 이미지 운영
+            - link "커스텀 주문" [ref=e81] [cursor=pointer]:
+              - /url: /admin/custom-orders
+              - img [ref=e83]
+              - generic [ref=e85]:
+                - strong [ref=e86]: 커스텀 주문
+                - generic [ref=e87]: 개별 링크 생성과 사용 상태 확인
+            - link "주문 관리" [ref=e88] [cursor=pointer]:
+              - /url: /admin/orders
+              - img [ref=e90]
+              - generic [ref=e92]:
+                - strong [ref=e93]: 주문 관리
+                - generic [ref=e94]: 주문 상태, 입금, 배송 운영
+      - button "로그아웃" [ref=e96] [cursor=pointer]:
+        - img [ref=e98]
+        - generic [ref=e101]:
+          - strong [ref=e102]: 로그아웃
+          - generic [ref=e103]: 현재 운영 세션 종료
+    - generic [ref=e105]:
+      - generic [ref=e106]:
+        - generic [ref=e107]:
+          - paragraph [ref=e108]: Accounts
+          - heading "관리자 계정 관리" [level=2] [ref=e109]
+        - generic [ref=e110]:
+          - generic [ref=e111]:
+            - text: 총 계정
+            - strong [ref=e112]: "1"
+          - generic [ref=e113]:
+            - text: 활성 계정
+            - strong [ref=e114]: "1"
+          - generic [ref=e115]:
+            - text: 대표 계좌
+            - strong [ref=e116]: 미설정
+      - generic [ref=e117]:
+        - generic [ref=e118]:
+          - generic [ref=e119]:
+            - paragraph [ref=e120]: List
+            - heading "관리자 계정 목록" [level=3] [ref=e121]
+            - paragraph [ref=e122]: 권한, 상태, 대표 입금계좌 설정을 한 화면에서 빠르게 확인하고 관리합니다.
+          - generic [ref=e123]:
+            - button "새로고침" [ref=e124] [cursor=pointer]
+            - button "+ 관리자 계정 생성" [ref=e125] [cursor=pointer]
+        - table [ref=e127]:
+          - rowgroup [ref=e128]:
+            - row "이름 아이디 권한 상태 대표계좌 연락처 수정일 액션" [ref=e129]:
+              - columnheader "이름" [ref=e130]
+              - columnheader "아이디" [ref=e131]
+              - columnheader "권한" [ref=e132]
+              - columnheader "상태" [ref=e133]
+              - columnheader "대표계좌" [ref=e134]
+              - columnheader "연락처" [ref=e135]
+              - columnheader "수정일" [ref=e136]
+              - columnheader "액션" [ref=e137]
+          - rowgroup [ref=e138]:
+            - row "도현정 이메일 미등록 dhj0406 SUPER 활성 일반 - 2026. 3. 29. 오전 1:29 수정 삭제" [ref=e139]:
+              - cell "도현정 이메일 미등록" [ref=e140]:
+                - generic [ref=e141]:
+                  - strong [ref=e142]: 도현정
+                  - generic [ref=e143]: 이메일 미등록
+              - cell "dhj0406" [ref=e144]:
+                - code [ref=e145]: dhj0406
+              - cell "SUPER" [ref=e146]:
+                - generic [ref=e147]: SUPER
+              - cell "활성" [ref=e148]:
+                - generic [ref=e149]: 활성
+              - cell "일반" [ref=e150]:
+                - generic [ref=e151]: 일반
+              - cell "-" [ref=e152]
+              - cell "2026. 3. 29. 오전 1:29" [ref=e153]
+              - cell "수정 삭제" [ref=e154]:
+                - generic [ref=e155]:
+                  - button "수정" [ref=e156] [cursor=pointer]
+                  - button "삭제" [ref=e157] [cursor=pointer]

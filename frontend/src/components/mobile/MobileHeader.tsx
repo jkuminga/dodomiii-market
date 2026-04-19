@@ -179,7 +179,7 @@ export function MobileHeader() {
         <nav className="m-menu-links" aria-label="주요 메뉴">
           <Link className="m-menu-link" to="/">
             <span>홈</span>
-            <small>메인 화면으로 이동</small>
+            {/* <small>메인 화면으로 이동</small> */}
           </Link>
 
           <section className="m-menu-category-group" aria-label="카테고리 메뉴">
@@ -210,15 +210,17 @@ export function MobileHeader() {
                           </button>
                         ) : null}
                       </div>
-                      {hasChildren && expanded ? (
-                        <ul className="m-menu-category-child-list">
-                          {root.children.map((child) => (
-                            <li key={child.slug}>
-                              <Link className="m-menu-category-child-link" to={`/products?categorySlug=${child.slug}`}>
-                                {child.name}
-                              </Link>
-                            </li>
-                          ))}
+                      {hasChildren ? (
+                        <ul className={`m-menu-category-child-list ${expanded ? 'is-open' : ''}`}>
+                          <div className="m-menu-category-child-list-inner">
+                            {root.children.map((child) => (
+                              <li key={child.slug}>
+                                <Link className="m-menu-category-child-link" to={`/products?categorySlug=${child.slug}`}>
+                                  {child.name}
+                                </Link>
+                              </li>
+                            ))}
+                          </div>
                         </ul>
                       ) : null}
                     </li>
@@ -230,12 +232,12 @@ export function MobileHeader() {
 
           <Link className="m-menu-link" to="/notices">
             <span>공지사항</span>
-            <small>공지와 운영 소식 확인</small>
+            {/* <small>공지와 운영 소식 확인</small> */}
           </Link>
 
           <Link className="m-menu-link" to="/qna">
-            <span>QnA</span>
-            <small>자주 묻는 질문과 문의</small>
+            <span>Q&A</span>
+            {/* <small>자주 묻는 질문과 문의</small> */}
           </Link>
         </nav>
       </aside>

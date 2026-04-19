@@ -1,0 +1,46 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - link "DODOMIII Handmade market" [ref=e6]:
+        - /url: /
+        - generic [ref=e8]:
+          - strong [ref=e9]: DODOMIII
+          - generic [ref=e10]: Handmade market
+      - navigation "데스크탑 주요 메뉴" [ref=e11]:
+        - link "홈" [ref=e12]:
+          - /url: /
+        - link "카테고리" [ref=e14]:
+          - /url: /products
+        - link "공지사항" [ref=e15]:
+          - /url: /notices
+        - link "QnA" [ref=e16]:
+          - /url: /qna
+      - link "주문조회" [ref=e18]:
+        - /url: /orders
+  - main [ref=e19]:
+    - generic [ref=e20]:
+      - img "커스텀 주문용 상품" [ref=e22]
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - generic [ref=e25]:
+            - paragraph [ref=e26]: 꽃다발
+            - heading "커스텀 주문용 상품" [level=1] [ref=e27]
+            - paragraph [ref=e28]: 원하시는 색감, 예산, 수령 일정에 맞춰 상담 후 제작해드리는 주문 전용 상품입니다.
+            - paragraph [ref=e29]: 요청 내용을 카카오톡으로 남겨주시면 확인 후 제작 가능 여부와 진행 방법을 안내드립니다.
+          - complementary "커스텀 주문 문의 액션" [ref=e30]:
+            - generic [ref=e31]:
+              - paragraph [ref=e32]: 빠른 상담
+              - paragraph [ref=e33]: 카카오톡 문의로 맞춤 제작 상담을 바로 시작할 수 있습니다.
+            - generic [ref=e34]:
+              - link "카카오톡 문의하기 열기" [ref=e35]:
+                - /url: https://open.kakao.com/o/sGNOJYJh
+                - img "카카오톡 문의하기" [ref=e36]
+              - link "상품 목록으로" [ref=e37]:
+                - /url: /products
+        - generic "커스텀 주문 안내" [ref=e38]:
+          - generic [ref=e39]:
+            - paragraph [ref=e40]: 추천 문의 내용
+            - paragraph [ref=e41]: 원하시는 색감, 행사 목적, 예상 예산을 함께 남겨주시면 상담이 더 빨라집니다.
+          - generic [ref=e42]:
+            - paragraph [ref=e43]: 진행 방식
+            - paragraph [ref=e44]: 상담 후 제작 가능 여부와 예상 일정, 수령 방법을 순서대로 안내드립니다.

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
-import logoMain from './assets/images/logo_main3.jpg';
+// import logoMain from './assets/images/logo_main3.jpg';
+import logoMain from './assets/images/Hero_image.png';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { BottomNav } from './components/mobile/BottomNav';
 import { MobileHeader } from './components/mobile/MobileHeader';
@@ -242,9 +243,9 @@ function HomePage() {
             <Link className="button" to="/products">
               상품 보기
             </Link>
-            <Link className="button-text" to="/notices">
+            {/* <Link className="button-text" to="/notices">
               공지 확인
-            </Link>
+            </Link> */}
           </div>
         </div>
       </section>
@@ -271,8 +272,8 @@ function HomePage() {
 
             const cardStyle = category.imageUrl
               ? {
-                  backgroundImage: `linear-gradient(180deg, rgba(18, 46, 26, 0.18), rgba(12, 34, 20, 0.72)), url(${category.imageUrl})`,
-                }
+                backgroundImage: `linear-gradient(180deg, rgba(18, 46, 26, 0.18), rgba(12, 34, 20, 0.72)), url(${category.imageUrl})`,
+              }
               : undefined;
 
             return (
@@ -311,12 +312,11 @@ function HomePage() {
         </div>
       </section> */}
 
-      <section className="home-section">
+      {/* <section className="home-section">
         <div className="section-head">
           <div>
             <p className="section-kicker">Latest Picks</p>
             <h2 className="section-subtitle">최근 등록된 상품</h2>
-            <p className="section-copy section-copy-compact">홈 화면에서 바로 비교할 수 있도록 최근 등록 상품 4개만 선별해 노출합니다.</p>
           </div>
           <Link className="button-text" to="/products?sort=latest">
             신상품 보기
@@ -359,7 +359,7 @@ function HomePage() {
             ))}
           </div>
         ) : null}
-      </section>
+      </section> */}
 
       <div className="home-admin-entry">
         <Link className="home-admin-link" to="/admin/login">
@@ -391,7 +391,7 @@ function QnaPage() {
     <main className="m-page page-centered">
       <section className="surface-card">
         <p className="section-kicker">Q&A</p>
-        <h1 className="section-title">QnA</h1>
+        <h1 className="section-title">Q&A</h1>
         <p className="section-copy">문의 게시판은 준비 중입니다.</p>
       </section>
     </main>

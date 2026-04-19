@@ -158,10 +158,9 @@ export function CatalogPage() {
     <main className="m-page catalog-page">
       <section className="surface-hero compact-hero">
         <p className="section-kicker">{categorySlug || 'all'}</p>
-        <h1 className="section-title">{titleCategoryName}</h1>
-        <div className="hero-metrics">
+        <div className="section-title-row">
+          <h1 className="section-title">{titleCategoryName}</h1>
           <span className="metric-chip">{meta.totalItems} items</span>
-          {/* <span className="metric-chip">{sort === 'latest' ? '최신순' : sort === 'price_asc' ? '가격 낮은순' : '가격 높은순'}</span> */}
         </div>
       </section>
 
@@ -183,16 +182,16 @@ export function CatalogPage() {
               <Link className="product-tile" key="custom-bouquet-order-item" to="/products/custom-order">
                 <div className="product-media">
                   <ProductArtwork src={logoMainImage} name="커스텀 주문용 상품" category="꽃다발" />
+                  <span className="status-pill">상시 접수</span>
                 </div>
 
                 <div className="product-body">
-                  <p className="section-kicker">꽃다발</p>
+                  <p className="section-kicker-category">꽃다발</p>
                   <h2 className="product-name">커스텀 주문용 상품</h2>
                   <p className="product-description">원하는 색감/구성/예산에 맞춰 꽃다발을 맞춤 제작합니다.</p>
 
                   <div className="product-meta-row">
                     <strong className="price-text">상담 후 견적</strong>
-                    <span className="status-pill">상시 접수</span>
                   </div>
                 </div>
               </Link>
@@ -202,18 +201,18 @@ export function CatalogPage() {
               <Link className="product-tile" key={product.id} to={`/products/${product.id}`}>
                 <div className="product-media">
                   <ProductArtwork src={product.thumbnailImageUrl} name={product.name} category={product.categoryName} />
+                  <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`}>
+                    {product.isSoldOut ? '품절' : '판매 중'}
+                  </span>
                 </div>
 
                 <div className="product-body">
-                  <p className="section-kicker">{product.categoryName}</p>
+                  <p className="section-kicker-category">{product.categoryName}</p>
                   <h2 className="product-name">{product.name}</h2>
                   <p className="product-description">{product.shortDescription ?? '상품 설명이 준비 중입니다.'}</p>
 
                   <div className="product-meta-row">
                     <strong className="price-text">{formatCurrency(product.basePrice)}</strong>
-                    <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`}>
-                      {product.isSoldOut ? '품절' : '판매 중'}
-                    </span>
                   </div>
                 </div>
               </Link>
@@ -222,19 +221,30 @@ export function CatalogPage() {
 
           {products.length > 0 ? (
             <div className="pagination-bar">
-              <button className="button button-ghost" type="button" onClick={() => onMovePage(meta.page - 1)} disabled={meta.page <= 1}>
-                이전
+              <button
+                className="button button-ghost pagination-btn"
+                type="button"
+                onClick={() => onMovePage(meta.page - 1)}
+                disabled={meta.page <= 1}
+                aria-label="이전 페이지"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
               </button>
               <span className="pagination-status">
                 {meta.page} / {meta.totalPages || 1}
               </span>
               <button
-                className="button button-ghost"
+                className="button button-ghost pagination-btn"
                 type="button"
                 onClick={() => onMovePage(meta.page + 1)}
                 disabled={meta.totalPages === 0 || meta.page >= meta.totalPages}
+                aria-label="다음 페이지"
               >
-                다음
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
               </button>
             </div>
           ) : null}

@@ -22,6 +22,11 @@ export function ProductDetailPage() {
   const [selectedOrderOptionByGroup, setSelectedOrderOptionByGroup] = useState<Record<string, string[]>>({});
   const [expandedOptionGroups, setExpandedOptionGroups] = useState<Record<string, boolean>>({});
 
+  // Carousel Dragging State
+  const [dragStartX, setDragStartX] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
   useEffect(() => {
     if (!productId) {
       return;
@@ -66,8 +71,8 @@ export function ProductDetailPage() {
     () =>
       product
         ? [...product.options]
-            .filter((option) => option.isActive)
-            .sort((left, right) => left.sortOrder - right.sortOrder)
+          .filter((option) => option.isActive)
+          .sort((left, right) => left.sortOrder - right.sortOrder)
         : [],
     [product],
   );
@@ -145,6 +150,7 @@ export function ProductDetailPage() {
   });
   const thumbnailImages = orderedImages.filter((image) => image.imageType === 'THUMBNAIL');
   const detailImages = orderedImages.filter((image) => image.imageType === 'DETAIL');
+
   const activeImage = thumbnailImages[selectedImageIndex] ?? thumbnailImages[0] ?? orderedImages[0];
   const selectedThumbnailIndex =
     thumbnailImages.length === 0 ? 0 : Math.min(selectedImageIndex, Math.max(thumbnailImages.length - 1, 0));
@@ -154,8 +160,43 @@ export function ProductDetailPage() {
       return;
     }
 
-    const normalizedIndex = ((nextIndex % thumbnailImages.length) + thumbnailImages.length) % thumbnailImages.length;
+    const normalizedIndex = Math.max(0, Math.min(nextIndex, thumbnailImages.length - 1));
     setSelectedImageIndex(normalizedIndex);
+    setDragOffset(0); // Reset drag offset on manual navigation
+  };
+
+  // Drag Handlers
+  const handleDragStart = (clientX: number) => {
+    if (thumbnailImages.length <= 1) return;
+    setDragStartX(clientX);
+    setIsDragging(true);
+  };
+
+  const handleDragMove = (clientX: number) => {
+    if (dragStartX === null) return;
+    const offset = clientX - dragStartX;
+
+    // Resistance at bounds
+    if ((selectedImageIndex === 0 && offset > 0) || (selectedImageIndex === thumbnailImages.length - 1 && offset < 0)) {
+      setDragOffset(offset * 0.3);
+    } else {
+      setDragOffset(offset);
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (dragStartX === null) return;
+
+    const threshold = 60; // drag threshold to switch slides
+    if (dragOffset > threshold && selectedImageIndex > 0) {
+      setSelectedImageIndex(selectedImageIndex - 1);
+    } else if (dragOffset < -threshold && selectedImageIndex < thumbnailImages.length - 1) {
+      setSelectedImageIndex(selectedImageIndex + 1);
+    }
+
+    setDragStartX(null);
+    setDragOffset(0);
+    setIsDragging(false);
   };
 
   const orderParams = new URLSearchParams();
@@ -187,8 +228,36 @@ export function ProductDetailPage() {
 
       <div className="detail-media-column">
         <section className="surface-card detail-media-card">
-          <div className="detail-main-media">
-            <ProductArtwork src={activeImage?.imageUrl} name={product.name} category={product.categoryName} />
+          <div
+            className="detail-main-media"
+            onDragStart={(e) => e.preventDefault()}
+            onMouseDown={(e) => handleDragStart(e.clientX)}
+            onMouseMove={(e) => handleDragMove(e.clientX)}
+            onMouseUp={handleDragEnd}
+            onMouseLeave={handleDragEnd}
+            onTouchStart={(e) => handleDragStart(e.touches[0].clientX)}
+            onTouchMove={(e) => handleDragMove(e.touches[0].clientX)}
+            onTouchEnd={handleDragEnd}
+          >
+            <div
+              className={`detail-carousel-track ${isDragging ? 'is-dragging' : ''}`}
+              style={{
+                transform: `translateX(calc(${-selectedImageIndex * 100}% + ${dragOffset}px))`,
+                transition: isDragging ? 'none' : 'transform 0.45s cubic-bezier(0.2, 0, 0.2, 1)',
+              }}
+            >
+              {thumbnailImages.map((image) => (
+                <div className="detail-carousel-slide" key={image.id}>
+                  <ProductArtwork src={image.imageUrl} name={product.name} category={product.categoryName} />
+                </div>
+              ))}
+              {thumbnailImages.length === 0 && orderedImages.length > 0 && (
+                <div className="detail-carousel-slide">
+                  <ProductArtwork src={orderedImages[0].imageUrl} name={product.name} category={product.categoryName} />
+                </div>
+              )}
+            </div>
+
             <div className="detail-media-overlay">
               <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`}>{product.isSoldOut ? '품절' : '판매 중'}</span>
               {product.consultationRequired ? <span className="status-pill">상담 필요</span> : null}
@@ -199,7 +268,11 @@ export function ProductDetailPage() {
                 <button
                   type="button"
                   className="detail-carousel-nav is-prev"
-                  onClick={() => handleSelectImage(selectedThumbnailIndex - 1)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectImage(selectedImageIndex - 1);
+                  }}
+                  disabled={selectedImageIndex === 0}
                   aria-label="이전 이미지"
                 >
                   <span aria-hidden="true">‹</span>
@@ -207,7 +280,11 @@ export function ProductDetailPage() {
                 <button
                   type="button"
                   className="detail-carousel-nav is-next"
-                  onClick={() => handleSelectImage(selectedThumbnailIndex + 1)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSelectImage(selectedImageIndex + 1);
+                  }}
+                  disabled={selectedImageIndex === thumbnailImages.length - 1}
                   aria-label="다음 이미지"
                 >
                   <span aria-hidden="true">›</span>
@@ -276,9 +353,6 @@ export function ProductDetailPage() {
               <h2 className="section-subtitle">옵션 선택</h2>
               <p className="section-copy section-copy-compact">원하시는 옵션을 선택하세요.</p>
             </div>
-            <Link className="button-text" to={orderHref}>
-              주문서 열기
-            </Link>
           </div>
 
           {activeOptions.length > 0 ? (
@@ -369,83 +443,83 @@ export function ProductDetailPage() {
 
       <div className="detail-tab-column">
         <section className="surface-card detail-tab-card">
-        <div className="tab-bar" role="tablist" aria-label="상품 세부 정보">
-          <button
-            className={`tab-button ${activeTab === 'story' ? 'is-active' : ''}`}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'story'}
-            onClick={() => setActiveTab('story')}
-          >
-            상세정보
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'options' ? 'is-active' : ''}`}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'options'}
-            onClick={() => setActiveTab('options')}
-          >
-            옵션
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'policy' ? 'is-active' : ''}`}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'policy'}
-            onClick={() => setActiveTab('policy')}
-          >
-            안내
-          </button>
-        </div>
+          <div className="tab-bar" role="tablist" aria-label="상품 세부 정보">
+            <button
+              className={`tab-button ${activeTab === 'story' ? 'is-active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'story'}
+              onClick={() => setActiveTab('story')}
+            >
+              상세정보
+            </button>
+            <button
+              className={`tab-button ${activeTab === 'options' ? 'is-active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'options'}
+              onClick={() => setActiveTab('options')}
+            >
+              옵션
+            </button>
+            <button
+              className={`tab-button ${activeTab === 'policy' ? 'is-active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'policy'}
+              onClick={() => setActiveTab('policy')}
+            >
+              안내
+            </button>
+          </div>
 
-        <div className="tab-panel">
-          {activeTab === 'story' ? (
-            <div className="policy-copy">
-              {detailImages.length > 0 ? (
-                <div className="detail-story-images" aria-label="상품 상세 이미지">
-                  {detailImages.map((image, index) => (
-                    <div className="detail-story-image-frame" key={image.id}>
-                      <img
-                        className="detail-story-original-image"
-                        src={image.imageUrl}
-                        alt={`${product.name} 상세 이미지 ${index + 1}`}
-                        loading="lazy"
-                      />
-                    </div>
+          <div className="tab-panel">
+            {activeTab === 'story' ? (
+              <div className="policy-copy">
+                {detailImages.length > 0 ? (
+                  <div className="detail-story-images" aria-label="상품 상세 이미지">
+                    {detailImages.map((image, index) => (
+                      <div className="detail-story-image-frame" key={image.id}>
+                        <img
+                          className="detail-story-original-image"
+                          src={image.imageUrl}
+                          alt={`${product.name} 상세 이미지 ${index + 1}`}
+                          loading="lazy"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {activeTab === 'options' ? (
+              activeOptions.length === 0 ? (
+                <p className="feedback-copy">등록된 옵션이 없습니다.</p>
+              ) : (
+                <ul className="option-list">
+                  {activeOptions.map((option) => (
+                    <li className="option-item" key={option.id}>
+                      <div>
+                        <strong>{option.optionGroupName}</strong>
+                        <p>{option.optionValue}</p>
+                      </div>
+                      <span>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '추가 금액 없음'}</span>
+                    </li>
                   ))}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+                </ul>
+              )
+            ) : null}
 
-          {activeTab === 'options' ? (
-            activeOptions.length === 0 ? (
-              <p className="feedback-copy">등록된 옵션이 없습니다.</p>
-            ) : (
-              <ul className="option-list">
-                {activeOptions.map((option) => (
-                  <li className="option-item" key={option.id}>
-                    <div>
-                      <strong>{option.optionGroupName}</strong>
-                      <p>{option.optionValue}</p>
-                    </div>
-                    <span>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '추가 금액 없음'}</span>
-                  </li>
-                ))}
-              </ul>
-            )
-          ) : null}
-
-          {activeTab === 'policy' ? (
-            <div className="policy-copy">
-              <p>{product.description ?? '상품 상세 설명이 아직 등록되지 않았습니다.'}</p>
-              <hr style={{margin : '20px 20px 0 0 ', color:'gray'}}></hr>
-              <p>🚚 {product.policy.shippingInfo}</p>
-              <p>🙏 {product.policy.refundInfo}</p>
-            </div>
-          ) : null}
-        </div>
+            {activeTab === 'policy' ? (
+              <div className="policy-copy">
+                <p>{product.description ?? '상품 상세 설명이 아직 등록되지 않았습니다.'}</p>
+                <hr style={{ margin: '20px 20px 0 0 ', color: 'gray' }}></hr>
+                <p>🚚 {product.policy.shippingInfo}</p>
+                <p>🙏 {product.policy.refundInfo}</p>
+              </div>
+            ) : null}
+          </div>
         </section>
       </div>
 

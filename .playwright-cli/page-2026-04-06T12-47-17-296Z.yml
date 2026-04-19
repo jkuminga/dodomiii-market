@@ -1,0 +1,54 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - link "DODOMIII Handmade market" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e8]:
+          - strong [ref=e9]: DODOMIII
+          - generic [ref=e10]: Handmade market
+      - navigation "데스크탑 주요 메뉴" [ref=e11]:
+        - link "홈" [ref=e12] [cursor=pointer]:
+          - /url: /
+        - generic [ref=e13]:
+          - link "카테고리" [ref=e14] [cursor=pointer]:
+            - /url: /products
+          - menu "카테고리 전체 목록" [ref=e27]:
+            - paragraph [ref=e28]: 표시할 카테고리가 없습니다.
+        - link "공지사항" [ref=e15] [cursor=pointer]:
+          - /url: /notices
+        - link "QnA" [ref=e16] [cursor=pointer]:
+          - /url: /qna
+      - link "주문조회" [ref=e18] [cursor=pointer]:
+        - /url: /orders
+  - main [ref=e19]:
+    - generic [ref=e33]:
+      - paragraph [ref=e34]: DODOMII MARKET
+      - heading "꽃다발처럼 남는 선물, 오늘 바로 고르는 홈" [level=1] [ref=e35]
+      - paragraph [ref=e36]: 레트로 무드의 메인 비주얼 위에서 뜨개 꽃다발과 모루 오브제를 빠르게 탐색하고 주문까지 이어지는 첫 화면입니다.
+      - generic [ref=e37]:
+        - link "상품 보기" [ref=e38] [cursor=pointer]:
+          - /url: /products
+        - link "공지 확인" [ref=e39] [cursor=pointer]:
+          - /url: /notices
+    - generic [ref=e40]:
+      - alert [ref=e41]: 카테고리 데이터를 불러오지 못해 기본 카드로 표시합니다.
+      - generic [ref=e42]:
+        - generic [ref=e45]: 준비 중
+        - generic [ref=e48]: 준비 중
+        - generic [ref=e51]: 준비 중
+        - link "모든 상품 보기" [ref=e52] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e54]: 모든 상품 보기
+    - generic [ref=e55]:
+      - generic [ref=e56]:
+        - generic [ref=e57]:
+          - paragraph [ref=e58]: Latest Picks
+          - heading "최근 등록된 상품" [level=2] [ref=e59]
+          - paragraph [ref=e60]: 홈 화면에서 바로 비교할 수 있도록 최근 등록 상품 4개만 선별해 노출합니다.
+        - link "신상품 보기" [ref=e61] [cursor=pointer]:
+          - /url: /products?sort=latest
+      - alert [ref=e62]:
+        - paragraph [ref=e63]: Failed to fetch
+        - button "다시 불러오기" [ref=e64] [cursor=pointer]
+    - link "관리자 로그인" [ref=e66] [cursor=pointer]:
+      - /url: /admin/login

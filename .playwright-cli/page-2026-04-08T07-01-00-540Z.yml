@@ -1,0 +1,126 @@
+- main [ref=e19]:
+  - generic [ref=e20]:
+    - complementary [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e24]:
+          - paragraph [ref=e25]: Admin Console
+          - heading "관리자 페이지" [level=1] [ref=e26]
+        - button "사이드바 접기" [expanded] [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+      - generic [ref=e31]:
+        - generic [ref=e32]: 도
+        - generic [ref=e33]:
+          - strong [ref=e34]: 도현정
+          - generic [ref=e35]: dhj0406 · SUPER
+      - navigation "관리자 주요 메뉴" [ref=e36]:
+        - generic [ref=e37]:
+          - generic [ref=e38]:
+            - paragraph [ref=e39]: Section
+            - heading "운영 메뉴" [level=2] [ref=e40]
+          - generic [ref=e41]:
+            - link "카테고리 관리" [ref=e42] [cursor=pointer]:
+              - /url: /admin/categories
+              - img [ref=e44]
+              - generic [ref=e47]:
+                - strong [ref=e48]: 카테고리 관리
+                - generic [ref=e49]: 분류 구조와 노출 상태 정리
+            - link "상품 관리" [ref=e50] [cursor=pointer]:
+              - /url: /admin/products
+              - img [ref=e52]
+              - generic [ref=e55]:
+                - strong [ref=e56]: 상품 관리
+                - generic [ref=e57]: 상품 등록, 수정, 판매 상태 운영
+            - link "관리자 계정 관리" [ref=e58] [cursor=pointer]:
+              - /url: /admin/accounts
+              - img [ref=e60]
+              - generic [ref=e63]:
+                - strong [ref=e64]: 관리자 계정 관리
+                - generic [ref=e65]: 운영 계정과 대표 입금계좌 설정
+            - link "홈 팝업" [ref=e66] [cursor=pointer]:
+              - /url: /admin/home-popup
+              - img [ref=e68]
+              - generic [ref=e70]:
+                - strong [ref=e71]: 홈 팝업
+                - generic [ref=e72]: 메인 진입 팝업 이미지 운영
+            - link "커스텀 주문" [ref=e73] [cursor=pointer]:
+              - /url: /admin/custom-orders
+              - img [ref=e75]
+              - generic [ref=e77]:
+                - strong [ref=e78]: 커스텀 주문
+                - generic [ref=e79]: 개별 링크 생성과 사용 상태 확인
+            - link "주문 관리" [ref=e80] [cursor=pointer]:
+              - /url: /admin/orders
+              - img [ref=e82]
+              - generic [ref=e84]:
+                - strong [ref=e85]: 주문 관리
+                - generic [ref=e86]: 주문 상태, 입금, 배송 운영
+      - button "로그아웃" [ref=e88] [cursor=pointer]:
+        - img [ref=e90]
+        - generic [ref=e93]:
+          - strong [ref=e94]: 로그아웃
+          - generic [ref=e95]: 현재 운영 세션 종료
+    - generic [ref=e97]:
+      - generic [ref=e98]:
+        - generic [ref=e99]:
+          - paragraph [ref=e100]: Categories
+          - heading "카테고리 관리" [level=2] [ref=e101]
+        - generic [ref=e102]:
+          - generic [ref=e103]:
+            - text: 전체
+            - strong [ref=e104]: "0"
+          - generic [ref=e105]:
+            - text: 노출 중
+            - strong [ref=e106]: "0"
+          - generic [ref=e107]:
+            - text: 숨김
+            - strong [ref=e108]: "0"
+          - generic [ref=e109]:
+            - text: 홈 화면 노출
+            - strong [ref=e110]: 0/3
+      - generic [ref=e111]:
+        - generic [ref=e112]:
+          - generic [ref=e113]:
+            - generic [ref=e114]:
+              - paragraph [ref=e115]: List
+              - heading "카테고리 구조" [level=3] [ref=e116]
+            - generic [ref=e117]:
+              - button "순서 적용" [disabled] [ref=e118]
+              - button "+" [ref=e119] [cursor=pointer]
+              - button "새로고침" [disabled] [ref=e120]:
+                - img [ref=e121]
+          - status [ref=e124]:
+            - img [ref=e127]
+            - generic [ref=e131]:
+              - strong [ref=e132]: 카테고리 로딩 중
+              - paragraph [ref=e133]: 카테고리 목록을 불러오고 있습니다.
+        - generic [ref=e134]:
+          - button "카테고리 생성" [ref=e135] [cursor=pointer]:
+            - generic [ref=e136]: 카테고리 생성
+          - generic [ref=e138]:
+            - paragraph [ref=e139]: Create
+            - heading "카테고리 생성" [level=3] [ref=e140]
+          - generic [ref=e141]:
+            - generic [ref=e142]: 상위 카테고리
+            - combobox "상위 카테고리" [ref=e143]:
+              - option "최상위" [selected]
+          - generic [ref=e144]:
+            - generic [ref=e145]: 카테고리명
+            - textbox "카테고리명" [ref=e146]
+          - generic [ref=e147]:
+            - generic [ref=e148]: 영문명
+            - textbox "영문명" [ref=e149]:
+              - /placeholder: bouquet
+          - generic [ref=e150]:
+            - generic [ref=e151]: 대표 이미지 URL
+            - textbox "대표 이미지 URL" [ref=e152]:
+              - /placeholder: https://...
+          - generic [ref=e153]:
+            - generic [ref=e154]: 정렬 순서
+            - spinbutton "정렬 순서" [ref=e155]: "0"
+          - generic [ref=e156]:
+            - checkbox "스토어에 노출" [checked] [ref=e157]
+            - generic [ref=e158]: 스토어에 노출
+          - generic [ref=e159]:
+            - checkbox "홈 화면 카테고리 섹션에 노출 (최대 3개)" [ref=e160]
+            - generic [ref=e161]: 홈 화면 카테고리 섹션에 노출 (최대 3개)
+          - button "카테고리 생성" [ref=e163] [cursor=pointer]
