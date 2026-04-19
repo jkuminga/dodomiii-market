@@ -311,7 +311,7 @@ function HomePage() {
         </div>
       </section> */}
 
-      <section className="home-section">
+      {/* <section className="home-section">
         <div className="section-head">
           <div>
             <p className="section-kicker">Latest Picks</p>
@@ -358,7 +358,7 @@ function HomePage() {
             ))}
           </div>
         ) : null}
-      </section>
+      </section> */}
 
       <div className="home-admin-entry">
         <Link className="home-admin-link" to="/admin/login">
@@ -390,7 +390,7 @@ function QnaPage() {
     <main className="m-page page-centered">
       <section className="surface-card">
         <p className="section-kicker">Q&A</p>
-        <h1 className="section-title">QnA</h1>
+        <h1 className="section-title">Q&A</h1>
         <p className="section-copy">문의 게시판은 준비 중입니다.</p>
       </section>
     </main>

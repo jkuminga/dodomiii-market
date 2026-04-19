@@ -408,8 +408,7 @@ export function OrderLookupPage() {
 
       {lookupError ? (
         <section className="surface-card status-card" role="alert">
-          <p className="section-kicker">Unavailable</p>
-          <h2 className="section-subtitle">주문을 찾지 못했습니다</h2>
+          <p className="section-kicker" style={{ 'color': 'black' }}>Unavailable</p>
           <p className="feedback-copy is-error">{lookupError}</p>
         </section>
       ) : null}
