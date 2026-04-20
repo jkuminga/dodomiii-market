@@ -206,13 +206,21 @@ export type ProductDetail = {
     imageUrl: string;
     sortOrder: number;
   }>;
-  options: Array<{
+  optionGroups: Array<{
     id: number;
-    optionGroupName: string;
-    optionValue: string;
-    extraPrice: number;
+    name: string;
+    selectionType: 'SINGLE' | 'QUANTITY';
+    isRequired: boolean;
     isActive: boolean;
     sortOrder: number;
+    options: Array<{
+      id: number;
+      name: string;
+      extraPrice: number;
+      maxQuantity: number | null;
+      isActive: boolean;
+      sortOrder: number;
+    }>;
   }>;
   policy: {
     shippingInfo: string;
@@ -242,11 +250,20 @@ export type AdminProductImageInput = {
 };
 
 export type AdminProductOptionInput = {
-  optionGroupName: string;
-  optionValue: string;
+  name: string;
   extraPrice: number;
+  maxQuantity?: number | null;
   isActive: boolean;
   sortOrder: number;
+};
+
+export type AdminProductOptionGroupInput = {
+  name: string;
+  selectionType: 'SINGLE' | 'QUANTITY';
+  isRequired: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  options: AdminProductOptionInput[];
 };
 
 export type AdminProductPayload = {
@@ -261,7 +278,7 @@ export type AdminProductPayload = {
   consultationRequired: boolean;
   stockQuantity: number | null;
   images: AdminProductImageInput[];
-  options: AdminProductOptionInput[];
+  optionGroups: AdminProductOptionGroupInput[];
 };
 
 export type AdminHomePopup = {
@@ -362,15 +379,25 @@ export type AdminProductDetail = {
     sortOrder: number;
     createdAt: string;
   }>;
-  options: Array<{
+  optionGroups: Array<{
     id: number;
-    optionGroupName: string;
-    optionValue: string;
-    extraPrice: number;
+    name: string;
+    selectionType: 'SINGLE' | 'QUANTITY';
+    isRequired: boolean;
     isActive: boolean;
     sortOrder: number;
     createdAt: string;
     updatedAt: string;
+    options: Array<{
+      id: number;
+      name: string;
+      extraPrice: number;
+      maxQuantity: number | null;
+      isActive: boolean;
+      sortOrder: number;
+      createdAt: string;
+      updatedAt: string;
+    }>;
   }>;
   orderItemCount: number;
   createdAt: string;
@@ -410,8 +437,11 @@ export type StoreShipmentStatus = 'READY' | 'SHIPPED' | 'DELIVERED';
 export type StoreOrderCreateRequest = {
   items: Array<{
     productId: number;
-    productOptionId?: number;
-    selectedOptionIds?: number[];
+    selectedOptions?: Array<{
+      productOptionGroupId: number;
+      productOptionId: number;
+      quantity: number;
+    }>;
     quantity: number;
   }>;
   contact: {
@@ -442,6 +472,14 @@ export type StoreOrderCreateResponse = {
     unitPrice: number;
     quantity: number;
     lineTotalPrice: number;
+    selectedOptions: Array<{
+      productOptionGroupId: number;
+      productOptionId: number;
+      groupNameSnapshot: string;
+      optionNameSnapshot: string;
+      extraPriceSnapshot: number;
+      quantity: number;
+    }>;
   }>;
   pricing: {
     totalProductPrice: number;

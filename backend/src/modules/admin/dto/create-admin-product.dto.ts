@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 
 import { AdminProductImageDto } from './admin-product-image.dto';
-import { AdminProductOptionDto } from './admin-product-option.dto';
+import { AdminProductOptionGroupDto } from './admin-product-option.dto';
 
 export class CreateAdminProductDto {
   @IsInt()
@@ -65,6 +65,6 @@ export class CreateAdminProductDto {
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => AdminProductOptionDto)
-  options?: AdminProductOptionDto[];
+  @Type(() => AdminProductOptionGroupDto)
+  optionGroups?: AdminProductOptionGroupDto[];
 }

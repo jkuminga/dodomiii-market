@@ -101,9 +101,13 @@ const adminOrderDetailArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
         productOption: {
           select: {
             id: true,
-            optionGroupName: true,
-            optionValue: true,
+            name: true,
             isActive: true,
+            optionGroup: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
       },
@@ -600,8 +604,8 @@ export class AdminOrdersService {
         productOption: item.productOption
           ? {
               id: Number(item.productOption.id),
-              optionGroupName: item.productOption.optionGroupName,
-              optionValue: item.productOption.optionValue,
+              optionGroupName: item.productOption.optionGroup.name,
+              optionValue: item.productOption.name,
               isActive: item.productOption.isActive,
             }
           : null,

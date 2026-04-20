@@ -47,6 +47,14 @@ type ResolvedOrderItem = {
   unitPrice: number;
   quantity: number;
   lineTotalPrice: number;
+  selectedOptions: Array<{
+    productOptionGroupId: bigint;
+    productOptionId: bigint;
+    groupNameSnapshot: string;
+    optionNameSnapshot: string;
+    extraPriceSnapshot: number;
+    quantity: number;
+  }>;
 };
 
 type DepositAccountInfo = {
@@ -70,6 +78,14 @@ type StoreCreatedOrderItem = {
   unitPrice: number;
   quantity: number;
   lineTotalPrice: number;
+  selectedOptions: Array<{
+    productOptionGroupId: number;
+    productOptionId: number;
+    groupNameSnapshot: string;
+    optionNameSnapshot: string;
+    extraPriceSnapshot: number;
+    quantity: number;
+  }>;
 };
 
 type StoreCreatedOrderResponse = {
@@ -499,16 +515,22 @@ export class StoreService {
                 sortOrder: true,
               },
             },
-            options: {
+            optionGroups: {
               where: { isActive: true },
               orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-              select: {
-                id: true,
-                optionGroupName: true,
-                optionValue: true,
-                extraPrice: true,
-                isActive: true,
-                sortOrder: true,
+              include: {
+                options: {
+                  where: { isActive: true },
+                  orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+                  select: {
+                    id: true,
+                    name: true,
+                    extraPrice: true,
+                    maxQuantity: true,
+                    isActive: true,
+                    sortOrder: true,
+                  },
+                },
               },
             },
           },
@@ -539,13 +561,21 @@ export class StoreService {
             imageUrl: image.imageUrl,
             sortOrder: image.sortOrder,
           })),
-          options: product.options.map((option) => ({
-            id: Number(option.id),
-            optionGroupName: option.optionGroupName,
-            optionValue: option.optionValue,
-            extraPrice: option.extraPrice,
-            isActive: option.isActive,
-            sortOrder: option.sortOrder,
+          optionGroups: product.optionGroups.map((group) => ({
+            id: Number(group.id),
+            name: group.name,
+            selectionType: group.selectionType,
+            isRequired: group.isRequired,
+            isActive: group.isActive,
+            sortOrder: group.sortOrder,
+            options: group.options.map((option) => ({
+              id: Number(option.id),
+              name: option.name,
+              extraPrice: option.extraPrice,
+              maxQuantity: option.maxQuantity,
+              isActive: option.isActive,
+              sortOrder: option.sortOrder,
+            })),
           })),
           policy: {
             shippingInfo: '주문 후 제작이 시작되며 지역/재고 상황에 따라 배송일이 달라질 수 있습니다.',
@@ -956,13 +986,22 @@ export class StoreService {
         basePrice: true,
         isSoldOut: true,
         stockQuantity: true,
-        options: {
+        optionGroups: {
           where: { isActive: true },
           select: {
             id: true,
-            optionGroupName: true,
-            optionValue: true,
-            extraPrice: true,
+            name: true,
+            selectionType: true,
+            isRequired: true,
+            options: {
+              where: { isActive: true },
+              select: {
+                id: true,
+                name: true,
+                extraPrice: true,
+                maxQuantity: true,
+              },
+            },
           },
         },
       },
@@ -986,15 +1025,23 @@ export class StoreService {
         });
       }
 
-      const requestedOptionIds =
-        item.selectedOptionIds && item.selectedOptionIds.length > 0
-          ? [...new Set(item.selectedOptionIds)]
-          : item.productOptionId
-            ? [item.productOptionId]
-            : [];
+      const requestedSelections = item.selectedOptions ?? [];
+      const groupSelectionCounts = new Map<number, number>();
+      const selectedOptions = requestedSelections.map((selection) => {
+        const group = product.optionGroups.find(
+          (candidate) => Number(candidate.id) === selection.productOptionGroupId,
+        );
 
-      const selectedOptions = requestedOptionIds.map((optionId) => {
-        const option = product.options.find((candidate) => Number(candidate.id) === optionId);
+        if (!group) {
+          throw new BadRequestException({
+            code: 'VALIDATION_ERROR',
+            message: '유효하지 않은 상품 옵션 그룹입니다.',
+          });
+        }
+
+        const option = group.options.find(
+          (candidate) => Number(candidate.id) === selection.productOptionId,
+        );
 
         if (!option) {
           throw new BadRequestException({
@@ -1003,16 +1050,69 @@ export class StoreService {
           });
         }
 
-        return option;
+        if (group.selectionType === 'SINGLE' && selection.quantity !== 1) {
+          throw new BadRequestException({
+            code: 'VALIDATION_ERROR',
+            message: '단일 선택 옵션은 수량 1개만 선택할 수 있습니다.',
+          });
+        }
+
+        if (group.selectionType === 'QUANTITY') {
+          if (option.maxQuantity !== null && selection.quantity > option.maxQuantity) {
+            throw new BadRequestException({
+              code: 'VALIDATION_ERROR',
+              message: `${group.name} 옵션의 최대 수량을 초과했습니다.`,
+            });
+          }
+        } else {
+          const count = groupSelectionCounts.get(selection.productOptionGroupId) ?? 0;
+          if (count >= 1) {
+            throw new BadRequestException({
+              code: 'VALIDATION_ERROR',
+              message: `${group.name} 그룹에서는 하나의 옵션만 선택할 수 있습니다.`,
+            });
+          }
+          groupSelectionCounts.set(selection.productOptionGroupId, count + 1);
+        }
+
+        return {
+          group,
+          option,
+          quantity: selection.quantity,
+        };
       });
 
-      const totalExtraPrice = selectedOptions.reduce((sum, option) => sum + option.extraPrice, 0);
+      for (const group of product.optionGroups) {
+        if (!group.isRequired) {
+          continue;
+        }
+
+        const hasSelection = selectedOptions.some(
+          (selection) => Number(selection.group.id) === Number(group.id),
+        );
+
+        if (!hasSelection) {
+          throw new BadRequestException({
+            code: 'VALIDATION_ERROR',
+            message: `${group.name} 옵션을 선택해 주세요.`,
+          });
+        }
+      }
+
+      const totalExtraPrice = selectedOptions.reduce(
+        (sum, selection) => sum + selection.option.extraPrice * selection.quantity,
+        0,
+      );
       const unitPrice = product.basePrice + totalExtraPrice;
       const optionGroupsSnapshot = new Map<string, string[]>();
-      for (const option of selectedOptions) {
-        const values = optionGroupsSnapshot.get(option.optionGroupName) ?? [];
-        values.push(option.optionValue);
-        optionGroupsSnapshot.set(option.optionGroupName, values);
+      for (const selection of selectedOptions) {
+        const valueLabel =
+          selection.quantity > 1
+            ? `${selection.option.name} x${selection.quantity}`
+            : selection.option.name;
+        const values = optionGroupsSnapshot.get(selection.group.name) ?? [];
+        values.push(valueLabel);
+        optionGroupsSnapshot.set(selection.group.name, values);
       }
 
       const optionNameSnapshot =
@@ -1023,7 +1123,10 @@ export class StoreService {
               .map(([groupName, values]) => `${groupName}: ${values.join(', ')}`)
               .join(' / ')
           : null;
-      const resolvedProductOptionId = selectedOptions.length === 1 ? selectedOptions[0].id : null;
+      const resolvedProductOptionId =
+        selectedOptions.length === 1 && selectedOptions[0].quantity === 1
+          ? selectedOptions[0].option.id
+          : null;
 
       return {
         productId: product.id,
@@ -1034,6 +1137,14 @@ export class StoreService {
         unitPrice,
         quantity: item.quantity,
         lineTotalPrice: unitPrice * item.quantity,
+        selectedOptions: selectedOptions.map((selection) => ({
+          productOptionGroupId: selection.group.id,
+          productOptionId: selection.option.id,
+          groupNameSnapshot: selection.group.name,
+          optionNameSnapshot: selection.option.name,
+          extraPriceSnapshot: selection.option.extraPrice,
+          quantity: selection.quantity,
+        })),
       };
     });
   }
@@ -1147,19 +1258,38 @@ export class StoreService {
     });
 
     if (params.resolvedItems.length > 0) {
-      await tx.orderItem.createMany({
-        data: params.resolvedItems.map((item) => ({
-          orderId: order.id,
-          productId: item.productId,
-          productOptionId: item.productOptionId,
-          productNameSnapshot: item.productNameSnapshot,
-          optionNameSnapshot: item.optionNameSnapshot,
-          optionValueSnapshot: item.optionValueSnapshot,
-          unitPrice: item.unitPrice,
-          quantity: item.quantity,
-          lineTotalPrice: item.lineTotalPrice,
-        })),
-      });
+      for (const item of params.resolvedItems) {
+        const createdOrderItem = await tx.orderItem.create({
+          data: {
+            orderId: order.id,
+            productId: item.productId,
+            productOptionId: item.productOptionId,
+            productNameSnapshot: item.productNameSnapshot,
+            optionNameSnapshot: item.optionNameSnapshot,
+            optionValueSnapshot: item.optionValueSnapshot,
+            unitPrice: item.unitPrice,
+            quantity: item.quantity,
+            lineTotalPrice: item.lineTotalPrice,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        if (item.selectedOptions.length > 0) {
+          await tx.orderItemOptionSelection.createMany({
+            data: item.selectedOptions.map((selection) => ({
+              orderItemId: createdOrderItem.id,
+              productOptionGroupId: selection.productOptionGroupId,
+              productOptionId: selection.productOptionId,
+              groupNameSnapshot: selection.groupNameSnapshot,
+              optionNameSnapshot: selection.optionNameSnapshot,
+              extraPriceSnapshot: selection.extraPriceSnapshot,
+              quantity: selection.quantity,
+            })),
+          });
+        }
+      }
     }
 
     await tx.orderContact.create({
@@ -1199,6 +1329,14 @@ export class StoreService {
         unitPrice: item.unitPrice,
         quantity: item.quantity,
         lineTotalPrice: item.lineTotalPrice,
+        selectedOptions: item.selectedOptions.map((selection) => ({
+          productOptionGroupId: Number(selection.productOptionGroupId),
+          productOptionId: Number(selection.productOptionId),
+          groupNameSnapshot: selection.groupNameSnapshot,
+          optionNameSnapshot: selection.optionNameSnapshot,
+          extraPriceSnapshot: selection.extraPriceSnapshot,
+          quantity: selection.quantity,
+        })),
       })),
       pricing: params.pricing,
       depositInfo: {

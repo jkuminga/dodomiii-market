@@ -13,6 +13,11 @@ enum ProductImageType {
   DETAIL
 }
 
+enum ProductOptionSelectionType {
+  SINGLE
+  QUANTITY
+}
+
 enum OrderStatus {
   PENDING_PAYMENT
   PAYMENT_REQUESTED
@@ -81,10 +86,10 @@ model Product {
   updatedAt            DateTime  @updatedAt @map("updated_at")
   deletedAt            DateTime? @map("deleted_at")
 
-  category   Category        @relation(fields: [categoryId], references: [id])
-  images     ProductImage[]
-  options    ProductOption[]
-  orderItems OrderItem[]
+  category     Category             @relation(fields: [categoryId], references: [id])
+  images       ProductImage[]
+  optionGroups ProductOptionGroup[]
+  orderItems   OrderItem[]
 
   @@index([categoryId], map: "idx_products_category_id")
   @@index([isVisible, isSoldOut], map: "idx_products_visibility_stock")
@@ -108,21 +113,41 @@ model ProductImage {
   @@map("product_images")
 }
 
+model ProductOptionGroup {
+  id            BigInt                     @id @default(autoincrement())
+  productId     BigInt                     @map("product_id")
+  name          String                     @db.VarChar(100)
+  selectionType ProductOptionSelectionType @map("selection_type")
+  isRequired    Boolean                    @default(false) @map("is_required")
+  isActive      Boolean                    @default(true) @map("is_active")
+  sortOrder     Int                        @default(0) @map("sort_order")
+  createdAt     DateTime                   @default(now()) @map("created_at")
+  updatedAt     DateTime                   @updatedAt @map("updated_at")
+
+  product               Product                    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  options               ProductOption[]
+  orderItemSelections   OrderItemOptionSelection[]
+
+  @@index([productId, isActive], map: "idx_product_option_groups_product_active")
+  @@map("product_option_groups")
+}
+
 model ProductOption {
-  id              BigInt   @id @default(autoincrement())
-  productId       BigInt   @map("product_id")
-  optionGroupName String   @map("option_group_name") @db.VarChar(100)
-  optionValue     String   @map("option_value") @db.VarChar(100)
-  extraPrice      Int      @default(0) @map("extra_price")
-  isActive        Boolean  @default(true) @map("is_active")
-  sortOrder       Int      @default(0) @map("sort_order")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id            BigInt   @id @default(autoincrement())
+  optionGroupId BigInt   @map("option_group_id")
+  name          String   @map("option_value") @db.VarChar(100)
+  extraPrice    Int      @default(0) @map("extra_price")
+  maxQuantity   Int?     @map("max_quantity")
+  isActive      Boolean  @default(true) @map("is_active")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orderItems OrderItem[]
+  optionGroup         ProductOptionGroup         @relation(fields: [optionGroupId], references: [id], onDelete: Cascade)
+  orderItems          OrderItem[]
+  orderItemSelections OrderItemOptionSelection[]
 
-  @@index([productId, isActive], map: "idx_product_options_product_active")
+  @@index([optionGroupId, isActive], map: "idx_product_options_group_active")
   @@map("product_options")
 }
 
@@ -161,19 +186,40 @@ model OrderItem {
   productOptionId     BigInt?  @map("product_option_id")
   productNameSnapshot String   @map("product_name_snapshot") @db.VarChar(150)
   optionNameSnapshot  String?  @map("option_name_snapshot") @db.VarChar(100)
-  optionValueSnapshot String?  @map("option_value_snapshot") @db.VarChar(100)
+  optionValueSnapshot String?  @map("option_value_snapshot") @db.VarChar(255)
   unitPrice           Int      @map("unit_price")
   quantity            Int      @default(1)
   lineTotalPrice      Int      @map("line_total_price")
   createdAt           DateTime @default(now()) @map("created_at")
 
-  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product       Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
-  productOption ProductOption? @relation(fields: [productOptionId], references: [id], onDelete: SetNull)
+  order             Order                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product           Product                    @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productOption     ProductOption?             @relation(fields: [productOptionId], references: [id], onDelete: SetNull)
+  optionSelections  OrderItemOptionSelection[]
 
   @@index([orderId], map: "idx_order_items_order_id")
   @@index([productId], map: "idx_order_items_product_id")
   @@map("order_items")
+}
+
+model OrderItemOptionSelection {
+  id                   BigInt   @id @default(autoincrement())
+  orderItemId          BigInt   @map("order_item_id")
+  productOptionGroupId BigInt?  @map("product_option_group_id")
+  productOptionId      BigInt?  @map("product_option_id")
+  groupNameSnapshot    String   @map("group_name_snapshot") @db.VarChar(100)
+  optionNameSnapshot   String   @map("option_name_snapshot") @db.VarChar(100)
+  extraPriceSnapshot   Int      @default(0) @map("extra_price_snapshot")
+  quantity             Int      @default(1)
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  orderItem     OrderItem            @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  optionGroup   ProductOptionGroup?  @relation(fields: [productOptionGroupId], references: [id], onDelete: SetNull)
+  productOption ProductOption?       @relation(fields: [productOptionId], references: [id], onDelete: SetNull)
+
+  @@index([orderItemId], map: "idx_order_item_option_selections_order_item_id")
+  @@index([productOptionId], map: "idx_order_item_option_selections_option_id")
+  @@map("order_item_option_selections")
 }
 
 model OrderContact {
