@@ -1,7 +1,6 @@
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
-  ArrayUnique,
   IsArray,
   IsDefined,
   IsIn,
@@ -14,6 +13,23 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+export class CreateOrderItemOptionSelectionDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  productOptionGroupId!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  productOptionId!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  quantity!: number;
+}
+
 export class CreateOrderItemDto {
   @Type(() => Number)
   @IsInt()
@@ -21,19 +37,11 @@ export class CreateOrderItemDto {
   productId!: number;
 
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  productOptionId?: number;
-
-  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
-  @ArrayUnique()
-  @Type(() => Number)
-  @IsInt({ each: true })
-  @Min(1, { each: true })
-  selectedOptionIds?: number[];
+  @ValidateNested({ each: true })
+  @Type(() => CreateOrderItemOptionSelectionDto)
+  selectedOptions?: CreateOrderItemOptionSelectionDto[];
 
   @Type(() => Number)
   @IsInt()

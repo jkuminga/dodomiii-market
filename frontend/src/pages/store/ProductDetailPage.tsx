@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 
 import { LoadingScreen } from '../../components/common/LoadingScreen';
@@ -19,8 +19,12 @@ export function ProductDetailPage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<DetailTab>('story');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [selectedOrderOptionByGroup, setSelectedOrderOptionByGroup] = useState<Record<string, string[]>>({});
+  const [selectedSingleOptionByGroup, setSelectedSingleOptionByGroup] = useState<Record<string, string>>({});
+  const [selectedQuantityByOption, setSelectedQuantityByOption] = useState<Record<string, number>>({});
   const [expandedOptionGroups, setExpandedOptionGroups] = useState<Record<string, boolean>>({});
+  const [invalidRequiredGroupIds, setInvalidRequiredGroupIds] = useState<string[]>([]);
+  const [showPriceDetails, setShowPriceDetails] = useState(false);
+  const optionGroupRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Carousel Dragging State
   const [dragStartX, setDragStartX] = useState<number | null>(null);
@@ -48,7 +52,9 @@ export function ProductDetailPage() {
         setProduct(result);
         setSelectedImageIndex(0);
         setActiveTab('story');
-        setSelectedOrderOptionByGroup({});
+        setSelectedSingleOptionByGroup({});
+        setSelectedQuantityByOption({});
+        setInvalidRequiredGroupIds([]);
       } catch (caught) {
         if (!cancelled) {
           setError(caught instanceof Error ? caught.message : '상품 상세 조회 중 오류가 발생했습니다.');
@@ -67,48 +73,42 @@ export function ProductDetailPage() {
     };
   }, [productId]);
 
-  const activeOptions = useMemo(
+  const optionGroups = useMemo(
     () =>
       product
-        ? [...product.options]
-          .filter((option) => option.isActive)
+        ? [...product.optionGroups]
+          .filter((group) => group.isActive)
           .sort((left, right) => left.sortOrder - right.sortOrder)
+          .map((group) => ({
+            ...group,
+            options: [...group.options]
+              .filter((option) => option.isActive)
+              .sort((left, right) => left.sortOrder - right.sortOrder),
+          }))
         : [],
     [product],
   );
-
-  const optionGroups = useMemo(() => {
-    const grouped = new Map<string, typeof activeOptions>();
-
-    for (const option of activeOptions) {
-      const current = grouped.get(option.optionGroupName) ?? [];
-      current.push(option);
-      grouped.set(option.optionGroupName, current);
-    }
-
-    return [...grouped.entries()].map(([groupName, options]) => ({
-      groupName,
-      options,
-    }));
-  }, [activeOptions]);
 
   useEffect(() => {
     if (!product) {
       return;
     }
 
-    const nextByGroup: Record<string, string[]> = {};
+    const nextSingleByGroup: Record<string, string> = {};
 
     for (const group of optionGroups) {
-      nextByGroup[group.groupName] = group.options.length === 1 ? [String(group.options[0].id)] : [];
+      if (group.selectionType === 'SINGLE' && group.options.length === 1) {
+        nextSingleByGroup[String(group.id)] = String(group.options[0].id);
+      }
     }
 
-    setSelectedOrderOptionByGroup(nextByGroup);
+    setSelectedSingleOptionByGroup(nextSingleByGroup);
+    setSelectedQuantityByOption({});
     setExpandedOptionGroups((current) => {
       const nextExpanded: Record<string, boolean> = {};
       for (const group of optionGroups) {
-        const hasSelected = (nextByGroup[group.groupName] ?? []).length > 0;
-        nextExpanded[group.groupName] = current[group.groupName] ?? (hasSelected || optionGroups.length <= 2);
+        const hasSelected = Boolean(nextSingleByGroup[String(group.id)]);
+        nextExpanded[String(group.id)] = current[String(group.id)] ?? (hasSelected || optionGroups.length <= 2);
       }
       return nextExpanded;
     });
@@ -200,23 +200,69 @@ export function ProductDetailPage() {
   };
 
   const orderParams = new URLSearchParams();
-  const selectedOptionIdSet = new Set(
-    optionGroups
-      .flatMap((group) => (selectedOrderOptionByGroup[group.groupName] ?? []).map((value) => Number(value)))
-      .filter((value) => Number.isFinite(value)),
-  );
-  const selectedOptionIds = [...selectedOptionIdSet];
-  const selectedOptions = selectedOptionIds
-    .map((optionId) => activeOptions.find((option) => option.id === optionId) ?? null)
-    .filter((option): option is NonNullable<typeof option> => option !== null);
-  const selectedOptionExtraTotal = selectedOptions.reduce((sum, option) => sum + option.extraPrice, 0);
-  const selectedTotalPrice = product.basePrice + selectedOptionExtraTotal;
+  const selectedOptions = optionGroups.flatMap((group) => {
+    if (group.selectionType === 'SINGLE') {
+      const selectedOptionId = selectedSingleOptionByGroup[String(group.id)];
+      const option = group.options.find((candidate) => String(candidate.id) === selectedOptionId);
+      return option ? [{ group, option, quantity: 1 }] : [];
+    }
 
-  if (selectedOptionIds.length > 0) {
-    orderParams.set('optionIds', selectedOptionIds.join(','));
+    return group.options
+      .map((option) => ({
+        group,
+        option,
+        quantity: selectedQuantityByOption[String(option.id)] ?? 0,
+      }))
+      .filter((entry) => entry.quantity > 0);
+  });
+  const selectedOptionExtraTotal = selectedOptions.reduce(
+    (sum, entry) => sum + entry.option.extraPrice * entry.quantity,
+    0,
+  );
+  const selectedTotalPrice = product.basePrice + selectedOptionExtraTotal;
+  const missingRequiredGroupIds = optionGroups
+    .filter((group) => {
+      if (!group.isRequired) {
+        return false;
+      }
+
+      if (group.selectionType === 'SINGLE') {
+        return !selectedSingleOptionByGroup[String(group.id)];
+      }
+
+      return !group.options.some((option) => (selectedQuantityByOption[String(option.id)] ?? 0) > 0);
+    })
+    .map((group) => String(group.id));
+
+  if (selectedOptions.length > 0) {
+    orderParams.set(
+      'selectedOptions',
+      selectedOptions
+        .map((entry) => `${entry.group.id}:${entry.option.id}:${entry.quantity}`)
+        .join(';'),
+    );
   }
 
   const orderHref = `/products/${product.id}/order${orderParams.toString() ? `?${orderParams.toString()}` : ''}`;
+  const focusFirstMissingRequiredGroup = () => {
+    if (missingRequiredGroupIds.length === 0) {
+      return;
+    }
+
+    const [firstMissingGroupId] = missingRequiredGroupIds;
+    setInvalidRequiredGroupIds(missingRequiredGroupIds);
+    setExpandedOptionGroups((current) => ({
+      ...current,
+      [firstMissingGroupId]: true,
+    }));
+
+    window.requestAnimationFrame(() => {
+      optionGroupRefs.current[firstMissingGroupId]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    });
+  };
 
   return (
     <main className="m-page detail-page with-fixed-bar">
@@ -355,16 +401,27 @@ export function ProductDetailPage() {
             </div>
           </div>
 
-          {activeOptions.length > 0 ? (
+          {optionGroups.length > 0 ? (
             <div className="order-option-group-list">
               {optionGroups.map((group) => (
-                <div className="field order-option-group-field" key={group.groupName}>
+                <div
+                  className="field order-option-group-field"
+                  key={group.id}
+                  ref={(node) => {
+                    optionGroupRefs.current[String(group.id)] = node;
+                  }}
+                >
                   <div className="order-option-group-head">
                     <span>
-                      {group.groupName}
-                      {(selectedOrderOptionByGroup[group.groupName] ?? []).length > 0 ? (
-                        <small className="order-option-selected-flag">선택됨</small>
+                      {group.name}
+                      {group.isRequired ? (
+                        <small className="order-option-required-flag">필수</small>
                       ) : null}
+                      {/* {(group.selectionType === 'SINGLE'
+                        ? Boolean(selectedSingleOptionByGroup[String(group.id)])
+                        : group.options.some((option) => (selectedQuantityByOption[String(option.id)] ?? 0) > 0)) ? (
+                        <small className="order-option-selected-flag">선택됨</small>
+                      ) : null} */}
                     </span>
                     <button
                       type="button"
@@ -372,41 +429,119 @@ export function ProductDetailPage() {
                       onClick={() =>
                         setExpandedOptionGroups((current) => ({
                           ...current,
-                          [group.groupName]: !(current[group.groupName] ?? false),
+                          [String(group.id)]: !(current[String(group.id)] ?? false),
                         }))
                       }
-                      aria-expanded={expandedOptionGroups[group.groupName] ?? false}
+                      aria-expanded={expandedOptionGroups[String(group.id)] ?? false}
                     >
-                      {expandedOptionGroups[group.groupName] ?? false ? '접기' : '펼치기'}
+                      {expandedOptionGroups[String(group.id)] ?? false ? '접기' : '펼치기'}
                     </button>
                   </div>
-                  {(expandedOptionGroups[group.groupName] ?? false) ? (
+                  {invalidRequiredGroupIds.includes(String(group.id)) ? (
+                    <p className="order-option-group-error">하나 이상의 옵션을 선택해 주세요.</p>
+                  ) : null}
+                  {(expandedOptionGroups[String(group.id)] ?? false) ? (
                     <div className="order-option-multi-list">
                       {group.options.map((option) => {
-                        const selectedValues = selectedOrderOptionByGroup[group.groupName] ?? [];
-                        const isChecked = selectedValues.includes(String(option.id));
+                        const isSingle = group.selectionType === 'SINGLE';
+                        const isChecked = selectedSingleOptionByGroup[String(group.id)] === String(option.id);
+                        const quantityValue = selectedQuantityByOption[String(option.id)] ?? 0;
 
                         return (
-                          <label className={`order-option-multi-item ${isChecked ? 'is-selected' : ''}`} key={option.id}>
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={(event) =>
-                                setSelectedOrderOptionByGroup((current) => {
-                                  const previous = current[group.groupName] ?? [];
-                                  const next = event.target.checked
-                                    ? [...previous, String(option.id)]
-                                    : previous.filter((value) => value !== String(option.id));
-
-                                  return {
-                                    ...current,
-                                    [group.groupName]: [...new Set(next)],
-                                  };
-                                })
-                              }
-                            />
-                            <span>{option.optionValue}</span>
-                            <strong>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '+0원'}</strong>
+                          <label
+                            className={`order-option-multi-item ${!isSingle ? 'is-quantity' : ''} ${(isSingle ? isChecked : quantityValue > 0) ? 'is-selected' : ''}`}
+                            key={option.id}
+                          >
+                            {isSingle ? (
+                              <>
+                                <input
+                                  type="radio"
+                                  name={`detail-option-group-${group.id}`}
+                                  checked={isChecked}
+                                  onChange={() => {
+                                    setSelectedSingleOptionByGroup((current) => ({
+                                      ...current,
+                                      [String(group.id)]: String(option.id),
+                                    }));
+                                    setInvalidRequiredGroupIds((current) =>
+                                      current.filter((groupId) => groupId !== String(group.id)),
+                                    );
+                                  }}
+                                />
+                                <span>{option.name}</span>
+                                <strong>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '+0원'}</strong>
+                              </>
+                            ) : (
+                              <>
+                                <div className="order-option-inline-copy">
+                                  <span>{option.name}</span>
+                                  <strong>({option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '+0원'})</strong>
+                                </div>
+                                <div className="quantity-stepper">
+                                  <button
+                                    className="quantity-button"
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedQuantityByOption((current) => ({
+                                        ...current,
+                                        [String(option.id)]: Math.max(0, (current[String(option.id)] ?? 0) - 1),
+                                      }));
+                                      setInvalidRequiredGroupIds((current) =>
+                                        current.filter((groupId) => groupId !== String(group.id)),
+                                      );
+                                    }}
+                                    aria-label={`${option.name} 수량 감소`}
+                                  >
+                                    -
+                                  </button>
+                                  <input
+                                    className="quantity-input"
+                                    type="number"
+                                    min={0}
+                                    max={option.maxQuantity ?? undefined}
+                                    step={1}
+                                    inputMode="numeric"
+                                    value={quantityValue}
+                                    onChange={(event) => {
+                                      const nextValue = Math.max(0, Number(event.target.value) || 0);
+                                      const boundedValue =
+                                        option.maxQuantity === null || option.maxQuantity === undefined
+                                          ? nextValue
+                                          : Math.min(option.maxQuantity, nextValue);
+                                      setSelectedQuantityByOption((current) => ({
+                                        ...current,
+                                        [String(option.id)]: boundedValue,
+                                      }));
+                                      setInvalidRequiredGroupIds((current) =>
+                                        current.filter((groupId) => groupId !== String(group.id)),
+                                      );
+                                    }}
+                                  />
+                                  <button
+                                    className="quantity-button"
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedQuantityByOption((current) => {
+                                        const nextValue = (current[String(option.id)] ?? 0) + 1;
+                                        return {
+                                          ...current,
+                                          [String(option.id)]:
+                                            option.maxQuantity === null || option.maxQuantity === undefined
+                                              ? nextValue
+                                              : Math.min(option.maxQuantity, nextValue),
+                                        };
+                                      });
+                                      setInvalidRequiredGroupIds((current) =>
+                                        current.filter((groupId) => groupId !== String(group.id)),
+                                      );
+                                    }}
+                                    aria-label={`${option.name} 수량 증가`}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </>
+                            )}
                           </label>
                         );
                       })}
@@ -424,20 +559,58 @@ export function ProductDetailPage() {
           ) : null}
         </section>
 
-        <div className="fixed-product-bar">
-          <div>
-            <p>총액</p>
-            <strong>{formatCurrency(selectedTotalPrice)}</strong>
+        <div className={`fixed-product-bar ${showPriceDetails ? 'is-expanded' : ''}`}>
+          <div className="fixed-product-bar-container">
+            <div className="fixed-product-info" onClick={() => setShowPriceDetails(!showPriceDetails)}>
+              <div className="fixed-product-total">
+                <div className="total-text-group">
+                  <span className="total-label">총 주문 금액</span>
+                  <strong className="total-amount">{formatCurrency(selectedTotalPrice)}</strong>
+                </div>
+                <span className="detail-toggle-icon" aria-hidden="true">
+                  ⌃
+                </span>
+              </div>
+            </div>
+            <div className="fixed-product-actions">
+              {product.isSoldOut ? (
+                <button className="button button-block" type="button" disabled>
+                  품절된 상품입니다
+                </button>
+              ) : (
+                <Link
+                  className="button button-block"
+                  to={orderHref}
+                  onClick={(event) => {
+                    if (missingRequiredGroupIds.length > 0) {
+                      event.preventDefault();
+                      focusFirstMissingRequiredGroup();
+                    }
+                  }}
+                >
+                  주문서 작성하기
+                </Link>
+              )}
+            </div>
           </div>
-          {product.isSoldOut ? (
-            <button className="button" type="button" disabled>
-              품절 상품
-            </button>
-          ) : (
-            <Link className="button" to={orderHref}>
-              주문서 이동
-            </Link>
-          )}
+
+          <div className="price-breakdown-layer">
+            <div className="price-breakdown-content">
+              <div className="breakdown-row">
+                <span>기본가</span>
+                <strong>{formatCurrency(product.basePrice)}</strong>
+              </div>
+              {selectedOptions.map((entry) => (
+                <div className="breakdown-row" key={`${entry.group.id}-${entry.option.id}`}>
+                  <span>
+                    {entry.group.name}: {entry.option.name}
+                    {entry.quantity > 1 ? ` (x${entry.quantity})` : ''}
+                  </span>
+                  <strong>+{formatCurrency(entry.option.extraPrice * entry.quantity)}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -494,19 +667,24 @@ export function ProductDetailPage() {
             ) : null}
 
             {activeTab === 'options' ? (
-              activeOptions.length === 0 ? (
+              optionGroups.length === 0 ? (
                 <p className="feedback-copy">등록된 옵션이 없습니다.</p>
               ) : (
                 <ul className="option-list">
-                  {activeOptions.map((option) => (
-                    <li className="option-item" key={option.id}>
-                      <div>
-                        <strong>{option.optionGroupName}</strong>
-                        <p>{option.optionValue}</p>
-                      </div>
-                      <span>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '추가 금액 없음'}</span>
-                    </li>
-                  ))}
+                  {optionGroups.flatMap((group) =>
+                    group.options.map((option) => (
+                      <li className="option-item" key={option.id}>
+                        <div>
+                          <strong>{group.name}</strong>
+                          <p>
+                            {option.name}
+                            {group.selectionType === 'QUANTITY' && option.maxQuantity ? ` / 최대 ${option.maxQuantity}개` : ''}
+                          </p>
+                        </div>
+                        <span>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '추가 금액 없음'}</span>
+                      </li>
+                    )),
+                  )}
                 </ul>
               )
             ) : null}

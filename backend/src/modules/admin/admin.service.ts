@@ -42,17 +42,22 @@ const adminProductDetailArgs = Prisma.validator<Prisma.ProductDefaultArgs>()({
         createdAt: true,
       },
     },
-    options: {
+    optionGroups: {
       orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-      select: {
-        id: true,
-        optionGroupName: true,
-        optionValue: true,
-        extraPrice: true,
-        isActive: true,
-        sortOrder: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
+        options: {
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            name: true,
+            extraPrice: true,
+            maxQuantity: true,
+            isActive: true,
+            sortOrder: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
       },
     },
     _count: {
@@ -455,17 +460,8 @@ export class AdminService {
           });
         }
 
-        if (dto.options?.length) {
-          await tx.productOption.createMany({
-            data: dto.options.map((option, index) => ({
-              productId: product.id,
-              optionGroupName: option.optionGroupName,
-              optionValue: option.optionValue,
-              extraPrice: option.extraPrice ?? 0,
-              isActive: option.isActive ?? true,
-              sortOrder: option.sortOrder ?? index,
-            })),
-          });
+        if (dto.optionGroups?.length) {
+          await this.replaceProductOptionGroups(tx, product.id, dto.optionGroups);
         }
 
         return product.id;
@@ -556,10 +552,18 @@ export class AdminService {
               imageUrl: true,
             },
           },
+          optionGroups: {
+            select: {
+              options: {
+                select: {
+                  id: true,
+                },
+              },
+            },
+          },
           _count: {
             select: {
               images: true,
-              options: true,
               orderItems: true,
             },
           },
@@ -583,7 +587,7 @@ export class AdminService {
         stockQuantity: product.stockQuantity,
         thumbnailImageUrl: product.images[0]?.imageUrl ?? null,
         imageCount: product._count.images,
-        optionCount: product._count.options,
+        optionCount: product.optionGroups.reduce((sum, group) => sum + group.options.length, 0),
         orderItemCount: product._count.orderItems,
         createdAt: product.createdAt.toISOString(),
         updatedAt: product.updatedAt.toISOString(),
@@ -662,25 +666,8 @@ export class AdminService {
           }
         }
 
-        if (dto.options !== undefined) {
-          await tx.productOption.deleteMany({
-            where: {
-              productId: existingProduct.id,
-            },
-          });
-
-          if (dto.options.length > 0) {
-            await tx.productOption.createMany({
-              data: dto.options.map((option, index) => ({
-                productId: existingProduct.id,
-                optionGroupName: option.optionGroupName,
-                optionValue: option.optionValue,
-                extraPrice: option.extraPrice ?? 0,
-                isActive: option.isActive ?? true,
-                sortOrder: option.sortOrder ?? index,
-              })),
-            });
-          }
+        if (dto.optionGroups !== undefined) {
+          await this.replaceProductOptionGroups(tx, existingProduct.id, dto.optionGroups);
         }
 
         return existingProduct.id;
@@ -915,21 +902,72 @@ export class AdminService {
         sortOrder: image.sortOrder,
         createdAt: image.createdAt.toISOString(),
       })),
-      options: product.options.map((option) => ({
-        id: Number(option.id),
-        optionGroupName: option.optionGroupName,
-        optionValue: option.optionValue,
-        extraPrice: option.extraPrice,
-        isActive: option.isActive,
-        sortOrder: option.sortOrder,
-        createdAt: option.createdAt.toISOString(),
-        updatedAt: option.updatedAt.toISOString(),
+      optionGroups: product.optionGroups.map((group) => ({
+        id: Number(group.id),
+        name: group.name,
+        selectionType: group.selectionType,
+        isRequired: group.isRequired,
+        isActive: group.isActive,
+        sortOrder: group.sortOrder,
+        createdAt: group.createdAt.toISOString(),
+        updatedAt: group.updatedAt.toISOString(),
+        options: group.options.map((option) => ({
+          id: Number(option.id),
+          name: option.name,
+          extraPrice: option.extraPrice,
+          maxQuantity: option.maxQuantity,
+          isActive: option.isActive,
+          sortOrder: option.sortOrder,
+          createdAt: option.createdAt.toISOString(),
+          updatedAt: option.updatedAt.toISOString(),
+        })),
       })),
       orderItemCount: product._count.orderItems,
       createdAt: product.createdAt.toISOString(),
       updatedAt: product.updatedAt.toISOString(),
       deletedAt: product.deletedAt?.toISOString() ?? null,
     };
+  }
+
+  private async replaceProductOptionGroups(
+    tx: Prisma.TransactionClient,
+    productId: bigint,
+    optionGroups: NonNullable<CreateAdminProductDto['optionGroups'] | UpdateAdminProductDto['optionGroups']>,
+  ): Promise<void> {
+    await tx.productOptionGroup.deleteMany({
+      where: {
+        productId,
+      },
+    });
+
+    for (const [groupIndex, group] of optionGroups.entries()) {
+      const createdGroup = await tx.productOptionGroup.create({
+        data: {
+          productId,
+          name: group.name,
+          selectionType: group.selectionType,
+          isRequired: group.isRequired ?? false,
+          isActive: group.isActive ?? true,
+          sortOrder: group.sortOrder ?? groupIndex,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (group.options.length > 0) {
+        await tx.productOption.createMany({
+          data: group.options.map((option, optionIndex) => ({
+            optionGroupId: createdGroup.id,
+            name: option.name,
+            extraPrice: option.extraPrice ?? 0,
+            maxQuantity: option.maxQuantity ?? null,
+            isActive: option.isActive ?? true,
+            sortOrder: option.sortOrder ?? optionIndex,
+          })),
+        });
+      }
+    }
   }
 
   private async assertCategoryExists(

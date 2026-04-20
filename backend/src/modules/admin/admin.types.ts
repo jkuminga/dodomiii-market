@@ -2,6 +2,7 @@ import type {
   AdminRole,
   DepositStatus,
   OrderStatus,
+  ProductOptionSelectionType,
   ProductImageType,
   ShipmentStatus,
 } from '@prisma/client';
@@ -36,13 +37,25 @@ export type AdminProductImageResponse = {
 
 export type AdminProductOptionResponse = {
   id: number;
-  optionGroupName: string;
-  optionValue: string;
+  name: string;
   extraPrice: number;
+  maxQuantity: number | null;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+};
+
+export type AdminProductOptionGroupResponse = {
+  id: number;
+  name: string;
+  selectionType: ProductOptionSelectionType;
+  isRequired: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  options: AdminProductOptionResponse[];
 };
 
 export type AdminProductListItemResponse = {
@@ -86,7 +99,7 @@ export type AdminProductDetailResponse = {
   consultationRequired: boolean;
   stockQuantity: number | null;
   images: AdminProductImageResponse[];
-  options: AdminProductOptionResponse[];
+  optionGroups: AdminProductOptionGroupResponse[];
   orderItemCount: number;
   createdAt: string;
   updatedAt: string;

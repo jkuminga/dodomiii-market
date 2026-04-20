@@ -7,8 +7,8 @@ import {
   apiClient,
   AdminCategoryItem,
   AdminProductDetail,
+  AdminProductOptionGroupInput,
   AdminProductImageInput,
-  AdminProductOptionInput,
   AdminProductPayload,
 } from '../../lib/api';
 import {
@@ -30,7 +30,10 @@ type ProductOptionDraft = {
   key: string;
   optionGroupName: string;
   optionValue: string;
+  selectionType: 'SINGLE' | 'QUANTITY';
+  isRequired: boolean;
   extraPrice: string;
+  maxQuantity: string;
   isActive: boolean;
   sortOrder: string;
 };
@@ -73,7 +76,10 @@ function createOptionDraft(sortOrder = '0'): ProductOptionDraft {
     key: nextDraftKey('option'),
     optionGroupName: '',
     optionValue: '',
+    selectionType: 'SINGLE',
+    isRequired: false,
     extraPrice: '0',
+    maxQuantity: '',
     isActive: true,
     sortOrder,
   };
@@ -126,14 +132,19 @@ function formFromProduct(product: AdminProductDetail): ProductFormState {
       imageUrl: image.imageUrl,
       sortOrder: String(image.sortOrder),
     })),
-    options: product.options.map((option) => ({
-      key: nextDraftKey('option'),
-      optionGroupName: option.optionGroupName,
-      optionValue: option.optionValue,
-      extraPrice: String(option.extraPrice),
-      isActive: option.isActive,
-      sortOrder: String(option.sortOrder),
-    })),
+    options: product.optionGroups.flatMap((group) =>
+      group.options.map((option) => ({
+        key: nextDraftKey('option'),
+        optionGroupName: group.name,
+        optionValue: option.name,
+        selectionType: group.selectionType,
+        isRequired: group.isRequired,
+        extraPrice: String(option.extraPrice),
+        maxQuantity: option.maxQuantity === null ? '' : String(option.maxQuantity),
+        isActive: option.isActive,
+        sortOrder: String(option.sortOrder),
+      })),
+    ),
   };
 }
 
@@ -154,10 +165,13 @@ function serializeFormState(form: ProductFormState): string {
       imageUrl,
       sortOrder,
     })),
-    options: form.options.map(({ optionGroupName, optionValue, extraPrice, isActive, sortOrder }) => ({
+    options: form.options.map(({ optionGroupName, optionValue, selectionType, isRequired, extraPrice, maxQuantity, isActive, sortOrder }) => ({
       optionGroupName,
       optionValue,
+      selectionType,
+      isRequired,
       extraPrice,
+      maxQuantity,
       isActive,
       sortOrder,
     })),
@@ -228,11 +242,15 @@ function sortImageDraftsByType(images: ProductImageDraft[]): ProductImageDraft[]
   });
 }
 
-function buildOptionInputsFromDrafts(options: ProductOptionDraft[]): AdminProductOptionInput[] {
-  return options
+function buildOptionGroupInputsFromDrafts(options: ProductOptionDraft[]): AdminProductOptionGroupInput[] {
+  const normalizedOptions = options
     .filter(
       (option) =>
-        option.optionGroupName.trim() !== '' || option.optionValue.trim() !== '' || option.extraPrice.trim() !== '' || option.sortOrder.trim() !== '',
+        option.optionGroupName.trim() !== '' ||
+        option.optionValue.trim() !== '' ||
+        option.extraPrice.trim() !== '' ||
+        option.maxQuantity.trim() !== '' ||
+        option.sortOrder.trim() !== '',
     )
     .map((option, index) => {
       if (!option.optionGroupName.trim() || !option.optionValue.trim()) {
@@ -246,6 +264,15 @@ function buildOptionInputsFromDrafts(options: ProductOptionDraft[]): AdminProduc
         throw new Error('옵션 추가 금액은 숫자로 입력해주세요.');
       }
 
+      const maxQuantity =
+        option.maxQuantity.trim() === ''
+          ? null
+          : Number(option.maxQuantity);
+
+      if (option.maxQuantity.trim() !== '' && (!Number.isFinite(maxQuantity) || (maxQuantity ?? 0) < 1)) {
+        throw new Error('옵션 최대 수량은 비워두거나 1 이상의 숫자로 입력해주세요.');
+      }
+
       if (!Number.isFinite(sortOrder)) {
         throw new Error('옵션 정렬 순서는 숫자로 입력해주세요.');
       }
@@ -253,11 +280,54 @@ function buildOptionInputsFromDrafts(options: ProductOptionDraft[]): AdminProduc
       return {
         optionGroupName: option.optionGroupName.trim(),
         optionValue: option.optionValue.trim(),
+        selectionType: option.selectionType,
+        isRequired: option.isRequired,
         extraPrice,
+        maxQuantity,
         isActive: option.isActive,
         sortOrder,
       };
     });
+
+  const groupMap = new Map<string, AdminProductOptionGroupInput>();
+
+  normalizedOptions.forEach((option, index) => {
+    const existingGroup = groupMap.get(option.optionGroupName);
+
+    if (!existingGroup) {
+      groupMap.set(option.optionGroupName, {
+        name: option.optionGroupName,
+        selectionType: option.selectionType,
+        isRequired: option.isRequired,
+        isActive: true,
+        sortOrder: index,
+        options: [
+          {
+            name: option.optionValue,
+            extraPrice: option.extraPrice,
+            maxQuantity: option.maxQuantity,
+            isActive: option.isActive,
+            sortOrder: option.sortOrder,
+          },
+        ],
+      });
+      return;
+    }
+
+    if (existingGroup.selectionType !== option.selectionType || existingGroup.isRequired !== option.isRequired) {
+      throw new Error(`같은 옵션 그룹(${option.optionGroupName})은 동일한 선택 방식과 필수 여부를 가져야 합니다.`);
+    }
+
+    existingGroup.options.push({
+      name: option.optionValue,
+      extraPrice: option.extraPrice,
+      maxQuantity: option.maxQuantity,
+      isActive: option.isActive,
+      sortOrder: option.sortOrder,
+    });
+  });
+
+  return [...groupMap.values()];
 }
 
 function buildOrderSignature(items: Array<{ key: string; sortOrder: string }>): string {
@@ -299,7 +369,7 @@ function buildPayload(form: ProductFormState): AdminProductPayload {
   }
 
   const images = buildImageInputsFromDrafts(sortImageDraftsByType(form.images));
-  const options = buildOptionInputsFromDrafts(form.options);
+  const optionGroups = buildOptionGroupInputsFromDrafts(form.options);
 
   return {
     categoryId,
@@ -313,7 +383,7 @@ function buildPayload(form: ProductFormState): AdminProductPayload {
     consultationRequired: form.consultationRequired,
     stockQuantity,
     images,
-    options,
+    optionGroups,
   };
 }
 
@@ -824,7 +894,7 @@ export function AdminProductEditorPage() {
 
     try {
       await apiClient.updateAdminProduct(productId, {
-        options: buildOptionInputsFromDrafts(form.options),
+        optionGroups: buildOptionGroupInputsFromDrafts(form.options),
       });
       setSavedOptionOrderSignature(buildOrderSignature(form.options));
       showToast('옵션 순서를 적용했습니다.');
@@ -1362,11 +1432,38 @@ export function AdminProductEditorPage() {
                   </label>
 
                   <label className="field">
+                    <span>선택 방식</span>
+                    <select
+                      value={newOption.selectionType}
+                      onChange={(event) =>
+                        setNewOption((current) => ({
+                          ...current,
+                          selectionType: event.target.value as 'SINGLE' | 'QUANTITY',
+                        }))
+                      }
+                    >
+                      <option value="SINGLE">하나만 선택</option>
+                      <option value="QUANTITY">수량 선택</option>
+                    </select>
+                  </label>
+
+                  <label className="field">
                     <span>추가 금액</span>
                     <input
                       type="number"
                       value={newOption.extraPrice}
                       onChange={(event) => setNewOption((current) => ({ ...current, extraPrice: event.target.value }))}
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>최대 수량</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={newOption.maxQuantity}
+                      onChange={(event) => setNewOption((current) => ({ ...current, maxQuantity: event.target.value }))}
+                      placeholder={newOption.selectionType === 'QUANTITY' ? '선택 가능 최대 수량' : '비워두기'}
                     />
                   </label>
 
@@ -1381,6 +1478,14 @@ export function AdminProductEditorPage() {
                 </div>
 
                 <div className="inline-actions">
+                  <label className="admin-check-field admin-check-field-inline">
+                    <input
+                      type="checkbox"
+                      checked={newOption.isRequired}
+                      onChange={(event) => setNewOption((current) => ({ ...current, isRequired: event.target.checked }))}
+                    />
+                    <span>필수 그룹</span>
+                  </label>
                   <label className="admin-check-field admin-check-field-inline">
                     <input
                       type="checkbox"
@@ -1453,6 +1558,7 @@ export function AdminProductEditorPage() {
                             </div>
                             <div className="admin-product-summary" style={{marginTop: "5px"}}>
                               <span className={`status-pill ${option.isActive ? '' : 'is-muted'}`} style={{marginRight : "10px"}}>{option.isActive ? '활성' : '비활성'}</span>
+                              <span style={{marginTop: "6px", marginRight: "10px"}}>{option.selectionType === 'SINGLE' ? '단일 선택' : '수량 선택'}</span>
                               <span style={{marginTop: "6px"}}>{extraPriceLabel}</span>
                               {/* <span>정렬 {option.sortOrder || '-'}</span>
                               <span>드래그로 순서 변경</span> */}
@@ -1499,11 +1605,37 @@ export function AdminProductEditorPage() {
                             </label>
 
                             <label className="field">
+                              <span>선택 방식</span>
+                              <select
+                                value={option.selectionType}
+                                onChange={(event) =>
+                                  replaceOption(option.key, {
+                                    selectionType: event.target.value as 'SINGLE' | 'QUANTITY',
+                                  })
+                                }
+                              >
+                                <option value="SINGLE">하나만 선택</option>
+                                <option value="QUANTITY">수량 선택</option>
+                              </select>
+                            </label>
+
+                            <label className="field">
                               <span>추가 금액</span>
                               <input
                                 type="number"
                                 value={option.extraPrice}
                                 onChange={(event) => replaceOption(option.key, { extraPrice: event.target.value })}
+                              />
+                            </label>
+
+                            <label className="field">
+                              <span>최대 수량</span>
+                              <input
+                                type="number"
+                                min={1}
+                                value={option.maxQuantity}
+                                onChange={(event) => replaceOption(option.key, { maxQuantity: event.target.value })}
+                                placeholder={option.selectionType === 'QUANTITY' ? '선택 가능 최대 수량' : '비워두기'}
                               />
                             </label>
 
@@ -1518,6 +1650,14 @@ export function AdminProductEditorPage() {
                           </div>
 
                           <div className="inline-actions">
+                            <label className="admin-check-field admin-check-field-inline">
+                              <input
+                                type="checkbox"
+                                checked={option.isRequired}
+                                onChange={(event) => replaceOption(option.key, { isRequired: event.target.checked })}
+                              />
+                              <span>필수 그룹</span>
+                            </label>
                             <label className="admin-check-field admin-check-field-inline">
                               <input
                                 type="checkbox"
