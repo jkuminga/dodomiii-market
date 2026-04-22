@@ -1,6 +1,6 @@
 import { IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
-export const ADMIN_MEDIA_USAGES = ['HOME_POPUP', 'HOME_HERO', 'PRODUCT_THUMBNAIL', 'PRODUCT_DETAIL'] as const;
+export const ADMIN_MEDIA_USAGES = ['HOME_POPUP', 'HOME_HERO', 'PRODUCT_THUMBNAIL', 'PRODUCT_DETAIL', 'NOTICE_CONTENT'] as const;
 
 export type AdminMediaUsage = (typeof ADMIN_MEDIA_USAGES)[number];
 

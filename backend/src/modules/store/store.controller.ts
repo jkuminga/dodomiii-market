@@ -5,6 +5,7 @@ import { CreateCustomCheckoutOrderDto } from './dto/create-custom-checkout-order
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CustomCheckoutTokenParamDto } from './dto/custom-checkout-token-param.dto';
 import { GetProductsQueryDto } from './dto/get-products.query.dto';
+import { NoticeIdParamDto } from './dto/notice-id-param.dto';
 import { OrderNumberParamDto } from './dto/order-number-param.dto';
 import { StoreService } from './store.service';
 
@@ -35,6 +36,26 @@ export class StoreController {
   @Get('home-hero')
   async getHomeHero() {
     const data = await this.storeService.getHomeHero();
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  @Get('notices')
+  async getNotices() {
+    const data = await this.storeService.getVisibleNotices();
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  @Get('notices/:noticeId')
+  async getNotice(@Param() params: NoticeIdParamDto) {
+    const data = await this.storeService.getVisibleNoticeById(params.noticeId);
 
     return {
       success: true,

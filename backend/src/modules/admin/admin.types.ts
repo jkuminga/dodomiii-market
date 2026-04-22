@@ -266,6 +266,51 @@ export type AdminHomeHeroResponse = {
   updatedAt: string;
 };
 
+export type NoticeContentBlockResponse =
+  | {
+      type: 'text';
+      text: string;
+    }
+  | {
+      type: 'image';
+      imageUrl: string;
+      publicId: string | null;
+      alt: string | null;
+      caption: string | null;
+    };
+
+export type NoticeContentResponse = {
+  version: number;
+  blocks: NoticeContentBlockResponse[];
+};
+
+export type AdminNoticeListItemResponse = {
+  id: number;
+  title: string;
+  summary: string | null;
+  isPinned: boolean;
+  isPublished: boolean;
+  publishedAt: string | null;
+  thumbnailImageUrl: string | null;
+  blockCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminNoticeDetailResponse = {
+  id: number;
+  title: string;
+  summary: string | null;
+  contentJson: NoticeContentResponse;
+  isPinned: boolean;
+  isPublished: boolean;
+  publishedAt: string | null;
+  thumbnailImageUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
 export type AdminAccountResponse = {
   adminId: number;
   loginId: string;

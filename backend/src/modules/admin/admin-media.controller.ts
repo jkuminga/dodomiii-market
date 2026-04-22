@@ -2,6 +2,7 @@ import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 
 import { AdminSessionGuard } from '../auth/guards/admin-session.guard';
 import { AdminMediaService } from './admin-media.service';
+import { AdminMediaDeleteDto } from './dto/admin-media-delete.dto';
 import { AdminMediaFinalizeDto } from './dto/admin-media-finalize.dto';
 import { AdminMediaSignUploadDto } from './dto/admin-media-sign-upload.dto';
 
@@ -23,6 +24,16 @@ export class AdminMediaController {
   @Post('finalize')
   finalizeUpload(@Body() body: AdminMediaFinalizeDto) {
     const data = this.adminMediaService.finalizeUpload(body);
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  @Post('delete')
+  async deleteUpload(@Body() body: AdminMediaDeleteDto) {
+    const data = await this.adminMediaService.deleteUpload(body.publicId);
 
     return {
       success: true,

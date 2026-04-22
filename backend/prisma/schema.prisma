@@ -340,6 +340,23 @@ model HomeHeroSetting {
   @@map("home_hero_settings")
 }
 
+model Notice {
+  id          BigInt    @id @default(autoincrement())
+  title       String    @db.VarChar(200)
+  summary     String?   @db.VarChar(500)
+  contentJson Json      @map("content_json")
+  isPinned    Boolean   @default(false) @map("is_pinned")
+  isPublished Boolean   @default(false) @map("is_published")
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([isPinned, isPublished, publishedAt(sort: Desc), id(sort: Desc)], map: "idx_notices_pinned_published")
+  @@index([deletedAt, createdAt(sort: Desc), id(sort: Desc)], map: "idx_notices_deleted_created")
+  @@map("notices")
+}
+
 model CustomOrderLink {
   id                BigInt    @id @default(autoincrement()) @map("custom_order_link_id")
   token             String    @unique @db.VarChar(80)

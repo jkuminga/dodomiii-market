@@ -12,15 +12,23 @@ import type {
   AdminCategoryResponse,
   AdminHomeHeroResponse,
   AdminHomePopupResponse,
+  AdminNoticeDetailResponse,
+  AdminNoticeListItemResponse,
   AdminProductDetailResponse,
   AdminProductListItemResponse,
+  NoticeContentBlockResponse,
+  NoticeContentResponse,
 } from './admin.types';
+import { AdminNoticeContentDto } from './dto/admin-notice-content.dto';
+import { CreateAdminNoticeDto } from './dto/create-admin-notice.dto';
 import { UpdateAdminHomeHeroDto } from './dto/update-admin-home-hero.dto';
 import { CreateAdminCategoryDto } from './dto/create-admin-category.dto';
+import { GetAdminNoticesQueryDto } from './dto/get-admin-notices.query.dto';
 import { UpdateAdminHomePopupDto } from './dto/update-admin-home-popup.dto';
 import { CreateAdminProductDto } from './dto/create-admin-product.dto';
 import { GetAdminProductsQueryDto } from './dto/get-admin-products.query.dto';
 import { UpdateAdminCategoryDto } from './dto/update-admin-category.dto';
+import { UpdateAdminNoticeDto } from './dto/update-admin-notice.dto';
 import { UpdateAdminProductDto } from './dto/update-admin-product.dto';
 
 const adminProductDetailArgs = Prisma.validator<Prisma.ProductDefaultArgs>()({
@@ -76,6 +84,24 @@ type CategoryNode = {
   id: bigint;
   parentId: bigint | null;
   name: string;
+};
+
+type NoticeContentBlock =
+  | {
+      type: 'text';
+      text: string;
+    }
+  | {
+      type: 'image';
+      imageUrl: string;
+      publicId: string | null;
+      alt: string | null;
+      caption: string | null;
+    };
+
+type NoticeContent = {
+  version: number;
+  blocks: NoticeContentBlock[];
 };
 
 const CATEGORY_LANDING_SELECTION_LIMIT = 3;
@@ -193,6 +219,164 @@ export class AdminService {
 
     this.storeCache.invalidateByPrefix('store:home-hero:');
     return this.mapHomeHero(result);
+  }
+
+  async getNotices(query: GetAdminNoticesQueryDto) {
+    const page = query.page ?? 1;
+    const size = query.size ?? 10;
+
+    const where: Prisma.NoticeWhereInput = {
+      deletedAt: null,
+    };
+
+    if (query.q?.trim()) {
+      where.OR = [
+        {
+          title: {
+            contains: query.q.trim(),
+            mode: 'insensitive',
+          },
+        },
+        {
+          summary: {
+            contains: query.q.trim(),
+            mode: 'insensitive',
+          },
+        },
+      ];
+    }
+
+    if (query.isPublished !== undefined) {
+      where.isPublished = query.isPublished;
+    }
+
+    const [items, totalItems] = await this.prisma.$transaction([
+      this.prisma.notice.findMany({
+        where,
+        orderBy: [{ isPinned: 'desc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * size,
+        take: size,
+      }),
+      this.prisma.notice.count({ where }),
+    ]);
+
+    return {
+      items: items.map((notice) => this.mapNoticeListItem(notice)),
+      meta: {
+        page,
+        size,
+        totalItems,
+        totalPages: totalItems === 0 ? 0 : Math.ceil(totalItems / size),
+      },
+    };
+  }
+
+  async getNotice(noticeId: number): Promise<AdminNoticeDetailResponse> {
+    const notice = await this.prisma.notice.findFirst({
+      where: {
+        id: BigInt(noticeId),
+        deletedAt: null,
+      },
+    });
+
+    if (!notice) {
+      throw new NotFoundException({
+        code: 'NOTICE_NOT_FOUND',
+        message: '공지사항을 찾을 수 없습니다.',
+      });
+    }
+
+    return this.mapNoticeDetail(notice);
+  }
+
+  async createNotice(dto: CreateAdminNoticeDto): Promise<AdminNoticeDetailResponse> {
+    const contentJson = this.normalizeNoticeContent(dto.contentJson);
+    const isPublished = dto.isPublished ?? false;
+    const publishedAt = this.resolvePublishedAt(isPublished, dto.publishedAt);
+
+    const notice = await this.prisma.notice.create({
+      data: {
+        title: dto.title.trim(),
+        summary: dto.summary?.trim() || null,
+        contentJson: contentJson as Prisma.InputJsonValue,
+        isPinned: dto.isPinned ?? false,
+        isPublished,
+        publishedAt,
+      },
+    });
+
+    this.storeCache.invalidateByPrefix('store:notices:');
+    this.storeCache.invalidateByPrefix('store:notice-detail:');
+    return this.mapNoticeDetail(notice);
+  }
+
+  async updateNotice(noticeId: number, dto: UpdateAdminNoticeDto): Promise<AdminNoticeDetailResponse> {
+    const existing = await this.prisma.notice.findFirst({
+      where: {
+        id: BigInt(noticeId),
+        deletedAt: null,
+      },
+    });
+
+    if (!existing) {
+      throw new NotFoundException({
+        code: 'NOTICE_NOT_FOUND',
+        message: '공지사항을 찾을 수 없습니다.',
+      });
+    }
+
+    const nextIsPublished = dto.isPublished ?? existing.isPublished;
+    const notice = await this.prisma.notice.update({
+      where: { id: existing.id },
+      data: {
+        title: dto.title !== undefined ? dto.title.trim() : undefined,
+        summary: dto.summary !== undefined ? dto.summary?.trim() || null : undefined,
+        contentJson:
+          dto.contentJson !== undefined
+            ? (this.normalizeNoticeContent(dto.contentJson) as Prisma.InputJsonValue)
+            : undefined,
+        isPinned: dto.isPinned,
+        isPublished: dto.isPublished,
+        publishedAt: this.resolveUpdatedPublishedAt(existing, nextIsPublished, dto.publishedAt),
+      },
+    });
+
+    this.storeCache.invalidateByPrefix('store:notices:');
+    this.storeCache.invalidateByPrefix('store:notice-detail:');
+    return this.mapNoticeDetail(notice);
+  }
+
+  async deleteNotice(noticeId: number): Promise<{ deleted: boolean; deletedAt: string }> {
+    const existing = await this.prisma.notice.findFirst({
+      where: {
+        id: BigInt(noticeId),
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!existing) {
+      throw new NotFoundException({
+        code: 'NOTICE_NOT_FOUND',
+        message: '공지사항을 찾을 수 없습니다.',
+      });
+    }
+
+    const deletedAt = new Date();
+    await this.prisma.notice.update({
+      where: { id: existing.id },
+      data: { deletedAt },
+    });
+
+    this.storeCache.invalidateByPrefix('store:notices:');
+    this.storeCache.invalidateByPrefix('store:notice-detail:');
+
+    return {
+      deleted: true,
+      deletedAt: deletedAt.toISOString(),
+    };
   }
 
   async createCategory(dto: CreateAdminCategoryDto): Promise<AdminCategoryResponse> {
@@ -1101,6 +1285,104 @@ export class AdminService {
     }
   }
 
+  private normalizeNoticeContent(content: AdminNoticeContentDto | Prisma.JsonValue): NoticeContent {
+    const rawVersion =
+      typeof content === 'object' && content !== null && 'version' in content ? (content as { version?: unknown }).version : 1;
+    const rawBlocks =
+      typeof content === 'object' && content !== null && 'blocks' in content ? (content as { blocks?: unknown }).blocks : [];
+
+    const version = typeof rawVersion === 'number' && Number.isFinite(rawVersion) ? rawVersion : 1;
+    const blocks = Array.isArray(rawBlocks) ? rawBlocks : [];
+
+    return {
+      version,
+      blocks: blocks.map((block) => this.normalizeNoticeBlock(block)),
+    };
+  }
+
+  private normalizeNoticeBlock(block: unknown): NoticeContentBlock {
+    if (!block || typeof block !== 'object') {
+      throw new BadRequestException({
+        code: 'NOTICE_CONTENT_INVALID',
+        message: '공지사항 본문 형식이 올바르지 않습니다.',
+      });
+    }
+
+    const rawType = 'type' in block ? block.type : undefined;
+
+    if (rawType === 'text') {
+      const text = 'text' in block && typeof block.text === 'string' ? block.text.trim() : '';
+
+      if (text === '') {
+        throw new BadRequestException({
+          code: 'NOTICE_TEXT_REQUIRED',
+          message: '텍스트 블록에는 내용을 입력해주세요.',
+        });
+      }
+
+      return {
+        type: 'text',
+        text,
+      };
+    }
+
+    if (rawType === 'image') {
+      const imageUrl = 'imageUrl' in block && typeof block.imageUrl === 'string' ? block.imageUrl.trim() : '';
+
+      if (imageUrl === '') {
+        throw new BadRequestException({
+          code: 'NOTICE_IMAGE_REQUIRED',
+          message: '이미지 블록에는 업로드된 이미지를 선택해주세요.',
+        });
+      }
+
+      return {
+        type: 'image',
+        imageUrl,
+        publicId: 'publicId' in block && typeof block.publicId === 'string' ? block.publicId.trim() || null : null,
+        alt: 'alt' in block && typeof block.alt === 'string' ? block.alt.trim() || null : null,
+        caption: 'caption' in block && typeof block.caption === 'string' ? block.caption.trim() || null : null,
+      };
+    }
+
+    throw new BadRequestException({
+      code: 'NOTICE_BLOCK_TYPE_INVALID',
+      message: '지원하지 않는 공지 블록 형식입니다.',
+    });
+  }
+
+  private resolvePublishedAt(isPublished: boolean, publishedAt?: string | null): Date | null {
+    if (!isPublished) {
+      return null;
+    }
+
+    if (publishedAt) {
+      return new Date(publishedAt);
+    }
+
+    return new Date();
+  }
+
+  private resolveUpdatedPublishedAt(
+    existing: { isPublished: boolean; publishedAt: Date | null },
+    nextIsPublished: boolean,
+    nextPublishedAt?: string | null,
+  ): Date | null | undefined {
+    if (!nextIsPublished) {
+      return null;
+    }
+
+    if (nextPublishedAt !== undefined) {
+      return nextPublishedAt ? new Date(nextPublishedAt) : null;
+    }
+
+    if (existing.isPublished && existing.publishedAt) {
+      return undefined;
+    }
+
+    return new Date();
+  }
+
   private handleCategoryWriteError(error: unknown): never {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -1229,5 +1511,90 @@ export class AdminService {
       createdAt: hero.createdAt.toISOString(),
       updatedAt: hero.updatedAt.toISOString(),
     };
+  }
+
+  private mapNoticeListItem(notice: {
+    id: bigint;
+    title: string;
+    summary: string | null;
+    contentJson: Prisma.JsonValue;
+    isPinned: boolean;
+    isPublished: boolean;
+    publishedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }): AdminNoticeListItemResponse {
+    const content = this.normalizeNoticeContent(notice.contentJson);
+
+    return {
+      id: Number(notice.id),
+      title: notice.title,
+      summary: notice.summary,
+      isPinned: notice.isPinned,
+      isPublished: notice.isPublished,
+      publishedAt: notice.publishedAt?.toISOString() ?? null,
+      thumbnailImageUrl: this.extractNoticeThumbnail(content.blocks),
+      blockCount: content.blocks.length,
+      createdAt: notice.createdAt.toISOString(),
+      updatedAt: notice.updatedAt.toISOString(),
+    };
+  }
+
+  private mapNoticeDetail(notice: {
+    id: bigint;
+    title: string;
+    summary: string | null;
+    contentJson: Prisma.JsonValue;
+    isPinned: boolean;
+    isPublished: boolean;
+    publishedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+    deletedAt: Date | null;
+  }): AdminNoticeDetailResponse {
+    const content = this.normalizeNoticeContent(notice.contentJson);
+
+    return {
+      id: Number(notice.id),
+      title: notice.title,
+      summary: notice.summary,
+      contentJson: this.mapNoticeContent(content),
+      isPinned: notice.isPinned,
+      isPublished: notice.isPublished,
+      publishedAt: notice.publishedAt?.toISOString() ?? null,
+      thumbnailImageUrl: this.extractNoticeThumbnail(content.blocks),
+      createdAt: notice.createdAt.toISOString(),
+      updatedAt: notice.updatedAt.toISOString(),
+      deletedAt: notice.deletedAt?.toISOString() ?? null,
+    };
+  }
+
+  private mapNoticeContent(content: NoticeContent): NoticeContentResponse {
+    return {
+      version: content.version,
+      blocks: content.blocks.map((block) => this.mapNoticeBlock(block)),
+    };
+  }
+
+  private mapNoticeBlock(block: NoticeContentBlock): NoticeContentBlockResponse {
+    if (block.type === 'text') {
+      return {
+        type: 'text',
+        text: block.text,
+      };
+    }
+
+    return {
+      type: 'image',
+      imageUrl: block.imageUrl,
+      publicId: block.publicId,
+      alt: block.alt,
+      caption: block.caption,
+    };
+  }
+
+  private extractNoticeThumbnail(blocks: NoticeContentBlock[]): string | null {
+    const imageBlock = blocks.find((block) => block.type === 'image');
+    return imageBlock?.imageUrl ?? null;
   }
 }

@@ -28,6 +28,12 @@ type FinalizedMediaResponse = {
   bytes: number | null;
 };
 
+type DeleteMediaResponse = {
+  publicId: string;
+  deleted: boolean;
+  result: string;
+};
+
 const usagePolicy: Record<AdminMediaSignUploadDto['usage'], { folder: string; maxBytes: number }> = {
   HOME_POPUP: {
     folder: 'home-popups',
@@ -43,6 +49,10 @@ const usagePolicy: Record<AdminMediaSignUploadDto['usage'], { folder: string; ma
   },
   PRODUCT_DETAIL: {
     folder: 'product-details',
+    maxBytes: 10 * 1024 * 1024,
+  },
+  NOTICE_CONTENT: {
+    folder: 'notice-content',
     maxBytes: 10 * 1024 * 1024,
   },
 };
@@ -134,6 +144,68 @@ export class AdminMediaService {
       width: dto.width ?? null,
       height: dto.height ?? null,
       bytes: dto.bytes ?? null,
+    };
+  }
+
+  async deleteUpload(publicId: string): Promise<DeleteMediaResponse> {
+    const cloudName = this.configService.get<string>('CLOUDINARY_CLOUD_NAME', '').trim();
+    const apiKey = this.configService.get<string>('CLOUDINARY_API_KEY', '').trim();
+    const apiSecret = this.configService.get<string>('CLOUDINARY_API_SECRET', '').trim();
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      throw new InternalServerErrorException({
+        code: 'MEDIA_NOT_CONFIGURED',
+        message: '미디어 업로드 설정이 완료되지 않았습니다.',
+      });
+    }
+
+    const normalizedPublicId = publicId.trim();
+
+    if (!normalizedPublicId) {
+      throw new BadRequestException({
+        code: 'MEDIA_PUBLIC_ID_REQUIRED',
+        message: '삭제할 미디어 식별자가 필요합니다.',
+      });
+    }
+
+    const timestamp = Math.floor(Date.now() / 1000);
+    const signature = this.sign(
+      this.buildSignSource({
+        public_id: normalizedPublicId,
+        timestamp,
+      }),
+      apiSecret,
+    );
+
+    const body = new URLSearchParams();
+    body.set('public_id', normalizedPublicId);
+    body.set('timestamp', String(timestamp));
+    body.set('api_key', apiKey);
+    body.set('signature', signature);
+
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+      method: 'POST',
+      body,
+    });
+
+    const payload = (await response.json().catch(() => ({}))) as {
+      result?: string;
+      error?: {
+        message?: string;
+      };
+    };
+
+    if (!response.ok) {
+      throw new BadRequestException({
+        code: 'MEDIA_DELETE_FAILED',
+        message: payload.error?.message ?? '기존 이미지 삭제에 실패했습니다.',
+      });
+    }
+
+    return {
+      publicId: normalizedPublicId,
+      deleted: payload.result === 'ok' || payload.result === 'not found',
+      result: payload.result ?? 'unknown',
     };
   }
 

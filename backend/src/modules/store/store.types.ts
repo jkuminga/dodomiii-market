@@ -116,3 +116,38 @@ export type StoreHomeHeroResponse = {
   imageUrl: string;
   updatedAt: string;
 };
+
+export type StoreNoticeContentBlock =
+  | {
+      type: 'text';
+      text: string;
+    }
+  | {
+      type: 'image';
+      imageUrl: string;
+      alt: string | null;
+      caption: string | null;
+    };
+
+export type StoreNoticeListItemResponse = {
+  id: number;
+  title: string;
+  summary: string | null;
+  isPinned: boolean;
+  thumbnailImageUrl: string | null;
+  publishedAt: string;
+};
+
+export type StoreNoticeDetailResponse = {
+  id: number;
+  title: string;
+  summary: string | null;
+  contentJson: {
+    version: number;
+    blocks: StoreNoticeContentBlock[];
+  };
+  isPinned: boolean;
+  thumbnailImageUrl: string | null;
+  publishedAt: string;
+  updatedAt: string;
+};

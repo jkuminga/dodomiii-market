@@ -36,6 +36,12 @@ const adminPrimaryNavItems: AdminNavItem[] = [
     icon: ProductIcon,
   },
   {
+    label: '공지사항 관리',
+    description: '스토어 공지 작성과 공개 일정 운영',
+    to: '/admin/notices',
+    icon: NoticeIcon,
+  },
+  {
     label: '관리자 계정 관리',
     description: '운영 계정과 대표 입금계좌 설정',
     to: '/admin/accounts',
@@ -43,7 +49,7 @@ const adminPrimaryNavItems: AdminNavItem[] = [
     superOnly: true,
   },
   {
-    label: '홈 팝업',
+    label: '홈 화면',
     description: '메인 진입 팝업 이미지 운영',
     to: '/admin/home-popup',
     icon: HomePopupIcon,
@@ -107,6 +113,17 @@ function HomePopupIcon(props: AdminIconProps) {
       <path d="M8 9.5h8" />
       <path d="M8 13h5.5" />
       <path d="M15.5 6.5h1" />
+    </SidebarIcon>
+  );
+}
+
+function NoticeIcon(props: AdminIconProps) {
+  return (
+    <SidebarIcon {...props}>
+      <rect x="5" y="4.5" width="14" height="15" rx="2.5" />
+      <path d="M8 9h8" />
+      <path d="M8 12.5h8" />
+      <path d="M8 16h5" />
     </SidebarIcon>
   );
 }
@@ -345,11 +362,11 @@ export function AdminLayout() {
 
   const outletContext: AdminLayoutContext | null = admin
     ? {
-        admin,
-        showToast,
-        refreshSession,
-        logout,
-      }
+      admin,
+      showToast,
+      refreshSession,
+      logout,
+    }
     : null;
 
   if (loading) {
@@ -426,20 +443,20 @@ export function AdminLayout() {
                   {adminPrimaryNavItems
                     .filter((item) => !item.superOnly || admin.role === 'SUPER')
                     .map((item) => {
-                    const Icon = item.icon;
+                      const Icon = item.icon;
 
-                    return (
-                      <NavLink aria-label={item.label} className={navClassName} key={item.to} title={item.label} to={item.to}>
-                        <span className="admin-nav-link-icon" aria-hidden="true">
-                          <Icon className="admin-nav-link-icon-svg" />
-                        </span>
-                        <span className="admin-nav-link-copy">
-                          <strong>{item.label}</strong>
-                          <small>{item.description}</small>
-                        </span>
-                      </NavLink>
-                    );
-                  })}
+                      return (
+                        <NavLink aria-label={item.label} className={navClassName} key={item.to} title={item.label} to={item.to}>
+                          <span className="admin-nav-link-icon" aria-hidden="true">
+                            <Icon className="admin-nav-link-icon-svg" />
+                          </span>
+                          <span className="admin-nav-link-copy">
+                            <strong>{item.label}</strong>
+                            <small>{item.description}</small>
+                          </span>
+                        </NavLink>
+                      );
+                    })}
                 </div>
               </section>
             </nav>

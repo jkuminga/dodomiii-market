@@ -306,7 +306,88 @@ export type AdminHomePopupPayload = {
   isActive?: boolean;
 };
 
-export type AdminMediaUsage = 'HOME_POPUP' | 'HOME_HERO' | 'PRODUCT_THUMBNAIL' | 'PRODUCT_DETAIL';
+export type NoticeContentBlock =
+  | {
+      type: 'text';
+      text: string;
+    }
+  | {
+      type: 'image';
+      imageUrl: string;
+      publicId?: string | null;
+      alt?: string | null;
+      caption?: string | null;
+    };
+
+export type NoticeContent = {
+  version: number;
+  blocks: NoticeContentBlock[];
+};
+
+export type AdminNoticeListItem = {
+  id: number;
+  title: string;
+  summary: string | null;
+  isPinned: boolean;
+  isPublished: boolean;
+  publishedAt: string | null;
+  thumbnailImageUrl: string | null;
+  blockCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminNoticeDetail = {
+  id: number;
+  title: string;
+  summary: string | null;
+  contentJson: NoticeContent;
+  isPinned: boolean;
+  isPublished: boolean;
+  publishedAt: string | null;
+  thumbnailImageUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
+export type AdminNoticePayload = {
+  title: string;
+  summary?: string | null;
+  contentJson: NoticeContent;
+  isPinned?: boolean;
+  isPublished?: boolean;
+  publishedAt?: string | null;
+};
+
+export type AdminNoticeListQuery = {
+  q?: string;
+  isPublished?: boolean;
+  page?: number;
+  size?: number;
+};
+
+export type StoreNoticeListItem = {
+  id: number;
+  title: string;
+  summary: string | null;
+  isPinned: boolean;
+  thumbnailImageUrl: string | null;
+  publishedAt: string;
+};
+
+export type StoreNoticeDetail = {
+  id: number;
+  title: string;
+  summary: string | null;
+  contentJson: NoticeContent;
+  isPinned: boolean;
+  thumbnailImageUrl: string | null;
+  publishedAt: string;
+  updatedAt: string;
+};
+
+export type AdminMediaUsage = 'HOME_POPUP' | 'HOME_HERO' | 'PRODUCT_THUMBNAIL' | 'PRODUCT_DETAIL' | 'NOTICE_CONTENT';
 
 export type AdminMediaSignUploadPayload = {
   usage: AdminMediaUsage;
@@ -349,6 +430,16 @@ export type AdminMediaAsset = {
   width: number | null;
   height: number | null;
   bytes: number | null;
+};
+
+export type AdminMediaDeletePayload = {
+  publicId: string;
+};
+
+export type AdminMediaDeleteResult = {
+  publicId: string;
+  deleted: boolean;
+  result: string;
 };
 
 export type StoreHomePopup = {
@@ -1205,6 +1296,12 @@ export const apiClient = {
       body: JSON.stringify(payload),
     }),
 
+  deleteAdminUpload: (payload: AdminMediaDeletePayload) =>
+    request<AdminMediaDeleteResult>('/admin/media/delete', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
   getAdminProductById: (productId: string | number) => request<AdminProductDetail>(`/admin/products/${productId}`),
 
   createAdminProduct: (payload: AdminProductPayload) =>
@@ -1221,6 +1318,43 @@ export const apiClient = {
 
   deleteAdminProduct: (productId: string | number) =>
     request<{ deleted: boolean; deletedAt: string }>(`/admin/products/${productId}`, {
+      method: 'DELETE',
+    }),
+
+  getAdminNotices: async (query: AdminNoticeListQuery) => {
+    const result = await requestWithMeta<{ items: AdminNoticeListItem[] }, PaginationMeta>(
+      `/admin/notices${buildQueryString({
+        q: query.q,
+        isPublished: query.isPublished,
+        page: query.page,
+        size: query.size,
+      })}`,
+    );
+
+    return {
+      data: {
+        items: result.data.items,
+      },
+      meta: result.meta,
+    };
+  },
+
+  getAdminNoticeById: (noticeId: string | number) => request<AdminNoticeDetail>(`/admin/notices/${noticeId}`),
+
+  createAdminNotice: (payload: AdminNoticePayload) =>
+    request<AdminNoticeDetail>('/admin/notices', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  updateAdminNotice: (noticeId: string | number, payload: Partial<AdminNoticePayload>) =>
+    request<AdminNoticeDetail>(`/admin/notices/${noticeId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteAdminNotice: (noticeId: string | number) =>
+    request<{ deleted: boolean; deletedAt: string }>(`/admin/notices/${noticeId}`, {
       method: 'DELETE',
     }),
 
@@ -1313,4 +1447,11 @@ export const apiClient = {
 
   getOrderTracking: (orderNumber: string) =>
     request<StoreOrderTrackingResponse>(`/store/orders/${encodeURIComponent(orderNumber)}/tracking`),
+
+  getStoreNotices: async () => {
+    const result = await request<{ items: StoreNoticeListItem[] }>('/store/notices');
+    return result.items;
+  },
+
+  getStoreNoticeById: (noticeId: string | number) => request<StoreNoticeDetail>(`/store/notices/${noticeId}`),
 };

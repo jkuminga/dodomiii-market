@@ -6,6 +6,7 @@ import { AdminAccountsController } from './admin-accounts.controller';
 import { AdminAccountsService } from './admin-accounts.service';
 import { AdminCategoriesController } from './admin-categories.controller';
 import { AdminMediaController } from './admin-media.controller';
+import { AdminNoticesController } from './admin-notices.controller';
 import { AdminMediaService } from './admin-media.service';
 import { AdminHomePopupController } from './admin-home-popup.controller';
 import { AdminCustomOrdersController } from './admin-custom-orders.controller';
@@ -25,6 +26,7 @@ import { AdminService } from './admin.service';
     AdminCustomOrdersController,
     AdminHomePopupController,
     AdminMediaController,
+    AdminNoticesController,
   ],
   providers: [
     AdminService,

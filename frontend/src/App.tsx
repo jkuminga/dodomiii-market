@@ -16,6 +16,8 @@ import { AdminCustomOrdersPage } from './pages/admin/AdminCustomOrdersPage';
 import { AdminHomePopupPage } from './pages/admin/AdminHomePopupPage';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
+import { AdminNoticeEditorPage } from './pages/admin/AdminNoticeEditorPage';
+import { AdminNoticesPage } from './pages/admin/AdminNoticesPage';
 import { AdminOrderDetailPage } from './pages/admin/AdminOrderDetailPage';
 import { AdminOrdersPage } from './pages/admin/AdminOrdersPage';
 import { AdminProductEditorPage } from './pages/admin/AdminProductEditorPage';
@@ -26,6 +28,8 @@ import { CartOrderPage } from './pages/store/CartOrderPage';
 import { CustomCheckoutPage } from './pages/store/CustomCheckoutPage';
 import { CustomOrderProductPage } from './pages/store/CustomOrderProductPage';
 import { DepositRequestCompletePage } from './pages/store/DepositRequestCompletePage';
+import { NoticeDetailPage } from './pages/store/NoticeDetailPage';
+import { NoticeListPage } from './pages/store/NoticeListPage';
 import { OrderLookupPage } from './pages/store/OrderLookupPage';
 import { OrderPaymentPage } from './pages/store/OrderPaymentPage';
 import { OrderPage } from './pages/store/OrderPage';
@@ -379,18 +383,6 @@ function NotFoundPage() {
   return <Navigate to="/" replace />;
 }
 
-function NoticePage() {
-  return (
-    <main className="m-page page-centered">
-      <section className="surface-card">
-        <p className="section-kicker">Notice</p>
-        <h1 className="section-title">공지사항</h1>
-        <p className="section-copy">아직 등록된 공지사항이 없습니다.</p>
-      </section>
-    </main>
-  );
-}
-
 function QnaPage() {
   return (
     <main className="m-page page-centered">
@@ -435,7 +427,8 @@ function AppFrame() {
 
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/notices" element={<NoticePage />} />
+        <Route path="/notices" element={<NoticeListPage />} />
+        <Route path="/notices/:noticeId" element={<NoticeDetailPage />} />
         <Route path="/qna" element={<QnaPage />} />
         <Route path="/orders" element={<OrderLookupPage />} />
         <Route path="/cart" element={<CartPage />} />
@@ -460,6 +453,9 @@ function AppFrame() {
           <Route path="products" element={<AdminProductsPage />} />
           <Route path="products/new" element={<AdminProductEditorPage />} />
           <Route path="products/:productId" element={<AdminProductEditorPage />} />
+          <Route path="notices" element={<AdminNoticesPage />} />
+          <Route path="notices/new" element={<AdminNoticeEditorPage />} />
+          <Route path="notices/:noticeId" element={<AdminNoticeEditorPage />} />
           <Route path="home-popup" element={<AdminHomePopupPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />

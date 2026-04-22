@@ -21,6 +21,9 @@ import {
   StoreDepositRequestResponse,
   StoreHomeHeroResponse,
   StoreHomePopupResponse,
+  StoreNoticeContentBlock,
+  StoreNoticeDetailResponse,
+  StoreNoticeListItemResponse,
   StoreOrderDetailResponse,
   StoreOrderTrackingResponse,
   StoreTrackingEvent,
@@ -150,6 +153,7 @@ const STORE_CATEGORIES_CACHE_TTL_MS = 5 * 60 * 1000;
 const STORE_HOME_POPUP_CACHE_TTL_MS = 30 * 1000;
 const STORE_PRODUCTS_CACHE_TTL_MS = 20 * 1000;
 const STORE_PRODUCT_DETAIL_CACHE_TTL_MS = 20 * 1000;
+const STORE_NOTICE_CACHE_TTL_MS = 60 * 1000;
 
 const storeOrderDetailArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
   select: {
@@ -384,6 +388,74 @@ export class StoreService {
       return {
         imageUrl: hero.imageUrl,
         updatedAt: hero.updatedAt.toISOString(),
+      };
+    });
+  }
+
+  async getVisibleNotices(): Promise<{ items: StoreNoticeListItemResponse[] }> {
+    return this.storeCache.getOrSet('store:notices:v1', STORE_NOTICE_CACHE_TTL_MS, async () => {
+      const notices = await this.prisma.notice.findMany({
+        where: {
+          deletedAt: null,
+          isPublished: true,
+          publishedAt: {
+            lte: new Date(),
+          },
+        },
+        orderBy: [{ isPinned: 'desc' }, { publishedAt: 'desc' }, { id: 'desc' }],
+      });
+
+      return {
+        items: notices.map((notice) => {
+          const content = this.normalizeNoticeContent(notice.contentJson);
+
+          return {
+            id: Number(notice.id),
+            title: notice.title,
+            summary: notice.summary,
+            isPinned: notice.isPinned,
+            thumbnailImageUrl: this.extractNoticeThumbnail(content.blocks),
+            publishedAt: notice.publishedAt?.toISOString() ?? notice.createdAt.toISOString(),
+          };
+        }),
+      };
+    });
+  }
+
+  async getVisibleNoticeById(noticeId: number): Promise<StoreNoticeDetailResponse> {
+    return this.storeCache.getOrSet(`store:notice-detail:v1:${noticeId}`, STORE_NOTICE_CACHE_TTL_MS, async () => {
+      const notice = await this.prisma.notice.findFirst({
+        where: {
+          id: BigInt(noticeId),
+          deletedAt: null,
+          isPublished: true,
+          publishedAt: {
+            lte: new Date(),
+          },
+        },
+      });
+
+      if (!notice) {
+        throw new NotFoundException({
+          code: 'NOTICE_NOT_FOUND',
+          message: '공지사항을 찾을 수 없습니다.',
+        });
+      }
+
+      const content = this.normalizeNoticeContent(notice.contentJson);
+
+      return {
+        id: Number(notice.id),
+        title: notice.title,
+        summary: notice.summary,
+        contentJson: {
+          version: content.version,
+          blocks: content.blocks,
+        },
+        isPinned: notice.isPinned,
+        thumbnailImageUrl: this.extractNoticeThumbnail(content.blocks),
+        publishedAt: notice.publishedAt?.toISOString() ?? notice.createdAt.toISOString(),
+        updatedAt: notice.updatedAt.toISOString(),
       };
     });
   }
@@ -1754,6 +1826,46 @@ export class StoreService {
 
       return left.source.localeCompare(right.source);
     });
+  }
+
+  private normalizeNoticeContent(content: Prisma.JsonValue): { version: number; blocks: StoreNoticeContentBlock[] } {
+    const rawVersion =
+      typeof content === 'object' && content !== null && 'version' in content ? (content as { version?: unknown }).version : 1;
+    const rawBlocks =
+      typeof content === 'object' && content !== null && 'blocks' in content ? (content as { blocks?: unknown }).blocks : [];
+
+    return {
+      version: typeof rawVersion === 'number' && Number.isFinite(rawVersion) ? rawVersion : 1,
+      blocks: Array.isArray(rawBlocks)
+        ? rawBlocks.reduce<StoreNoticeContentBlock[]>((accumulator, block) => {
+            if (!block || typeof block !== 'object' || !('type' in block)) {
+              return accumulator;
+            }
+
+            if (block.type === 'text' && typeof block.text === 'string') {
+              accumulator.push({ type: 'text', text: block.text });
+              return accumulator;
+            }
+
+            if (block.type === 'image' && typeof block.imageUrl === 'string') {
+              accumulator.push({
+                type: 'image',
+                imageUrl: block.imageUrl,
+                alt: typeof block.alt === 'string' ? block.alt : null,
+                caption: typeof block.caption === 'string' ? block.caption : null,
+              });
+              return accumulator;
+            }
+
+            return accumulator;
+          }, [])
+        : [],
+    };
+  }
+
+  private extractNoticeThumbnail(blocks: StoreNoticeContentBlock[]): string | null {
+    const imageBlock = blocks.find((block) => block.type === 'image');
+    return imageBlock?.imageUrl ?? null;
   }
 
   private buildTrackingUrl(trackingNumber: string | null): string | null {
