@@ -62,19 +62,9 @@ export function CartPage() {
                       />
                     </div>
                     <div className="cart-item-copy">
-                      <div className="cart-item-copy-head">
-                        <div className="cart-item-copy-title">
-                          <p className="section-kicker">{item.categoryName}</p>
-                          <h2 className="section-subtitle">{item.productName}</h2>
-                        </div>
-                        <button
-                          className="cart-item-remove-icon"
-                          type="button"
-                          onClick={() => removeCartItem(item.id)}
-                          aria-label={`${item.productName} 장바구니에서 삭제`}
-                        >
-                          ×
-                        </button>
+                      <div className="cart-item-copy-title">
+                        <p className="section-kicker">{item.categoryName}</p>
+                        <h2 className="section-subtitle">{item.productName}</h2>
                       </div>
                       {item.selectedOptions.length > 0 ? (
                         <ul className="cart-item-option-list">
@@ -103,6 +93,9 @@ export function CartPage() {
 
                     <div className="cart-item-actions">
                       <div className="inline-actions cart-item-action-row">
+                        <button className="button button-ghost" type="button" onClick={() => removeCartItem(item.id)}>
+                          장바구니에서 제거
+                        </button>
                         <Link className="button button-secondary" to={`/products/${item.productId}`}>
                           상품 보기
                         </Link>
