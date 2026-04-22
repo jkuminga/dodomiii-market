@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import logoMain from '../../assets/images/logo_main3.jpg';
 import { apiClient, CategoryTreeNode } from '../../lib/api';
+import { useCart } from '../../lib/cart';
 
 function MenuIcon() {
   return (
@@ -40,6 +41,7 @@ function BagIcon() {
 export function MobileHeader() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { itemCount } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
   const [roots, setRoots] = useState<CategoryTreeNode[]>([]);
   const [expandedRootSlugs, setExpandedRootSlugs] = useState<Set<string>>(new Set());
@@ -156,8 +158,9 @@ export function MobileHeader() {
           </Link>
 
           <div className="m-header-side m-header-actions">
-            <Link className="m-icon-btn" to="/products" aria-label="상품 목록으로 이동">
+            <Link className="m-icon-btn m-cart-entry" to="/cart" aria-label="장바구니로 이동">
               <BagIcon />
+              {itemCount > 0 ? <span className="header-cart-badge">{itemCount}</span> : null}
             </Link>
           </div>
         </div>

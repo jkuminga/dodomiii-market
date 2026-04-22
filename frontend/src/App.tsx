@@ -22,6 +22,8 @@ import { AdminOrdersPage } from './pages/admin/AdminOrdersPage';
 import { AdminProductEditorPage } from './pages/admin/AdminProductEditorPage';
 import { AdminProductsPage } from './pages/admin/AdminProductsPage';
 import { CatalogPage } from './pages/store/CatalogPage';
+import { CartPage } from './pages/store/CartPage';
+import { CartOrderPage } from './pages/store/CartOrderPage';
 import { CustomCheckoutPage } from './pages/store/CustomCheckoutPage';
 import { CustomOrderProductPage } from './pages/store/CustomOrderProductPage';
 import { DepositRequestCompletePage } from './pages/store/DepositRequestCompletePage';
@@ -433,6 +435,8 @@ function AppFrame() {
         <Route path="/notices" element={<NoticePage />} />
         <Route path="/qna" element={<QnaPage />} />
         <Route path="/orders" element={<OrderLookupPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/cart/order" element={<CartOrderPage />} />
         <Route path="/orders/:orderNumber/payment" element={<OrderPaymentPage />} />
         <Route path="/orders/:orderNumber/deposit-request-complete" element={<DepositRequestCompletePage />} />
         <Route path="/products" element={<CatalogPage />} />

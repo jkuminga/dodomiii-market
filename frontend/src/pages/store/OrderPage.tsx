@@ -124,6 +124,10 @@ export function OrderPage() {
         };
       });
   }, [searchParams]);
+  const prefilledQuantity = useMemo(() => {
+    const raw = Number(searchParams.get('quantity') ?? '1');
+    return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;
+  }, [searchParams]);
 
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -171,6 +175,7 @@ export function OrderPage() {
         }
 
         setProduct(result);
+        setQuantity(prefilledQuantity);
       } catch (caught) {
         if (!cancelled) {
           setError(caught instanceof Error ? caught.message : '주문 상품을 불러오는 중 오류가 발생했습니다.');
@@ -188,7 +193,7 @@ export function OrderPage() {
     return () => {
       cancelled = true;
     };
-  }, [productId]);
+  }, [prefilledQuantity, productId]);
 
   const optionGroups = useMemo(
     () =>
@@ -601,103 +606,102 @@ export function OrderPage() {
                           const isSingle = group.selectionType === 'SINGLE';
                           const isChecked = selectedSingleOptionByGroup[String(group.id)] === String(option.id);
                           const quantityValue = selectedQuantityByOption[String(option.id)] ?? 0;
+                          const isItemSelected = isSingle ? isChecked : quantityValue > 0;
+                          const itemClassName = `order-option-multi-item ${!isSingle ? 'is-quantity' : ''} ${isItemSelected ? 'is-selected' : ''}`;
+
+                          if (isSingle) {
+                            return (
+                              <label className={itemClassName} key={option.id}>
+                                <input
+                                  type="radio"
+                                  name={`option-group-${group.id}`}
+                                  checked={isChecked}
+                                  onChange={() => {
+                                    setSelectedSingleOptionByGroup((current) => ({
+                                      ...current,
+                                      [String(group.id)]: String(option.id),
+                                    }));
+                                    setInvalidRequiredGroupIds((current) =>
+                                      current.filter((groupId) => groupId !== String(group.id)),
+                                    );
+                                  }}
+                                />
+                                <span>{option.name}</span>
+                                <strong>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '+0원'}</strong>
+                              </label>
+                            );
+                          }
 
                           return (
-                            <label
-                              className={`order-option-multi-item ${!isSingle ? 'is-quantity' : ''} ${(isSingle ? isChecked : quantityValue > 0) ? 'is-selected' : ''}`}
-                              key={option.id}
-                            >
-                              {isSingle ? (
-                                <>
-                                  <input
-                                    type="radio"
-                                    name={`option-group-${group.id}`}
-                                    checked={isChecked}
-                                    onChange={() => {
-                                      setSelectedSingleOptionByGroup((current) => ({
+                            <div className={itemClassName} key={option.id}>
+                              <div className="order-option-inline-copy">
+                                <span>{option.name}</span>
+                                <strong>({option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '+0원'})</strong>
+                              </div>
+                              <div className="quantity-stepper">
+                                <button
+                                  className="quantity-button"
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedQuantityByOption((current) => ({
+                                      ...current,
+                                      [String(option.id)]: Math.max(0, (current[String(option.id)] ?? 0) - 1),
+                                    }));
+                                    setInvalidRequiredGroupIds((current) =>
+                                      current.filter((groupId) => groupId !== String(group.id)),
+                                    );
+                                  }}
+                                  aria-label={`${option.name} 수량 감소`}
+                                >
+                                  -
+                                </button>
+                                <input
+                                  className="quantity-input"
+                                  type="number"
+                                  min={0}
+                                  max={option.maxQuantity ?? undefined}
+                                  step={1}
+                                  inputMode="numeric"
+                                  value={quantityValue}
+                                  onChange={(event) => {
+                                    const nextValue = Math.max(0, Number(event.target.value) || 0);
+                                    const boundedValue =
+                                      option.maxQuantity === null || option.maxQuantity === undefined
+                                        ? nextValue
+                                        : Math.min(option.maxQuantity, nextValue);
+                                    setSelectedQuantityByOption((current) => ({
+                                      ...current,
+                                      [String(option.id)]: boundedValue,
+                                    }));
+                                    setInvalidRequiredGroupIds((current) =>
+                                      current.filter((groupId) => groupId !== String(group.id)),
+                                    );
+                                  }}
+                                />
+                                <button
+                                  className="quantity-button"
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedQuantityByOption((current) => {
+                                      const nextValue = (current[String(option.id)] ?? 0) + 1;
+                                      return {
                                         ...current,
-                                        [String(group.id)]: String(option.id),
-                                      }));
-                                      setInvalidRequiredGroupIds((current) =>
-                                        current.filter((groupId) => groupId !== String(group.id)),
-                                      );
-                                    }}
-                                  />
-                                  <span>{option.name}</span>
-                                  <strong>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '+0원'}</strong>
-                                </>
-                              ) : (
-                                <>
-                                  <div className="order-option-inline-copy">
-                                    <span>{option.name}</span>
-                                    <strong>({option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '+0원'})</strong>
-                                  </div>
-                                  <div className="quantity-stepper">
-                                    <button
-                                      className="quantity-button"
-                                      type="button"
-                                      onClick={() => {
-                                        setSelectedQuantityByOption((current) => ({
-                                          ...current,
-                                          [String(option.id)]: Math.max(0, (current[String(option.id)] ?? 0) - 1),
-                                        }));
-                                        setInvalidRequiredGroupIds((current) =>
-                                          current.filter((groupId) => groupId !== String(group.id)),
-                                        );
-                                      }}
-                                      aria-label={`${option.name} 수량 감소`}
-                                    >
-                                      -
-                                    </button>
-                                    <input
-                                      className="quantity-input"
-                                      type="number"
-                                      min={0}
-                                      max={option.maxQuantity ?? undefined}
-                                      step={1}
-                                      inputMode="numeric"
-                                      value={quantityValue}
-                                      onChange={(event) => {
-                                        const nextValue = Math.max(0, Number(event.target.value) || 0);
-                                        const boundedValue =
+                                        [String(option.id)]:
                                           option.maxQuantity === null || option.maxQuantity === undefined
                                             ? nextValue
-                                            : Math.min(option.maxQuantity, nextValue);
-                                        setSelectedQuantityByOption((current) => ({
-                                          ...current,
-                                          [String(option.id)]: boundedValue,
-                                        }));
-                                        setInvalidRequiredGroupIds((current) =>
-                                          current.filter((groupId) => groupId !== String(group.id)),
-                                        );
-                                      }}
-                                    />
-                                    <button
-                                      className="quantity-button"
-                                      type="button"
-                                      onClick={() => {
-                                        setSelectedQuantityByOption((current) => {
-                                          const nextValue = (current[String(option.id)] ?? 0) + 1;
-                                          return {
-                                            ...current,
-                                            [String(option.id)]:
-                                              option.maxQuantity === null || option.maxQuantity === undefined
-                                                ? nextValue
-                                                : Math.min(option.maxQuantity, nextValue),
-                                          };
-                                        });
-                                        setInvalidRequiredGroupIds((current) =>
-                                          current.filter((groupId) => groupId !== String(group.id)),
-                                        );
-                                      }}
-                                      aria-label={`${option.name} 수량 증가`}
-                                    >
-                                      +
-                                    </button>
-                                  </div>
-                                </>
-                              )}
-                            </label>
+                                            : Math.min(option.maxQuantity, nextValue),
+                                      };
+                                    });
+                                    setInvalidRequiredGroupIds((current) =>
+                                      current.filter((groupId) => groupId !== String(group.id)),
+                                    );
+                                  }}
+                                  aria-label={`${option.name} 수량 증가`}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
                           );
                         })}
                       </div>
@@ -720,13 +724,10 @@ export function OrderPage() {
                   <ul className="order-option-basket-list">
                     {selectedOptions.map((entry) => (
                       <li key={`${entry.group.id}-${entry.option.id}`} className="order-option-basket-item">
-                        <div>
-                          <p>{entry.group.name}</p>
-                          <strong>
-                            {entry.option.name}
-                            {entry.quantity > 1 ? ` x${entry.quantity}` : ''}
-                          </strong>
-                        </div>
+                        <span className="order-option-basket-label">
+                          {entry.group.name} ({entry.option.name}
+                          {entry.quantity > 1 ? ` x${entry.quantity}` : ''})
+                        </span>
                         <div className="order-option-basket-side">
                           <span>
                             {entry.option.extraPrice > 0

@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 import logoMain from '../../assets/images/logo_main3.jpg';
 import { apiClient, CategoryTreeNode } from '../../lib/api';
+import { useCart } from '../../lib/cart';
 
 const primaryNavItems = [
   { to: '/', label: '홈' },
@@ -13,6 +14,7 @@ const primaryNavItems = [
 
 export function DesktopHeader() {
   const location = useLocation();
+  const { itemCount } = useCart();
   const [categoryRoots, setCategoryRoots] = useState<CategoryTreeNode[]>([]);
 
   useEffect(() => {
@@ -104,6 +106,13 @@ export function DesktopHeader() {
         </nav>
 
         <div className="d-header-actions">
+          <Link className="d-header-cart-link" to="/cart" aria-label="장바구니로 이동">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 9V7a5 5 0 0 1 10 0v2" />
+              <path d="M5 9h14l-1 10H6L5 9Z" />
+            </svg>
+            {itemCount > 0 ? <span className="header-cart-badge">{itemCount}</span> : null}
+          </Link>
           <Link className="button button-secondary d-header-button" to="/orders">
             주문조회
           </Link>
