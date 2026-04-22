@@ -111,3 +111,8 @@ export type StoreHomePopupResponse = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type StoreHomeHeroResponse = {
+  imageUrl: string;
+  updatedAt: string;
+};

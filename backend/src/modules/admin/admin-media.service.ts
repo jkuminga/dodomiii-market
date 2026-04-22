@@ -33,6 +33,10 @@ const usagePolicy: Record<AdminMediaSignUploadDto['usage'], { folder: string; ma
     folder: 'home-popups',
     maxBytes: 5 * 1024 * 1024,
   },
+  HOME_HERO: {
+    folder: 'home-hero',
+    maxBytes: 5 * 1024 * 1024,
+  },
   PRODUCT_THUMBNAIL: {
     folder: 'product-thumbnails',
     maxBytes: 5 * 1024 * 1024,

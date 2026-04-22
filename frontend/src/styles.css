@@ -6355,6 +6355,25 @@ button.admin-list-card {
   text-align: center;
 }
 
+.admin-home-hero-preview-stage {
+  display: grid;
+  min-height: 260px;
+  border-radius: 24px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgb(var(--primary-rgb) / 0.12), transparent 34%),
+    linear-gradient(180deg, rgba(247, 241, 234, 0.9) 0%, rgba(255, 255, 255, 0.82) 100%);
+  border: 1px solid rgb(var(--primary-rgb) / 0.08);
+}
+
+.admin-home-hero-preview-image {
+  width: 100%;
+  height: 100%;
+  min-height: 260px;
+  display: block;
+  object-fit: cover;
+}
+
 .admin-home-popup-summary-span-2 {
   grid-column: 1 / -1;
 }

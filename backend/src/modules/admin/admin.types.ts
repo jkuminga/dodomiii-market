@@ -259,6 +259,13 @@ export type AdminHomePopupResponse = {
   updatedAt: string;
 };
 
+export type AdminHomeHeroResponse = {
+  key: string;
+  imageUrl: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AdminAccountResponse = {
   adminId: number;
   loginId: string;

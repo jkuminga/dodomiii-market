@@ -32,6 +32,16 @@ export class StoreController {
     };
   }
 
+  @Get('home-hero')
+  async getHomeHero() {
+    const data = await this.storeService.getHomeHero();
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
   @Get('products')
   async getProducts(@Query() query: GetProductsQueryDto) {
     const result = await this.storeService.getVisibleProducts(query);

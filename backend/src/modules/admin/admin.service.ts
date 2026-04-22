@@ -10,10 +10,12 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { StoreCacheService } from '../store/store-cache.service';
 import type {
   AdminCategoryResponse,
+  AdminHomeHeroResponse,
   AdminHomePopupResponse,
   AdminProductDetailResponse,
   AdminProductListItemResponse,
 } from './admin.types';
+import { UpdateAdminHomeHeroDto } from './dto/update-admin-home-hero.dto';
 import { CreateAdminCategoryDto } from './dto/create-admin-category.dto';
 import { UpdateAdminHomePopupDto } from './dto/update-admin-home-popup.dto';
 import { CreateAdminProductDto } from './dto/create-admin-product.dto';
@@ -103,6 +105,14 @@ export class AdminService {
     return popup ? this.mapHomePopup(popup) : null;
   }
 
+  async getHomeHero(): Promise<AdminHomeHeroResponse | null> {
+    const hero = await this.prisma.homeHeroSetting.findUnique({
+      where: { key: 'default' },
+    });
+
+    return hero ? this.mapHomeHero(hero) : null;
+  }
+
   async upsertHomePopup(dto: UpdateAdminHomePopupDto): Promise<AdminHomePopupResponse> {
     const popupId = dto.popupId ? BigInt(dto.popupId) : null;
 
@@ -167,6 +177,22 @@ export class AdminService {
 
     this.storeCache.invalidateByPrefix('store:home-popup:');
     return result;
+  }
+
+  async upsertHomeHero(dto: UpdateAdminHomeHeroDto): Promise<AdminHomeHeroResponse> {
+    const result = await this.prisma.homeHeroSetting.upsert({
+      where: { key: 'default' },
+      create: {
+        key: 'default',
+        imageUrl: dto.imageUrl.trim(),
+      },
+      update: {
+        imageUrl: dto.imageUrl.trim(),
+      },
+    });
+
+    this.storeCache.invalidateByPrefix('store:home-hero:');
+    return this.mapHomeHero(result);
   }
 
   async createCategory(dto: CreateAdminCategoryDto): Promise<AdminCategoryResponse> {
@@ -1188,6 +1214,20 @@ export class AdminService {
       isActive: popup.isActive,
       createdAt: popup.createdAt.toISOString(),
       updatedAt: popup.updatedAt.toISOString(),
+    };
+  }
+
+  private mapHomeHero(hero: {
+    key: string;
+    imageUrl: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }): AdminHomeHeroResponse {
+    return {
+      key: hero.key,
+      imageUrl: hero.imageUrl,
+      createdAt: hero.createdAt.toISOString(),
+      updatedAt: hero.updatedAt.toISOString(),
     };
   }
 }

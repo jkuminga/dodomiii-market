@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 
 import { AdminFloatingSubmitButton } from '../../components/admin/AdminFloatingSubmitButton';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
-import { AdminHomePopup, apiClient } from '../../lib/api';
+import { AdminHomeHero, AdminHomePopup, AdminMediaUsage, apiClient } from '../../lib/api';
 import { AdminLayoutContext, formatAdminDateTime } from './adminUtils';
 
 type PopupFormState = {
@@ -12,6 +12,10 @@ type PopupFormState = {
   imageUrl: string;
   linkUrl: string;
   isActive: boolean;
+};
+
+type HeroFormState = {
+  imageUrl: string;
 };
 
 const FLOATING_SUBMIT_SUCCESS_MS = 700;
@@ -47,28 +51,46 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function toHeroFormState(hero: AdminHomeHero | null): HeroFormState {
+  return {
+    imageUrl: hero?.imageUrl ?? '',
+  };
+}
+
 export function AdminHomePopupPage() {
   const { showToast } = useOutletContext<AdminLayoutContext>();
 
   const [popup, setPopup] = useState<AdminHomePopup | null>(null);
+  const [hero, setHero] = useState<AdminHomeHero | null>(null);
   const [form, setForm] = useState<PopupFormState>(toFormState(null));
+  const [heroForm, setHeroForm] = useState<HeroFormState>(toHeroFormState(null));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [heroSaving, setHeroSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [heroSaveSuccess, setHeroSaveSuccess] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [heroUploading, setHeroUploading] = useState(false);
   const [error, setError] = useState('');
+  const [heroError, setHeroError] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedHeroFile, setSelectedHeroFile] = useState<File | null>(null);
 
   const loadPopup = async () => {
     setLoading(true);
     setError('');
+    setHeroError('');
 
     try {
-      const result = await apiClient.getAdminHomePopup();
-      setPopup(result);
-      setForm(toFormState(result));
+      const [popupResult, heroResult] = await Promise.all([apiClient.getAdminHomePopup(), apiClient.getAdminHomeHero()]);
+      setPopup(popupResult);
+      setForm(toFormState(popupResult));
+      setHero(heroResult);
+      setHeroForm(toHeroFormState(heroResult));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : '홈 팝업 정보를 불러오지 못했습니다.');
+      const message = caught instanceof Error ? caught.message : '홈 화면 설정 정보를 불러오지 못했습니다.';
+      setError(message);
+      setHeroError(message);
     } finally {
       setLoading(false);
     }
@@ -86,6 +108,14 @@ export function AdminHomePopupPage() {
     }
   };
 
+  const updateHeroField = <Key extends keyof HeroFormState>(key: Key, value: HeroFormState[Key]) => {
+    setHeroForm((current) => ({ ...current, [key]: value }));
+
+    if (heroError !== '') {
+      setHeroError('');
+    }
+  };
+
   const onSelectFile = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] ?? null;
     setSelectedFile(nextFile);
@@ -97,9 +127,20 @@ export function AdminHomePopupPage() {
     event.target.value = '';
   };
 
-  const uploadToCloudinary = async (file: File) => {
+  const onSelectHeroFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0] ?? null;
+    setSelectedHeroFile(nextFile);
+
+    if (heroError !== '') {
+      setHeroError('');
+    }
+
+    event.target.value = '';
+  };
+
+  const uploadToCloudinary = async (file: File, usage: AdminMediaUsage) => {
     const signed = await apiClient.signAdminUpload({
-      usage: 'HOME_POPUP',
+      usage,
       fileName: file.name,
       contentType: file.type,
       size: file.size,
@@ -162,7 +203,7 @@ export function AdminHomePopupPage() {
     setError('');
 
     try {
-      const secureUrl = await uploadToCloudinary(selectedFile);
+      const secureUrl = await uploadToCloudinary(selectedFile, 'HOME_POPUP');
       setForm((current) => ({ ...current, imageUrl: secureUrl }));
       setSelectedFile(null);
       showToast('이미지 업로드를 완료했습니다.');
@@ -170,6 +211,27 @@ export function AdminHomePopupPage() {
       setError(caught instanceof Error ? caught.message : '이미지 업로드에 실패했습니다.');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const onUploadHeroFile = async () => {
+    if (!selectedHeroFile) {
+      setHeroError('업로드할 히어로 이미지를 먼저 선택해주세요.');
+      return;
+    }
+
+    setHeroUploading(true);
+    setHeroError('');
+
+    try {
+      const secureUrl = await uploadToCloudinary(selectedHeroFile, 'HOME_HERO');
+      setHeroForm((current) => ({ ...current, imageUrl: secureUrl }));
+      setSelectedHeroFile(null);
+      showToast('히어로 이미지 업로드를 완료했습니다.');
+    } catch (caught) {
+      setHeroError(caught instanceof Error ? caught.message : '히어로 이미지 업로드에 실패했습니다.');
+    } finally {
+      setHeroUploading(false);
     }
   };
 
@@ -210,18 +272,57 @@ export function AdminHomePopupPage() {
     }
   };
 
+  const onSubmitHero = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const imageUrl = heroForm.imageUrl.trim();
+    if (imageUrl === '') {
+      setHeroError('히어로 이미지 URL을 입력해주세요.');
+      return;
+    }
+
+    setHeroSaving(true);
+    setHeroSaveSuccess(false);
+    setHeroError('');
+
+    try {
+      const result = await apiClient.upsertAdminHomeHero({
+        imageUrl,
+      });
+
+      setHero(result);
+      setHeroForm(toHeroFormState(result));
+      showToast('홈 히어로 이미지를 저장했습니다.');
+      setHeroSaveSuccess(true);
+      await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
+    } catch (caught) {
+      setHeroSaveSuccess(false);
+      setHeroError(caught instanceof Error ? caught.message : '홈 히어로 이미지 저장에 실패했습니다.');
+    } finally {
+      setHeroSaving(false);
+      setHeroSaveSuccess(false);
+    }
+  };
+
   const trimmedTitle = form.title.trim();
   const trimmedImageUrl = form.imageUrl.trim();
   const trimmedLinkUrl = form.linkUrl.trim();
   const imageRequiredError = error === '팝업 이미지 URL을 입력해주세요.';
   const uploadReady = selectedFile !== null;
   const hasExistingPopup = popup !== null;
+  const hasHeroImage = hero !== null;
   const currentStatusLabel = loading ? '불러오는 중' : form.isActive ? '노출 중' : '비노출';
   const imageStatusLabel = loading ? '확인 중' : trimmedImageUrl !== '' ? '준비됨' : '미설정';
   const linkStatusLabel = loading ? '확인 중' : trimmedLinkUrl !== '' ? '연결됨' : '없음';
   const selectedFileMeta =
     selectedFile !== null
       ? `${selectedFile.type || '형식 미확인'} · ${formatFileSize(selectedFile.size)}`
+      : '이미지 선택 후 업로드하면 URL이 자동으로 입력됩니다.';
+  const trimmedHeroImageUrl = heroForm.imageUrl.trim();
+  const heroImageStatusLabel = loading ? '확인 중' : trimmedHeroImageUrl !== '' ? '준비됨' : '미설정';
+  const selectedHeroFileMeta =
+    selectedHeroFile !== null
+      ? `${selectedHeroFile.type || '형식 미확인'} · ${formatFileSize(selectedHeroFile.size)}`
       : '이미지 선택 후 업로드하면 URL이 자동으로 입력됩니다.';
 
   return (
@@ -244,6 +345,10 @@ export function AdminHomePopupPage() {
           <div className="admin-stat-card">
             <span>최근 수정</span>
             <strong>{formatAdminDateTime(popup?.updatedAt)}</strong>
+          </div>
+          <div className="admin-stat-card">
+            <span>히어로 이미지</span>
+            <strong>{heroImageStatusLabel}</strong>
           </div>
         </div>
       </section>
@@ -474,6 +579,146 @@ export function AdminHomePopupPage() {
               </div>
             </>
           )}
+        </aside>
+      </form>
+
+      <form className="admin-two-column admin-home-popup-layout" onSubmit={onSubmitHero} aria-busy={loading || heroSaving || heroUploading}>
+        <AdminFloatingSubmitButton
+          busy={heroSaving}
+          busyLabel="저장 중..."
+          disabled={heroSaving || loading}
+          label="히어로 저장"
+          success={heroSaveSuccess}
+        />
+        <section className="surface-card admin-card-stack admin-home-popup-editor">
+          <div className="admin-section-head">
+            <div>
+              <p className="section-kicker">Hero</p>
+              <h3 className="section-subtitle">홈 히어로 이미지</h3>
+            </div>
+            <button className="button" type="submit" disabled={heroSaving || loading}>
+              {heroSaving ? '저장 중...' : '저장'}
+            </button>
+          </div>
+
+          {heroError !== '' ? (
+            <p className="feedback-copy is-error" role="alert">
+              {heroError}
+            </p>
+          ) : null}
+
+          {loading === false ? (
+            <>
+              <section className="admin-editor-overview-bar" aria-label="히어로 설정 요약">
+                <div className="admin-overview-chip">
+                  <span>현재 상태</span>
+                  <strong>{trimmedHeroImageUrl !== '' ? '연결 완료' : '입력 필요'}</strong>
+                </div>
+                <div className="admin-overview-chip">
+                  <span>업로드 준비</span>
+                  <strong>{selectedHeroFile ? '파일 선택됨' : '파일 미선택'}</strong>
+                </div>
+                <div className="admin-overview-chip">
+                  <span>최근 수정</span>
+                  <strong>{formatAdminDateTime(hero?.updatedAt)}</strong>
+                </div>
+              </section>
+
+              <section className="admin-form-section">
+                <div className="admin-section-head">
+                  <div>
+                    <p className="section-kicker">Upload</p>
+                    <h4 className="section-subtitle">히어로 배경 이미지</h4>
+                  </div>
+                  <div className="admin-inline-note">※ Cloudinary 업로드 클릭 시 이미지 URL이 자동 입력됨.</div>
+                </div>
+
+                <div className="admin-home-popup-upload-grid">
+                  <label className={`admin-home-popup-file-picker${selectedHeroFile ? ' is-selected' : ''}`} htmlFor="admin-home-hero-file">
+                    <span className="admin-home-popup-file-picker-kicker">Hero Image</span>
+                    <strong>{selectedHeroFile ? selectedHeroFile.name : '히어로 이미지를 선택하세요'}</strong>
+                    <p>스토어 홈 상단 배경으로 사용됩니다.</p>
+                    <span className="admin-home-popup-file-picker-action">{selectedHeroFile ? '다른 파일 선택' : '파일 고르기'}</span>
+                  </label>
+
+                  <section className="admin-subcard admin-home-popup-upload-card" aria-live="polite">
+                    <div className="admin-home-popup-upload-meta">
+                      <span>선택 파일</span>
+                      <strong>{selectedHeroFile ? selectedHeroFile.name : '아직 파일이 선택되지 않았습니다.'}</strong>
+                      <p>{selectedHeroFileMeta}</p>
+                    </div>
+
+                    <div className="inline-actions admin-home-popup-upload-actions">
+                      <button className="button" type="button" onClick={() => void onUploadHeroFile()} disabled={!selectedHeroFile || heroUploading}>
+                        {heroUploading ? '업로드 중...' : 'Cloudinary 업로드'}
+                      </button>
+                      {selectedHeroFile ? (
+                        <button className="button button-ghost" type="button" onClick={() => setSelectedHeroFile(null)} disabled={heroUploading}>
+                          선택 해제
+                        </button>
+                      ) : null}
+                    </div>
+                  </section>
+                </div>
+
+                <input
+                  id="admin-home-hero-file"
+                  className="sr-only"
+                  type="file"
+                  accept="image/*"
+                  onChange={onSelectHeroFile}
+                />
+
+                <label className="field">
+                  <span>히어로 이미지 URL</span>
+                  <input
+                    value={heroForm.imageUrl}
+                    onChange={(event) => updateHeroField('imageUrl', event.target.value)}
+                    placeholder="https://..."
+                  />
+                </label>
+              </section>
+
+              <section className="admin-home-popup-action-bar" aria-label="히어로 저장 안내">
+                <div className="admin-home-popup-action-copy" role="status" aria-live="polite">
+                  <strong>{hasHeroImage ? '기존 히어로 이미지를 수정 중입니다.' : '새 홈 히어로 이미지를 설정할 수 있습니다.'}</strong>
+                  <p>
+                    {trimmedHeroImageUrl !== ''
+                      ? '저장하면 스토어 홈 상단 히어로 영역에 즉시 반영됩니다.'
+                      : '이미지 URL을 입력하거나 업로드한 뒤 저장하면 스토어 홈 상단에 반영됩니다.'}
+                  </p>
+                </div>
+                <button className="button" type="submit" disabled={heroSaving}>
+                  {heroSaving ? '저장 중...' : '변경사항 저장'}
+                </button>
+              </section>
+            </>
+          ) : null}
+        </section>
+
+        <aside className="surface-card admin-card-stack admin-home-popup-preview-panel">
+          <div className="admin-section-head">
+            <div>
+              <p className="section-kicker">Preview</p>
+              <h3 className="section-subtitle">히어로 미리보기</h3>
+            </div>
+            <span className={`admin-home-popup-preview-badge${loading || trimmedHeroImageUrl !== '' ? '' : ' is-muted'}`}>
+              {loading ? '설정 확인 중' : trimmedHeroImageUrl !== '' ? '노출 예정' : '미설정'}
+            </span>
+          </div>
+
+          <p className="section-copy section-copy-compact">홈 첫 화면의 상단 배경 이미지로 사용됩니다.</p>
+
+          <div className="admin-home-hero-preview-stage">
+            {trimmedHeroImageUrl !== '' ? (
+              <img className="admin-home-hero-preview-image" src={trimmedHeroImageUrl} alt="홈 히어로 미리보기" />
+            ) : (
+              <div className="admin-home-popup-preview-empty">
+                <strong>히어로 이미지 미리보기 준비 중</strong>
+                <p>이미지 URL을 입력하거나 업로드를 완료하면 이 영역에 실제 히어로 이미지가 표시됩니다.</p>
+              </div>
+            )}
+          </div>
         </aside>
       </form>
     </section>

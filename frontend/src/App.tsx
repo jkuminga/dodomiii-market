@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
-// import logoMain from './assets/images/logo_main3.jpg';
 import logoMain from './assets/images/Hero_image.png';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { BottomNav } from './components/mobile/BottomNav';
@@ -9,7 +8,7 @@ import { MobileHeader } from './components/mobile/MobileHeader';
 import { AnimatedCursor } from './components/store/AnimatedCursor';
 import { DesktopHeader } from './components/store/DesktopHeader';
 import { ProductArtwork } from './components/store/ProductArtwork';
-import { apiClient, CategoryTreeNode, ProductListItem, StoreHomePopup } from './lib/api';
+import { apiClient, CategoryTreeNode, ProductListItem, StoreHomeHero, StoreHomePopup } from './lib/api';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
 import { AdminAccountFormPage } from './pages/admin/AdminAccountFormPage';
 import { AdminAccountsPage } from './pages/admin/AdminAccountsPage';
@@ -78,6 +77,7 @@ function HomePage() {
   const [landingCategories, setLandingCategories] = useState<LandingCategory[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<ProductListItem[]>([]);
   const [homePopup, setHomePopup] = useState<StoreHomePopup | null>(null);
+  const [homeHero, setHomeHero] = useState<StoreHomeHero | null>(null);
   const [showHomePopup, setShowHomePopup] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -93,9 +93,10 @@ function HomePage() {
       setError('');
 
       try {
-        const [categoriesResult, productsResult] = await Promise.all([
+        const [categoriesResult, productsResult, homeHeroResult] = await Promise.all([
           apiClient.getCategories(),
           apiClient.getProducts({ sort: 'latest', size: 4 }),
+          apiClient.getHomeHero(),
         ]);
 
         if (cancelled) {
@@ -104,9 +105,11 @@ function HomePage() {
 
         setLandingCategories(collectLandingCategories(categoriesResult.items));
         setFeaturedProducts(productsResult.items.slice(0, 4));
+        setHomeHero(homeHeroResult);
       } catch (caught) {
         if (!cancelled) {
           setError(caught instanceof Error ? caught.message : '홈 화면을 불러오는 중 오류가 발생했습니다.');
+          setHomeHero(null);
         }
       } finally {
         if (!cancelled) {
@@ -227,7 +230,7 @@ function HomePage() {
 
       <section className={`surface-hero hero-stage hero-stage-landing ${heroReveal ? 'is-hero-reveal' : ''}`}>
         <div className="hero-landing-media" aria-hidden="true">
-          <img className="hero-landing-bg" src={logoMain} alt="" />
+          <img className="hero-landing-bg" src={homeHero?.imageUrl || logoMain} alt="" />
           <div className="hero-landing-gradient" />
           <div className="hero-landing-grain" />
           {/* <div className="hero-landing-stamp">

@@ -291,6 +291,13 @@ export type AdminHomePopup = {
   updatedAt: string;
 };
 
+export type AdminHomeHero = {
+  key: string;
+  imageUrl: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AdminHomePopupPayload = {
   popupId?: number;
   title?: string | null;
@@ -299,7 +306,7 @@ export type AdminHomePopupPayload = {
   isActive?: boolean;
 };
 
-export type AdminMediaUsage = 'HOME_POPUP' | 'PRODUCT_THUMBNAIL' | 'PRODUCT_DETAIL';
+export type AdminMediaUsage = 'HOME_POPUP' | 'HOME_HERO' | 'PRODUCT_THUMBNAIL' | 'PRODUCT_DETAIL';
 
 export type AdminMediaSignUploadPayload = {
   usage: AdminMediaUsage;
@@ -351,6 +358,11 @@ export type StoreHomePopup = {
   linkUrl: string | null;
   isActive: boolean;
   createdAt: string;
+  updatedAt: string;
+};
+
+export type StoreHomeHero = {
+  imageUrl: string;
   updatedAt: string;
 };
 
@@ -1102,6 +1114,8 @@ export const apiClient = {
 
   getHomePopup: () => request<StoreHomePopup | null>('/store/home-popup'),
 
+  getHomeHero: () => request<StoreHomeHero | null>('/store/home-hero'),
+
   getProducts: (query: { categorySlug?: string; q?: string; sort?: string; page?: number; size?: number }) =>
     request<{ items: ProductListItem[] } & { meta?: unknown }>(
       `/store/products${buildQueryString({
@@ -1165,8 +1179,16 @@ export const apiClient = {
 
   getAdminHomePopup: () => request<AdminHomePopup | null>('/admin/home-popup'),
 
+  getAdminHomeHero: () => request<AdminHomeHero | null>('/admin/home-popup/hero-image'),
+
   upsertAdminHomePopup: (payload: AdminHomePopupPayload) =>
     request<AdminHomePopup>('/admin/home-popup', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  upsertAdminHomeHero: (payload: { imageUrl: string }) =>
+    request<AdminHomeHero>('/admin/home-popup/hero-image', {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),

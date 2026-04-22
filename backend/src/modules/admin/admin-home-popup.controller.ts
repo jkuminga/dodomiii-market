@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
 
 import { AdminSessionGuard } from '../auth/guards/admin-session.guard';
+import { UpdateAdminHomeHeroDto } from './dto/update-admin-home-hero.dto';
 import { UpdateAdminHomePopupDto } from './dto/update-admin-home-popup.dto';
 import { AdminService } from './admin.service';
 
@@ -19,9 +20,29 @@ export class AdminHomePopupController {
     };
   }
 
+  @Get('hero-image')
+  async getHomeHero() {
+    const data = await this.adminService.getHomeHero();
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
   @Put()
   async upsertHomePopup(@Body() body: UpdateAdminHomePopupDto) {
     const data = await this.adminService.upsertHomePopup(body);
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  @Put('hero-image')
+  async upsertHomeHero(@Body() body: UpdateAdminHomeHeroDto) {
+    const data = await this.adminService.upsertHomeHero(body);
 
     return {
       success: true,

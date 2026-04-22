@@ -19,6 +19,7 @@ import { GetProductsQueryDto } from './dto/get-products.query.dto';
 import {
   StoreCustomCheckoutResponse,
   StoreDepositRequestResponse,
+  StoreHomeHeroResponse,
   StoreHomePopupResponse,
   StoreOrderDetailResponse,
   StoreOrderTrackingResponse,
@@ -366,6 +367,23 @@ export class StoreService {
         isActive: popup.isActive,
         createdAt: popup.createdAt.toISOString(),
         updatedAt: popup.updatedAt.toISOString(),
+      };
+    });
+  }
+
+  async getHomeHero(): Promise<StoreHomeHeroResponse | null> {
+    return this.storeCache.getOrSet('store:home-hero:v1', STORE_HOME_POPUP_CACHE_TTL_MS, async () => {
+      const hero = await this.prisma.homeHeroSetting.findUnique({
+        where: { key: 'default' },
+      });
+
+      if (!hero) {
+        return null;
+      }
+
+      return {
+        imageUrl: hero.imageUrl,
+        updatedAt: hero.updatedAt.toISOString(),
       };
     });
   }
