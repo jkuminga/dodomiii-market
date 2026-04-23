@@ -4,6 +4,9 @@
 - When starting backend dev server (`npm --prefix backend run start:dev`), always request escalated sandbox permissions (`sandbox_permissions: require_escalated`).
 - Reason: default sandbox/network restrictions can cause DB connection failure (`Prisma P1001`) even when app code is fine.
 
+## Admin Test Auth
+- When testing admin backend or frontend flows that require an authenticated session cookie, use `backend/.env`'s `ADMIN_E2E_LOGIN_ID` and `ADMIN_E2E_PASSWORD` as the canonical credentials for login before entering the flow.
+
 ## Database Migrations
 - This project's Supabase direct DB host (`DIRECT_URL`, `db.<project-ref>.supabase.co:5432`) is currently not IPv4-compatible in this environment, so `npx prisma migrate deploy` may fail even when the SQL is valid.
 - `DATABASE_URL` uses the Supabase session pooler and is reachable from this environment. If a schema change must be applied here, prefer manual SQL execution over the app Prisma connection instead of `prisma migrate deploy`.

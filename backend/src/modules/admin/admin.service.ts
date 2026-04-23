@@ -709,7 +709,10 @@ export class AdminService {
     }
 
     if (query.categoryId !== undefined) {
-      where.categoryId = BigInt(query.categoryId);
+      const categoryIds = await this.collectDescendantCategoryIds(BigInt(query.categoryId));
+      where.categoryId = {
+        in: categoryIds,
+      };
     }
 
     if (query.isVisible !== undefined) {
@@ -1195,6 +1198,52 @@ export class AdminService {
         message: '카테고리를 찾을 수 없습니다.',
       });
     }
+  }
+
+  private async collectDescendantCategoryIds(rootCategoryId: bigint): Promise<bigint[]> {
+    const categories = await this.prisma.category.findMany({
+      select: {
+        id: true,
+        parentId: true,
+      },
+    });
+
+    const childMap = new Map<string, bigint[]>();
+    for (const category of categories) {
+      if (!category.parentId) {
+        continue;
+      }
+
+      const parentKey = category.parentId.toString();
+      const siblings = childMap.get(parentKey) ?? [];
+      siblings.push(category.id);
+      childMap.set(parentKey, siblings);
+    }
+
+    const queue: bigint[] = [rootCategoryId];
+    const visited = new Set<string>();
+    const collected: bigint[] = [];
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      if (!current) {
+        continue;
+      }
+
+      const currentKey = current.toString();
+      if (visited.has(currentKey)) {
+        continue;
+      }
+
+      visited.add(currentKey);
+      collected.push(current);
+
+      for (const childId of childMap.get(currentKey) ?? []) {
+        queue.push(childId);
+      }
+    }
+
+    return collected;
   }
 
   private async assertCategorySlugAvailable(
