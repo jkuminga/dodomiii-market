@@ -34,6 +34,7 @@ import { OrderLookupPage } from './pages/store/OrderLookupPage';
 import { OrderPaymentPage } from './pages/store/OrderPaymentPage';
 import { OrderPage } from './pages/store/OrderPage';
 import { ProductDetailPage } from './pages/store/ProductDetailPage';
+import { InqueryPage } from './pages/store/InqueryPage';
 
 function formatCurrency(value: number): string {
   return `${value.toLocaleString('ko-KR')}원`;
@@ -383,18 +384,6 @@ function NotFoundPage() {
   return <Navigate to="/" replace />;
 }
 
-function QnaPage() {
-  return (
-    <main className="m-page page-centered">
-      <section className="surface-card">
-        <p className="section-kicker">Q&A</p>
-        <h1 className="section-title">Q&A</h1>
-        <p className="section-copy">문의 게시판은 준비 중입니다.</p>
-      </section>
-    </main>
-  );
-}
-
 function AppFrame() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
@@ -429,7 +418,7 @@ function AppFrame() {
         <Route path="/" element={<HomePage />} />
         <Route path="/notices" element={<NoticeListPage />} />
         <Route path="/notices/:noticeId" element={<NoticeDetailPage />} />
-        <Route path="/qna" element={<QnaPage />} />
+        <Route path="/inquery" element={<InqueryPage />} />
         <Route path="/orders" element={<OrderLookupPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/cart/order" element={<CartOrderPage />} />

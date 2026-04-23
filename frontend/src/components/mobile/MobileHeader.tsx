@@ -238,8 +238,8 @@ export function MobileHeader() {
             {/* <small>공지와 운영 소식 확인</small> */}
           </Link>
 
-          <Link className="m-menu-link" to="/qna">
-            <span>Q&A</span>
+          <Link className="m-menu-link" to="/inquery">
+            <span>문의</span>
             {/* <small>자주 묻는 질문과 문의</small> */}
           </Link>
         </nav>
