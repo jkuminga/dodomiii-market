@@ -59,7 +59,7 @@ export function NoticeDetailPage() {
 
   return (
     <main className="m-page">
-      <section className="surface-card admin-card-stack notice-page-shell">
+      <section className="surface-card admin-card-stack notice-page-shell notice-detail-shell">
         {loading ? <LoadingScreen mode="inline" title="공지사항 로딩 중" message="공지 상세를 불러오고 있습니다." /> : null}
         {error ? (
           <p className="feedback-copy is-error" role="alert">

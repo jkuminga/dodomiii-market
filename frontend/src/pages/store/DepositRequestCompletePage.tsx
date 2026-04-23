@@ -125,7 +125,7 @@ export function DepositRequestCompletePage() {
           </span>
         </div>
         <h1 className="deposit-complete-title">입금 확인 요청 완료!</h1>
-        <p className="deposit-complete-copy">확인 후 신속히 처리를 도와드릴게요.</p>
+        <p className="deposit-complete-copy">입금 확인은 최대 하루 정도 소요될 수 있습니다.</p>
       </section>
 
       <section className="surface-card deposit-complete-summary">
@@ -156,12 +156,6 @@ export function DepositRequestCompletePage() {
             </div>
           </div>
         ) : null}
-      </section>
-
-      <section className="surface-card deposit-complete-notice">
-        <p>
-          입금 확인은 은행 업무 시간에 따라 최대 30분 정도 소요될 수 있습니다. 확인이 완료되면 주문 상태에서 반영됩니다.
-        </p>
       </section>
 
       <div className="deposit-complete-actions">
