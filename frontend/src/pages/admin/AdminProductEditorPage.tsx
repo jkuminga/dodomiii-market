@@ -11,6 +11,7 @@ import {
   AdminProductImageInput,
   AdminProductPayload,
 } from '../../lib/api';
+import { calculateDiscountedPrice, formatDiscountRate } from '../../lib/productPricing';
 import {
   AdminLayoutContext,
   buildAdminCategoryOptions,
@@ -45,10 +46,10 @@ type ProductFormState = {
   shortDescription: string;
   description: string;
   basePrice: string;
+  discountRate: string;
   isVisible: boolean;
   isSoldOut: boolean;
   consultationRequired: boolean;
-  stockQuantity: string;
   images: ProductImageDraft[];
   options: ProductOptionDraft[];
 };
@@ -93,10 +94,10 @@ function createEmptyForm(): ProductFormState {
     shortDescription: '',
     description: '',
     basePrice: '',
+    discountRate: '0',
     isVisible: true,
     isSoldOut: false,
     consultationRequired: false,
-    stockQuantity: '',
     images: [],
     options: [],
   };
@@ -122,10 +123,10 @@ function formFromProduct(product: AdminProductDetail): ProductFormState {
     shortDescription: product.shortDescription ?? '',
     description: product.description ?? '',
     basePrice: String(product.basePrice),
+    discountRate: String(product.discountRate),
     isVisible: product.isVisible,
     isSoldOut: product.isSoldOut,
     consultationRequired: product.consultationRequired,
-    stockQuantity: product.stockQuantity === null ? '' : String(product.stockQuantity),
     images: product.images.map((image) => ({
       key: nextDraftKey('image'),
       imageType: image.imageType,
@@ -156,10 +157,10 @@ function serializeFormState(form: ProductFormState): string {
     shortDescription: form.shortDescription,
     description: form.description,
     basePrice: form.basePrice,
+    discountRate: form.discountRate,
     isVisible: form.isVisible,
     isSoldOut: form.isSoldOut,
     consultationRequired: form.consultationRequired,
-    stockQuantity: form.stockQuantity,
     images: form.images.map(({ imageType, imageUrl, sortOrder }) => ({
       imageType,
       imageUrl,
@@ -342,9 +343,9 @@ function buildOrderSignature(items: Array<{ key: string; sortOrder: string }>): 
 function buildPayload(form: ProductFormState): AdminProductPayload {
   const categoryId = Number(form.categoryId);
   const basePrice = Number(form.basePrice);
+  const discountRateText = form.discountRate.trim();
   const trimmedName = form.name.trim();
   const trimmedSlug = form.slug.trim();
-  const stockQuantityText = form.stockQuantity.trim();
 
   if (!Number.isFinite(categoryId)) {
     throw new Error('카테고리를 선택해주세요.');
@@ -362,10 +363,10 @@ function buildPayload(form: ProductFormState): AdminProductPayload {
     throw new Error('기본 가격은 0 이상의 숫자로 입력해주세요.');
   }
 
-  const stockQuantity = stockQuantityText ? Number(stockQuantityText) : null;
+  const discountRate = discountRateText ? Number(discountRateText) : 0;
 
-  if (stockQuantityText && (!Number.isFinite(stockQuantity) || (stockQuantity ?? 0) < 0)) {
-    throw new Error('재고 수량은 비워두거나 0 이상의 숫자로 입력해주세요.');
+  if (discountRateText && (!Number.isFinite(discountRate) || discountRate < 0 || discountRate > 100)) {
+    throw new Error('할인율은 0부터 100 사이의 숫자로 입력해주세요.');
   }
 
   const images = buildImageInputsFromDrafts(sortImageDraftsByType(form.images));
@@ -378,10 +379,10 @@ function buildPayload(form: ProductFormState): AdminProductPayload {
     shortDescription: form.shortDescription.trim() || null,
     description: form.description.trim() || null,
     basePrice,
+    discountRate,
     isVisible: form.isVisible,
     isSoldOut: form.isSoldOut,
     consultationRequired: form.consultationRequired,
-    stockQuantity,
     images,
     optionGroups,
   };
@@ -476,6 +477,13 @@ export function AdminProductEditorPage() {
   const categoryOptions = useMemo(() => buildAdminCategoryOptions(categories), [categories]);
   const previewCategoryId = form.categoryId ? Number(form.categoryId) : product?.category.id;
   const previewCategoryLabel = Number.isFinite(previewCategoryId) ? getAdminCategoryLabel(previewCategoryId, categories) : '카테고리 미선택';
+  const previewBasePrice = Number(form.basePrice);
+  const previewDiscountRate = Number(form.discountRate || '0');
+  const previewDiscountedPrice =
+    Number.isFinite(previewBasePrice) && Number.isFinite(previewDiscountRate)
+      ? calculateDiscountedPrice(previewBasePrice, previewDiscountRate)
+      : 0;
+  const hasDiscount = Number.isFinite(previewBasePrice) && previewDiscountRate > 0 && previewDiscountedPrice < previewBasePrice;
   const hasUnsavedChanges = useMemo(() => serializeFormState(form) !== initialSignature, [form, initialSignature]);
   const hasPendingImageOrderChanges = useMemo(
     () => buildOrderSignature(form.images) !== savedImageOrderSignature,
@@ -1088,6 +1096,18 @@ export function AdminProductEditorPage() {
                 />
               </label>
 
+              <label className="field">
+                <span>할인율 (%)</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={form.discountRate}
+                  onChange={(event) => setForm((current) => ({ ...current, discountRate: event.target.value }))}
+                  placeholder="0"
+                />
+              </label>
+
               <label className="field admin-field-span-2">
                 <span>짧은 소개</span>
                 <input
@@ -1103,14 +1123,23 @@ export function AdminProductEditorPage() {
               </label>
 
               <label className="field">
-                <span>재고 수량</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.stockQuantity}
-                  onChange={(event) => setForm((current) => ({ ...current, stockQuantity: event.target.value }))}
-                  placeholder="비워두면 재고 추적 안 함"
-                />
+                <span>설정된 할인 적용가</span>
+                <strong>{Number.isFinite(previewBasePrice) ? formatCurrency(previewDiscountedPrice) : '-'}</strong>
+              </label>
+
+              <label className="field">
+                <span>할인 정보</span>
+                <strong>{hasDiscount ? `${formatDiscountRate(previewDiscountRate)} 할인` : '할인 없음'}</strong>
+              </label>
+
+              <label className="field">
+                <span>정가</span>
+                <strong>{form.basePrice ? formatCurrency(Number(form.basePrice)) : '-'}</strong>
+              </label>
+
+              <label className="field">
+                <span>원가 대비</span>
+                <strong>{hasDiscount ? `-${formatCurrency(Math.max(0, previewBasePrice - previewDiscountedPrice))}` : '-'}</strong>
               </label>
             </div>
 
@@ -1718,8 +1747,12 @@ export function AdminProductEditorPage() {
               <strong>{form.basePrice ? formatCurrency(Number(form.basePrice)) : '-'}</strong>
             </div>
             <div className="admin-summary-item">
-              <span>재고</span>
-              <strong>{form.stockQuantity ? `${form.stockQuantity}개` : '재고 추적 안 함'}</strong>
+              <span>할인율</span>
+              <strong>{form.discountRate ? formatDiscountRate(Number(form.discountRate)) : '0%'}</strong>
+            </div>
+            <div className="admin-summary-item">
+              <span>할인가</span>
+              <strong>{form.basePrice ? formatCurrency(previewDiscountedPrice) : '-'}</strong>
             </div>
             {/* <div className="admin-summary-item">
               <span>변경 상태</span>

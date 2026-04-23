@@ -1,0 +1,5 @@
+ALTER TABLE "products"
+ADD COLUMN IF NOT EXISTS "discount_rate" INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE "products"
+DROP COLUMN IF EXISTS "stock_quantity";

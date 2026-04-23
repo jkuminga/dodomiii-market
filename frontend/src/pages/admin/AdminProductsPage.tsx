@@ -4,6 +4,7 @@ import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import { AdminRefreshButton } from '../../components/admin/AdminRefreshButton';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { apiClient, AdminCategoryItem, AdminProductListItem, PaginationMeta } from '../../lib/api';
+import { calculateDiscountedPrice, formatDiscountRate } from '../../lib/productPricing';
 import { AdminLayoutContext, buildAdminCategoryOptions, formatAdminDateTime, formatCurrency, getAdminCategoryLabel } from './adminUtils';
 
 function parseBooleanFilter(value: string | null): boolean | undefined {
@@ -293,8 +294,17 @@ export function AdminProductsPage() {
                     </div>
 
                     <div className="admin-product-summary">
-                      <span>{formatCurrency(product.basePrice)}</span>
-                      <span>{product.stockQuantity === null ? '재고 추적 안 함' : `재고 ${product.stockQuantity}개`}</span>
+                      <div className="admin-price-stack">
+                        {product.discountRate > 0 ? (
+                          <>
+                            <span>{formatCurrency(calculateDiscountedPrice(product.basePrice, product.discountRate))}</span>
+                            <span className="admin-price-original">{formatCurrency(product.basePrice)}</span>
+                          </>
+                        ) : (
+                          <span>{formatCurrency(product.basePrice)}</span>
+                        )}
+                      </div>
+                      {product.discountRate > 0 ? <span className="status-pill admin-discount-pill">{formatDiscountRate(product.discountRate)}</span> : null}
                     </div>
 
                     <div className="inline-actions">

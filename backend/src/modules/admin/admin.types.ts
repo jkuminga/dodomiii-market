@@ -67,10 +67,10 @@ export type AdminProductListItemResponse = {
   slug: string;
   shortDescription: string | null;
   basePrice: number;
+  discountRate: number;
   isVisible: boolean;
   isSoldOut: boolean;
   consultationRequired: boolean;
-  stockQuantity: number | null;
   thumbnailImageUrl: string | null;
   imageCount: number;
   optionCount: number;
@@ -94,10 +94,10 @@ export type AdminProductDetailResponse = {
   shortDescription: string | null;
   description: string | null;
   basePrice: number;
+  discountRate: number;
   isVisible: boolean;
   isSoldOut: boolean;
   consultationRequired: boolean;
-  stockQuantity: number | null;
   images: AdminProductImageResponse[];
   optionGroups: AdminProductOptionGroupResponse[];
   orderItemCount: number;

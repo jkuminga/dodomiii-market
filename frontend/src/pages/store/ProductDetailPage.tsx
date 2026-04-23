@@ -5,6 +5,7 @@ import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { ProductArtwork } from '../../components/store/ProductArtwork';
 import { apiClient, ProductDetail } from '../../lib/api';
 import { addCartItem } from '../../lib/cart';
+import { calculateDiscountedPrice, formatDiscountRate } from '../../lib/productPricing';
 
 function formatCurrency(value: number): string {
   return `${value.toLocaleString('ko-KR')}원`;
@@ -244,7 +245,9 @@ export function ProductDetailPage() {
     (sum, entry) => sum + entry.option.extraPrice * entry.quantity,
     0,
   );
-  const selectedTotalPrice = product.basePrice + selectedOptionExtraTotal;
+  const discountedBasePrice = calculateDiscountedPrice(product.basePrice, product.discountRate);
+  const hasDiscount = product.discountRate > 0 && discountedBasePrice < product.basePrice;
+  const selectedTotalPrice = discountedBasePrice + selectedOptionExtraTotal;
   const missingRequiredGroupIds = optionGroups
     .filter((group) => {
       if (!group.isRequired) {
@@ -300,7 +303,7 @@ export function ProductDetailPage() {
       productName: product.name,
       categoryName: product.categoryName,
       thumbnailImageUrl: product.images.find((image) => image.imageType === 'THUMBNAIL')?.imageUrl ?? product.images[0]?.imageUrl ?? null,
-      basePrice: product.basePrice,
+      basePrice: discountedBasePrice,
       productQuantity: 1,
       selectedOptions: selectedOptions.map((entry) => ({
         groupId: entry.group.id,
@@ -449,8 +452,19 @@ export function ProductDetailPage() {
           <p className="section-copy">{product.shortDescription ?? product.description ?? '상품 소개 문구가 준비 중입니다.'}</p>
 
           <div className="detail-price-row">
-            <strong className="detail-price">{formatCurrency(product.basePrice)}</strong>
-            <span className="detail-stock">{product.stockQuantity === null ? '주문 후 제작' : `남은 수량 ${product.stockQuantity}개`}</span>
+            <div className="detail-price-stack">
+              {hasDiscount ? (
+                <>
+                  <strong className="detail-price">{formatCurrency(discountedBasePrice)}</strong>
+                  <span className="detail-price-meta">
+                    <span className="detail-original-price">{formatCurrency(product.basePrice)}</span>
+                    <span className="detail-discount-rate">{formatDiscountRate(product.discountRate)}</span>
+                  </span>
+                </>
+              ) : (
+                <strong className="detail-price">{formatCurrency(product.basePrice)}</strong>
+              )}
+            </div>
           </div>
         </section>
 
@@ -679,7 +693,15 @@ export function ProductDetailPage() {
               <div className="price-breakdown-content">
                 <div className="breakdown-row">
                   <span>기본가</span>
-                  <strong>{formatCurrency(product.basePrice)}</strong>
+                  <div className="detail-price-stack">
+                    <strong>{formatCurrency(discountedBasePrice)}</strong>
+                    {hasDiscount ? (
+                      <span className="detail-price-meta">
+                        <span className="detail-original-price">{formatCurrency(product.basePrice)}</span>
+                        <span className="detail-discount-rate">{formatDiscountRate(product.discountRate)}</span>
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
                 {selectedOptions.map((entry) => (
                   <div className="breakdown-row" key={`${entry.group.id}-${entry.option.id}`}>

@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 
 import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { apiClient, ProductDetail } from '../../lib/api';
+import { calculateDiscountedPrice, formatDiscountRate } from '../../lib/productPricing';
 
 type KakaoPostcodeAddressData = {
   zonecode: string;
@@ -297,8 +298,10 @@ export function OrderPage() {
     (sum, entry) => sum + entry.option.extraPrice * entry.quantity,
     0,
   );
+  const discountedBasePrice = product ? calculateDiscountedPrice(product.basePrice, product.discountRate) : 0;
+  const hasDiscount = !!product && product.discountRate > 0 && discountedBasePrice < product.basePrice;
   const estimatedUnitPrice = product
-    ? product.basePrice + selectedOptionExtraTotal
+    ? discountedBasePrice + selectedOptionExtraTotal
     : 0;
   const estimatedSubtotal = estimatedUnitPrice * quantity;
   const requiresOptionSelection =
@@ -529,7 +532,15 @@ export function OrderPage() {
         <div className="order-product-summary">
           <div className="order-summary-row">
             <span>기본가</span>
-            <strong>{formatCurrency(product.basePrice)}</strong>
+            <div className="detail-price-stack">
+              <strong className="detail-price">{formatCurrency(discountedBasePrice)}</strong>
+              {hasDiscount ? (
+                <span className="detail-price-meta">
+                  <span className="detail-original-price">{formatCurrency(product.basePrice)}</span>
+                  <span className="detail-discount-rate">{formatDiscountRate(product.discountRate)}</span>
+                </span>
+              ) : null}
+            </div>
           </div>
           {selectedOptions.length > 0 ? (
             <div className="order-summary-row">

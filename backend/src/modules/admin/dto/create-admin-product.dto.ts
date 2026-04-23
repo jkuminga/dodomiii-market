@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  Max,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -40,6 +41,12 @@ export class CreateAdminProductDto {
   basePrice!: number;
 
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  discountRate?: number;
+
+  @IsOptional()
   @IsBoolean()
   isVisible?: boolean;
 
@@ -50,11 +57,6 @@ export class CreateAdminProductDto {
   @IsOptional()
   @IsBoolean()
   consultationRequired?: boolean;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  stockQuantity?: number | null;
 
   @IsOptional()
   @IsArray()

@@ -2866,6 +2866,7 @@ img {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 32px;
   padding-top: 24px;
@@ -2912,6 +2913,48 @@ img {
   color: var(--primary-deep);
   font-size: 1.05rem;
   font-weight: 800;
+}
+
+.product-price-stack,
+.detail-price-stack,
+.admin-price-stack {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.detail-price-meta {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.product-original-price,
+.detail-original-price,
+.admin-price-original {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration: line-through;
+}
+
+.product-discount-rate,
+.detail-discount-rate,
+.admin-discount-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: rgba(var(--primary-rgb) / 0.1);
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 @media (max-width: 410px) {
@@ -3841,12 +3884,12 @@ img {
   text-align: left;
 }
 
-.order-summary-row span {
+.order-summary-row > span {
   display: grid;
   gap: 4px;
 }
 
-.order-lookup-page .order-summary-row span {
+.order-lookup-page .order-summary-row > span {
   min-width: 0;
   line-height: 1.45;
   word-break: keep-all;
@@ -4812,7 +4855,7 @@ img {
   padding: 0;
 }
 
-.breakdown-row span {
+.breakdown-row > span {
   color: var(--muted);
   font-weight: 500;
   min-width: 0;
@@ -4820,7 +4863,7 @@ img {
   flex: 1;
 }
 
-.breakdown-row strong {
+.breakdown-row > strong {
   color: var(--primary-deep);
   font-weight: 700;
   white-space: nowrap;
@@ -6136,6 +6179,7 @@ button.admin-list-card {
 .admin-product-summary,
 .admin-pill-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 

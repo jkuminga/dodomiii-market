@@ -183,6 +183,7 @@ export type ProductListItem = {
   slug: string;
   shortDescription: string | null;
   basePrice: number;
+  discountRate: number;
   isSoldOut: boolean;
   consultationRequired: boolean;
   thumbnailImageUrl: string | null;
@@ -197,9 +198,9 @@ export type ProductDetail = {
   shortDescription: string | null;
   description: string | null;
   basePrice: number;
+  discountRate: number;
   isSoldOut: boolean;
   consultationRequired: boolean;
-  stockQuantity: number | null;
   images: Array<{
     id: number;
     imageType: 'THUMBNAIL' | 'DETAIL';
@@ -234,10 +235,10 @@ export type AdminProductListItem = {
   name: string;
   slug: string;
   basePrice: number;
+  discountRate: number;
   isVisible: boolean;
   isSoldOut: boolean;
   consultationRequired: boolean;
-  stockQuantity: number | null;
   thumbnailImageUrl: string | null;
   createdAt: string;
   updatedAt: string;
@@ -273,10 +274,10 @@ export type AdminProductPayload = {
   shortDescription: string | null;
   description: string | null;
   basePrice: number;
+  discountRate: number;
   isVisible: boolean;
   isSoldOut: boolean;
   consultationRequired: boolean;
-  stockQuantity: number | null;
   images: AdminProductImageInput[];
   optionGroups: AdminProductOptionGroupInput[];
 };
@@ -471,10 +472,10 @@ export type AdminProductDetail = {
   shortDescription: string | null;
   description: string | null;
   basePrice: number;
+  discountRate: number;
   isVisible: boolean;
   isSoldOut: boolean;
   consultationRequired: boolean;
-  stockQuantity: number | null;
   images: Array<{
     id: number;
     imageType: 'THUMBNAIL' | 'DETAIL';

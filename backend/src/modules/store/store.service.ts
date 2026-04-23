@@ -283,6 +283,11 @@ const customOrderLinkArgs = Prisma.validator<Prisma.CustomOrderLinkDefaultArgs>(
 
 type CustomOrderLinkRecord = Prisma.CustomOrderLinkGetPayload<typeof customOrderLinkArgs>;
 
+function calculateDiscountedPrice(basePrice: number, discountRate: number): number {
+  const normalizedRate = Math.max(0, Math.min(100, discountRate));
+  return Math.max(0, Math.floor((basePrice * (100 - normalizedRate)) / 100));
+}
+
 @Injectable()
 export class StoreService {
   constructor(
@@ -510,7 +515,7 @@ export class StoreService {
           ? [{ basePrice: 'desc' }, { id: 'desc' }]
           : [{ createdAt: 'desc' }, { id: 'desc' }];
 
-    const cacheKey = `store:products:v1:${JSON.stringify({
+    const cacheKey = `store:products:v2:${JSON.stringify({
       q: query.q ?? '',
       categorySlug: query.categorySlug ?? '',
       sort: query.sort ?? 'latest',
@@ -556,6 +561,7 @@ export class StoreService {
           slug: product.slug,
           shortDescription: product.shortDescription,
           basePrice: product.basePrice,
+          discountRate: product.discountRate,
           isSoldOut: product.isSoldOut,
           consultationRequired: product.consultationRequired,
           thumbnailImageUrl: product.images[0]?.imageUrl ?? null,
@@ -580,7 +586,7 @@ export class StoreService {
     }
 
     return this.storeCache.getOrSet(
-      `store:product-detail:v1:${parsedId}`,
+      `store:product-detail:v2:${parsedId}`,
       STORE_PRODUCT_DETAIL_CACHE_TTL_MS,
       async () => {
         const product = await this.prisma.product.findFirst({
@@ -642,9 +648,9 @@ export class StoreService {
           shortDescription: product.shortDescription,
           description: product.description,
           basePrice: product.basePrice,
+          discountRate: product.discountRate,
           isSoldOut: product.isSoldOut,
           consultationRequired: product.consultationRequired,
-          stockQuantity: product.stockQuantity,
           images: product.images.map((image) => ({
             id: Number(image.id),
             imageType: image.imageType,
@@ -1070,15 +1076,15 @@ export class StoreService {
         isVisible: true,
         deletedAt: null,
       },
-      select: {
-        id: true,
-        name: true,
-        basePrice: true,
-        isSoldOut: true,
-        stockQuantity: true,
-        optionGroups: {
-          where: { isActive: true },
-          select: {
+        select: {
+          id: true,
+          name: true,
+          basePrice: true,
+          discountRate: true,
+          isSoldOut: true,
+          optionGroups: {
+            where: { isActive: true },
+            select: {
             id: true,
             name: true,
             selectionType: true,
@@ -1108,10 +1114,10 @@ export class StoreService {
         });
       }
 
-      if (product.isSoldOut || (product.stockQuantity !== null && product.stockQuantity < item.quantity)) {
+      if (product.isSoldOut) {
         throw new ConflictException({
           code: 'OUT_OF_STOCK',
-          message: '재고가 부족한 상품이 포함되어 있습니다.',
+          message: '품절된 상품이 포함되어 있습니다.',
         });
       }
 
@@ -1193,7 +1199,8 @@ export class StoreService {
         (sum, selection) => sum + selection.option.extraPrice * selection.quantity,
         0,
       );
-      const unitPrice = product.basePrice + totalExtraPrice;
+      const productBasePrice = calculateDiscountedPrice(product.basePrice, product.discountRate);
+      const unitPrice = productBasePrice + totalExtraPrice;
       const optionGroupsSnapshot = new Map<string, string[]>();
       for (const selection of selectedOptions) {
         const valueLabel =
