@@ -58,6 +58,32 @@ function formatPhone(value: string): string {
   return value;
 }
 
+async function copyToClipboard(value: string): Promise<boolean> {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return false;
+  }
+
+  if (typeof document === 'undefined') {
+    return false;
+  }
+
+  const input = document.createElement('textarea');
+  input.value = trimmed;
+  input.setAttribute('readonly', 'true');
+  input.style.position = 'fixed';
+  input.style.opacity = '0';
+  input.style.pointerEvents = 'none';
+  document.body.append(input);
+  input.focus();
+  input.select();
+
+  const copied = Boolean(document.execCommand('copy'));
+  document.body.removeChild(input);
+  return copied;
+}
+
 function getOrderStatusLabel(status: StoreOrderStatus): string {
   switch (status) {
     case 'PENDING_PAYMENT':
@@ -275,6 +301,7 @@ export function OrderLookupPage() {
   const [lookupError, setLookupError] = useState('');
   const [trackingError, setTrackingError] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [copyToast, setCopyToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     setOrderNumberInput(searchOrderNumber);
@@ -343,6 +370,18 @@ export function OrderLookupPage() {
   const currentShipmentStatus = activeTracking?.shipmentStatus ?? order?.shipment.shipmentStatus ?? null;
   const depositExpectedAmount = order?.deposit.expectedAmount ?? order?.pricing.finalTotalPrice ?? 0;
 
+  useEffect(() => {
+    if (!copyToast) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setCopyToast(null);
+    }, 1800);
+
+    return () => window.clearTimeout(timer);
+  }, [copyToast]);
+
   const onLookupSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -364,8 +403,30 @@ export function OrderLookupPage() {
     }
   };
 
+  const handleCopyTrackingNumber = async () => {
+    const trackingNumber = activeTracking?.trackingNumber?.trim() ?? '';
+
+    if (!trackingNumber) {
+      setCopyToast({ message: '복사할 운송장 번호가 없습니다.', variant: 'error' });
+      return;
+    }
+
+    const copied = await copyToClipboard(trackingNumber);
+
+    setCopyToast(
+      copied
+        ? { message: '운송장 번호를 복사했습니다.', variant: 'success' }
+        : { message: '운송장 번호 복사에 실패했습니다.', variant: 'error' },
+    );
+  };
+
   return (
     <main className="m-page order-lookup-page">
+      {copyToast ? (
+        <div className={`payment-copy-toast ${copyToast.variant === 'success' ? 'is-success' : 'is-error'}`} role="status" aria-live="polite">
+          {copyToast.message}
+        </div>
+      ) : null}
       <section className="surface-hero compact-hero order-lookup-intro">
         <p className="section-kicker">Order Lookup</p>
         <h1 className="section-title">주문 조회</h1>
@@ -535,11 +596,11 @@ export function OrderLookupPage() {
                   {getShipmentStatusLabel(currentShipmentStatus)}
                 </span>
               ) : null}
-              {activeTracking?.trackingUrl && activeTracking.trackingNumber ? (
+              {/* {activeTracking?.trackingUrl && activeTracking.trackingNumber ? (
                 <a className="button-text" href={activeTracking.trackingUrl} target="_blank" rel="noreferrer">
                   운송장 보기
                 </a>
-              ) : null}
+              ) : null} */}
             </div>
 
             <div className="order-lookup-grid">
@@ -562,9 +623,22 @@ export function OrderLookupPage() {
                 </div>
                 <div className="order-summary-row">
                   <span>운송장 번호</span>
-                  <strong>
-                    {hasShipmentStarted(currentShipmentStatus) ? activeTracking?.trackingNumber ?? '-' : '-'}
-                  </strong>
+                  <div className="order-tracking-number-row">
+                    <strong>{hasShipmentStarted(currentShipmentStatus) ? activeTracking?.trackingNumber ?? '-' : '-'}</strong>
+                    {hasShipmentStarted(currentShipmentStatus) && activeTracking?.trackingNumber ? (
+                      <button
+                        className="tracking-copy-button"
+                        type="button"
+                        onClick={() => void handleCopyTrackingNumber()}
+                        aria-label="운송장 번호 복사"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <rect x="8" y="7" width="10" height="12" rx="2" />
+                          <path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
 

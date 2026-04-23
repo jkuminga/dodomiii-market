@@ -3451,6 +3451,46 @@ img {
   }
 }
 
+.order-tracking-number-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tracking-copy-button {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(43, 137, 220, 0.18);
+  background: rgba(255, 255, 255, 0.84);
+  color: rgb(var(--primary-rgb) / 0.8);
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  flex: 0 0 auto;
+}
+
+.tracking-copy-button svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tracking-copy-button:hover,
+.tracking-copy-button:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(43, 137, 220, 0.3);
+  box-shadow: 0 8px 16px rgba(34, 80, 124, 0.1);
+  outline: none;
+}
+
 .deposit-complete-page {
   gap: 14px;
 }
@@ -5605,7 +5645,7 @@ img {
   border-radius: 1.25rem;
   background: white;
   border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.03),
     0 1px 2px rgba(0, 0, 0, 0.02);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -5614,14 +5654,14 @@ img {
 .admin-price-preview-card:first-child {
   background: linear-gradient(135deg, #fffcf9 0%, #fff5f0 100%);
   border: 1px solid rgba(var(--primary-rgb) / 0.15);
-  box-shadow: 
+  box-shadow:
     0 10px 25px rgba(var(--primary-rgb) / 0.08),
     0 4px 10px rgba(var(--primary-rgb) / 0.04);
 }
 
 .admin-price-preview-card:hover {
   transform: translateY(-2px);
-  box-shadow: 
+  box-shadow:
     0 12px 30px rgba(0, 0, 0, 0.06),
     0 4px 12px rgba(0, 0, 0, 0.03);
 }
@@ -5686,7 +5726,7 @@ img {
   border-radius: 1.25rem;
   background: white;
   border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.03),
     0 1px 2px rgba(0, 0, 0, 0.02);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -5694,7 +5734,7 @@ img {
 
 .admin-status-preview-card:hover {
   transform: translateY(-2px);
-  box-shadow: 
+  box-shadow:
     0 12px 30px rgba(0, 0, 0, 0.06),
     0 4px 12px rgba(0, 0, 0, 0.03);
 }
@@ -5711,14 +5751,14 @@ img {
 .admin-preview-tooltip {
   position: absolute;
   bottom: 100%;
-  right: 0; 
+  right: 0;
   width: 340px;
   max-width: calc(100vw - 60px);
   background: white;
   border: 1px solid rgba(0, 0, 0, 0.08);
   padding: 18px 20px;
   border-radius: 1.25rem;
-  box-shadow: 
+  box-shadow:
     0 20px 50px rgba(0, 0, 0, 0.15),
     0 5px 15px rgba(0, 0, 0, 0.05);
   font-size: 0.85rem;
@@ -7534,13 +7574,13 @@ button.admin-list-card {
   }
 
   .admin-field-divider {
-  grid-column: span 2;
-  margin: 8px 0;
-  border: 0;
-  border-top: 1px solid rgb(var(--primary-rgb) / 0.12);
-}
+    grid-column: span 2;
+    margin: 8px 0;
+    border: 0;
+    border-top: 1px solid rgb(var(--primary-rgb) / 0.12);
+  }
 
-.admin-field-grid {
+  .admin-field-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

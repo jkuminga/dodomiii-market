@@ -371,11 +371,11 @@ function HomePage() {
         ) : null}
       </section> */}
 
-      <div className="home-admin-entry">
+      {/* <div className="home-admin-entry">
         <Link className="home-admin-link" to="/admin/login">
           관리자 로그인
         </Link>
-      </div>
+      </div> */}
     </main>
   );
 }
