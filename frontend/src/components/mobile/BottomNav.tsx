@@ -30,11 +30,15 @@ function ReceiptIcon() {
 
 const navItems = [
   { to: '/', label: '홈', Icon: HomeIcon },
-  { to: '/products', label: '상품', Icon: SearchIcon },
+  { label: '검색', Icon: SearchIcon, isSearch: true },
   { to: '/orders', label: '주문조회', Icon: ReceiptIcon },
 ];
 
-export function BottomNav() {
+type BottomNavProps = {
+  onOpenSearch: () => void;
+};
+
+export function BottomNav({ onOpenSearch }: BottomNavProps) {
   const location = useLocation();
 
   if (location.pathname.startsWith('/products/') || location.pathname === '/admin/login') {
@@ -44,13 +48,35 @@ export function BottomNav() {
   return (
     <nav className="m-bottom-nav" aria-label="하단 내비게이션">
       <div className="m-bottom-nav-inner">
-        {navItems.map(({ to, label, Icon }) => {
-          const active = to === '/' ? location.pathname === '/' : location.pathname === to || location.pathname.startsWith(`${to}/`);
+        {navItems.map((item) => {
+          if (item.isSearch) {
+            const { label, Icon } = item;
+
+            return (
+              <button
+                key="search"
+                type="button"
+                className="m-bottom-nav-item"
+                onClick={onOpenSearch}
+                aria-label="검색 열기"
+              >
+                <span className="m-bottom-nav-icon">
+                  <Icon />
+                </span>
+                <span className="m-bottom-nav-label">{label}</span>
+              </button>
+            );
+          }
+
+          const { to, label, Icon } = item;
+          const destination = to as string;
+          const active =
+            destination === '/' ? location.pathname === '/' : location.pathname === destination || location.pathname.startsWith(`${destination}/`);
 
           return (
             <Link
-              key={to}
-              to={to}
+              key={destination}
+              to={destination}
               className={`m-bottom-nav-item ${active ? 'is-active' : ''}`}
               aria-current={active ? 'page' : undefined}
             >

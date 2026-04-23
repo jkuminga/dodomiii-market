@@ -61,6 +61,7 @@ export function CatalogPage() {
   const [error, setError] = useState('');
 
   const categorySlug = searchParams.get('categorySlug') ?? '';
+  const searchKeyword = searchParams.get('q')?.trim() ?? '';
   const sort = searchParams.get('sort') ?? 'latest';
   const page = Number(searchParams.get('page') ?? '1');
 
@@ -97,6 +98,7 @@ export function CatalogPage() {
       try {
         const productsResult = await apiClient.getProductsWithMeta({
           categorySlug: categorySlug || undefined,
+          q: searchKeyword || undefined,
           sort,
           page,
           size: 12,
@@ -124,15 +126,19 @@ export function CatalogPage() {
     return () => {
       cancelled = true;
     };
-  }, [categorySlug, page, sort]);
+  }, [categorySlug, page, searchKeyword, sort]);
 
   const titleCategoryName = useMemo(() => {
+    if (searchKeyword) {
+      return '검색 결과';
+    }
+
     if (!categorySlug) {
       return '전체 상품';
     }
 
     return findCategoryNameBySlug(categories, categorySlug) ?? '상품';
-  }, [categories, categorySlug]);
+  }, [categories, categorySlug, searchKeyword]);
 
   const showCustomBouquetItem = useMemo(() => {
     if (!categorySlug) {
@@ -158,11 +164,12 @@ export function CatalogPage() {
   return (
     <main className="m-page catalog-page">
       <section className="surface-hero compact-hero">
-        <p className="section-kicker">{categorySlug || 'all'}</p>
+        <p className="section-kicker">{searchKeyword ? 'search' : categorySlug || 'all'}</p>
         <div className="section-title-row">
           <h1 className="section-title">{titleCategoryName}</h1>
           <span className="metric-chip">{meta.totalItems} items</span>
         </div>
+        {searchKeyword ? <p className="section-copy">“{searchKeyword}” 검색 결과입니다.</p> : null}
       </section>
 
       {loading ? <LoadingScreen mode="inline" title="상품 목록 로딩 중" message="상품 목록을 불러오고 있습니다." /> : null}
@@ -172,7 +179,11 @@ export function CatalogPage() {
         <section className="surface-card empty-state">
           <p className="section-kicker">No Results</p>
           {/* <h2 className="section-subtitle">조건에 맞는 상품이 없습니다</h2> */}
-          <p className="section-copy">등록된 상품이 없습니다.</p>
+          <p className="section-copy">
+            {searchKeyword
+              ? `“${searchKeyword}”에 대한 검색 결과가 없습니다.`
+              : '등록된 상품이 없습니다.'}
+          </p>
         </section>
       ) : null}
 

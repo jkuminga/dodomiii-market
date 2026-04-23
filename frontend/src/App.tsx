@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
 import logoMain from './assets/images/Hero_image.png';
 import { LoadingScreen } from './components/common/LoadingScreen';
@@ -38,6 +38,24 @@ import { InqueryPage } from './pages/store/InqueryPage';
 
 function formatCurrency(value: number): string {
   return `${value.toLocaleString('ko-KR')}원`;
+}
+
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="11" cy="11" r="5.5" />
+      <path d="m16 16 4 4" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m6 6 12 12" />
+      <path d="m18 6-12 12" />
+    </svg>
+  );
 }
 
 type LandingCategory = {
@@ -380,13 +398,151 @@ function HomePage() {
   );
 }
 
+type SearchOverlayProps = {
+  isOpen: boolean;
+  keyword: string;
+  onKeywordChange: (value: string) => void;
+  onClose: () => void;
+  onSubmit: (keyword: string) => void;
+};
+
+function SearchOverlay({ isOpen, keyword, onKeywordChange, onClose, onSubmit }: SearchOverlayProps) {
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const [isRendered, setIsRendered] = useState(isOpen);
+  const [isClosing, setIsClosing] = useState(false);
+  const closeTimeoutRef = useRef<number | null>(null);
+  const CLOSE_ANIMATION_MS = 220;
+
+  useEffect(() => {
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+
+    if (isOpen) {
+      setIsRendered(true);
+      window.requestAnimationFrame(() => {
+        setIsClosing(false);
+      });
+      return;
+    }
+
+    if (isRendered) {
+      setIsClosing(true);
+      closeTimeoutRef.current = window.setTimeout(() => {
+        setIsRendered(false);
+        setIsClosing(false);
+        closeTimeoutRef.current = null;
+      }, CLOSE_ANIMATION_MS);
+    }
+
+    return () => {
+      if (closeTimeoutRef.current !== null) {
+        window.clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+    };
+  }, [isOpen, isRendered]);
+
+  useEffect(() => {
+    if (!isRendered) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [isRendered]);
+
+  useEffect(() => {
+    if (!isRendered) {
+      document.body.style.overflow = '';
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isRendered, onClose]);
+
+  if (!isRendered) {
+    return null;
+  }
+
+  return (
+    <div className={`home-search-overlay ${isClosing ? 'is-closing' : 'is-open'}`} role="dialog" aria-modal="true" aria-label="상품 검색">
+      <button className="home-search-backdrop" type="button" aria-label="검색 닫기" onClick={onClose} />
+
+      <div className="home-search-panel">
+        <div className="home-search-panel-head">
+          <p className="home-search-kicker">Search</p>
+          <button className="m-icon-btn home-search-close" type="button" onClick={onClose} aria-label="검색 닫기">
+            <CloseIcon />
+          </button>
+        </div>
+
+        <form
+          className="home-search-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit(keyword.trim());
+          }}
+        >
+          <label className="home-search-label" htmlFor="home-search-input">
+            상품명으로 검색
+          </label>
+          <div className="home-search-bar">
+            <span className="home-search-icon" aria-hidden="true">
+              <SearchIcon />
+            </span>
+            <input
+              id="home-search-input"
+              ref={searchInputRef}
+              className="home-search-input"
+              type="search"
+              inputMode="search"
+              placeholder="예: 튤립, 꽃다발, 선물"
+              value={keyword}
+              onChange={(event) => onKeywordChange(event.target.value)}
+            />
+            <button className="button home-search-submit" type="submit">
+              검색
+            </button>
+          </div>
+          <p className="home-search-helper">상품명, 카테고리명, 선물용 키워드로 바로 찾아볼 수 있습니다.</p>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function NotFoundPage() {
   return <Navigate to="/" replace />;
 }
 
 function AppFrame() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [isDesktopViewport, setIsDesktopViewport] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 960px)').matches : false,
   );
@@ -407,12 +563,38 @@ function AppFrame() {
     };
   }, []);
 
+  useEffect(() => {
+    setSearchOpen(false);
+  }, [location.pathname, location.search]);
+
+  const openSearch = () => {
+    setSearchKeyword('');
+    setSearchOpen(true);
+  };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+  };
+
+  const submitSearch = (keyword: string) => {
+    if (!keyword) {
+      return;
+    }
+
+    setSearchOpen(false);
+    navigate(`/products?q=${encodeURIComponent(keyword)}`);
+  };
+
   const isDesktopStoreRoute = !isAdminRoute && isDesktopViewport;
   const shellClassName = `app-shell ${isAdminRoute ? 'is-admin' : 'is-store'}${isDesktopStoreRoute ? ' is-store-desktop' : ''}`;
 
   return (
     <div className={shellClassName}>
-      {isAdminRoute ? null : isDesktopStoreRoute ? <DesktopHeader /> : <MobileHeader />}
+      {isAdminRoute
+        ? null
+        : isDesktopStoreRoute
+          ? <DesktopHeader onOpenSearch={openSearch} />
+          : <MobileHeader />}
 
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -450,7 +632,14 @@ function AppFrame() {
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
 
-      {isAdminRoute || isDesktopStoreRoute ? null : <BottomNav />}
+      {isAdminRoute || isDesktopStoreRoute ? null : <BottomNav onOpenSearch={openSearch} />}
+      <SearchOverlay
+        isOpen={searchOpen}
+        keyword={searchKeyword}
+        onKeywordChange={setSearchKeyword}
+        onClose={closeSearch}
+        onSubmit={submitSearch}
+      />
       <AnimatedCursor enabled={!isAdminRoute} />
     </div>
   );

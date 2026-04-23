@@ -5,6 +5,15 @@ import logoMain from '../../assets/images/logo_main3.jpg';
 import { apiClient, CategoryTreeNode } from '../../lib/api';
 import { useCart } from '../../lib/cart';
 
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="11" cy="11" r="5.5" />
+      <path d="m16 16 4 4" />
+    </svg>
+  );
+}
+
 const primaryNavItems = [
   { to: '/', label: '홈' },
   { to: '/products', label: '카테고리' },
@@ -12,7 +21,11 @@ const primaryNavItems = [
   { to: '/inquery', label: '문의' },
 ];
 
-export function DesktopHeader() {
+type DesktopHeaderProps = {
+  onOpenSearch: () => void;
+};
+
+export function DesktopHeader({ onOpenSearch }: DesktopHeaderProps) {
   const location = useLocation();
   const { itemCount } = useCart();
   const [categoryRoots, setCategoryRoots] = useState<CategoryTreeNode[]>([]);
@@ -106,6 +119,9 @@ export function DesktopHeader() {
         </nav>
 
         <div className="d-header-actions">
+          <button className="d-header-search-link" type="button" onClick={onOpenSearch} aria-label="검색 열기">
+            <SearchIcon />
+          </button>
           <Link className="d-header-cart-link" to="/cart" aria-label="장바구니로 이동">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M7 9V7a5 5 0 0 1 10 0v2" />
