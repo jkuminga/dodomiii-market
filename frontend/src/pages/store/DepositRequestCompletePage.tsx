@@ -27,6 +27,23 @@ function buildItemSummary(order: StoreOrderLookupResponse): string {
   return additionalCount > 0 ? `${firstName} 외 ${additionalCount}건` : firstName;
 }
 
+async function copyToClipboard(value: string): Promise<boolean> {
+  if (!value.trim()) {
+    return false;
+  }
+
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
 export function DepositRequestCompletePage() {
   const { orderNumber: orderNumberParam } = useParams<{ orderNumber: string }>();
   const location = useLocation();
@@ -37,6 +54,7 @@ export function DepositRequestCompletePage() {
   const [order, setOrder] = useState<StoreOrderLookupResponse | null>(null);
   const [loading, setLoading] = useState(!orderSummaryFromState);
   const [error, setError] = useState('');
+  const [copyMessage, setCopyMessage] = useState('');
 
   useEffect(() => {
     if (!orderNumber || orderSummaryFromState) {
@@ -96,6 +114,29 @@ export function DepositRequestCompletePage() {
     return null;
   }, [order, orderSummaryFromState]);
 
+  useEffect(() => {
+    if (!copyMessage) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCopyMessage('');
+    }, 1800);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [copyMessage]);
+
+  const handleCopyOrderNumber = async () => {
+    if (!summary) {
+      return;
+    }
+
+    const copied = await copyToClipboard(summary.orderNumber);
+    setCopyMessage(copied ? '주문번호가 복사되었습니다.' : '복사에 실패했습니다.');
+  };
+
   if (!orderNumber) {
     return (
       <main className="m-page order-lookup-page">
@@ -143,8 +184,34 @@ export function DepositRequestCompletePage() {
         {!loading && !error && summary ? (
           <div className="deposit-complete-rows">
             <div className="order-summary-row">
-              <span>주문 번호</span>
-              <strong>{summary.orderNumber}</strong>
+              <span className="deposit-complete-order-label">
+                주문 번호
+                <span className="deposit-complete-order-help" aria-label="주문번호 안내" tabIndex={0}>
+                  ?
+                  <span className="deposit-complete-order-tooltip" role="tooltip">
+                    주문번호를 통해 주문조회가 가능합니다.
+                  </span>
+                </span>
+              </span>
+              <div className="deposit-complete-order-number">
+                <strong>{summary.orderNumber}</strong>
+                <button
+                  className="deposit-complete-copy-button"
+                  type="button"
+                  onClick={() => void handleCopyOrderNumber()}
+                  aria-label="주문번호 복사"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <rect x="8" y="7" width="10" height="12" rx="2" />
+                    <path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />
+                  </svg>
+                </button>
+                {copyMessage ? (
+                  <span className="deposit-complete-copy-message" role="status" aria-live="polite">
+                    {copyMessage}
+                  </span>
+                ) : null}
+              </div>
             </div>
             <div className="order-summary-row">
               <span>상품명</span>
