@@ -443,6 +443,8 @@ export class AdminOrdersService {
 
   private buildOrderListWhere(query: GetAdminOrdersQueryDto): Prisma.OrderWhereInput {
     const filters: Prisma.OrderWhereInput[] = [];
+    const keyword = query.keyword?.trim() ?? '';
+    const keywordVariants = this.buildKeywordVariants(keyword);
 
     if (query.orderStatus) {
       filters.push({
@@ -459,40 +461,15 @@ export class AdminOrdersService {
       });
     }
 
-    if (query.keyword) {
-      filters.push({
-        OR: [
-          {
-            orderNumber: {
-              contains: query.keyword,
-              mode: 'insensitive',
-            },
-          },
-          {
-            contact: {
-              is: {
-                buyerName: {
-                  contains: query.keyword,
-                  mode: 'insensitive',
-                },
-              },
-            },
-          },
+    if (keyword) {
+      const phoneFilters: Prisma.OrderWhereInput[] = [];
+      for (const variant of [keyword, ...keywordVariants]) {
+        phoneFilters.push(
           {
             contact: {
               is: {
                 buyerPhone: {
-                  contains: query.keyword,
-                  mode: 'insensitive',
-                },
-              },
-            },
-          },
-          {
-            contact: {
-              is: {
-                receiverName: {
-                  contains: query.keyword,
+                  contains: variant,
                   mode: 'insensitive',
                 },
               },
@@ -502,7 +479,38 @@ export class AdminOrdersService {
             contact: {
               is: {
                 receiverPhone: {
-                  contains: query.keyword,
+                  contains: variant,
+                  mode: 'insensitive',
+                },
+              },
+            },
+          },
+        );
+      }
+
+      filters.push({
+        OR: [
+          {
+            orderNumber: {
+              contains: keyword,
+              mode: 'insensitive',
+            },
+          },
+          {
+            contact: {
+              is: {
+                buyerName: {
+                  contains: keyword,
+                  mode: 'insensitive',
+                },
+              },
+            },
+          },
+          {
+            contact: {
+              is: {
+                receiverName: {
+                  contains: keyword,
                   mode: 'insensitive',
                 },
               },
@@ -512,7 +520,7 @@ export class AdminOrdersService {
             deposit: {
               is: {
                 depositorName: {
-                  contains: query.keyword,
+                  contains: keyword,
                   mode: 'insensitive',
                 },
               },
@@ -522,17 +530,54 @@ export class AdminOrdersService {
             shipment: {
               is: {
                 trackingNumber: {
-                  contains: query.keyword,
+                  contains: keyword,
                   mode: 'insensitive',
                 },
               },
             },
           },
+          ...phoneFilters,
         ],
       });
     }
 
     return filters.length > 0 ? { AND: filters } : {};
+  }
+
+  private buildKeywordVariants(keyword: string): string[] {
+    const digitsOnly = keyword.replace(/\D/g, '');
+    const variants = new Set<string>();
+
+    if (digitsOnly.length > 0 && digitsOnly !== keyword) {
+      variants.add(digitsOnly);
+    }
+
+    const hyphenated = this.formatPhoneSearchCandidate(digitsOnly);
+    if (hyphenated && hyphenated !== keyword) {
+      variants.add(hyphenated);
+    }
+
+    return [...variants];
+  }
+
+  private formatPhoneSearchCandidate(value: string): string | null {
+    if (value.length === 11 && value.startsWith('010')) {
+      return `${value.slice(0, 3)}-${value.slice(3, 7)}-${value.slice(7)}`;
+    }
+
+    if (value.length === 10 && value.startsWith('02')) {
+      return `${value.slice(0, 2)}-${value.slice(2, 6)}-${value.slice(6)}`;
+    }
+
+    if (value.length === 9 && value.startsWith('02')) {
+      return `${value.slice(0, 2)}-${value.slice(2, 5)}-${value.slice(5)}`;
+    }
+
+    if (value.length === 10) {
+      return `${value.slice(0, 3)}-${value.slice(3, 6)}-${value.slice(6)}`;
+    }
+
+    return null;
   }
 
   private mapOrderListItem(

@@ -12,7 +12,6 @@ import {
   getAllowedNextOrderStatuses,
   getDepositStatusLabel,
   getOrderStatusLabel,
-  getShipmentStatusPillClass,
   getShipmentStatusLabel,
 } from './adminUtils';
 
@@ -41,8 +40,12 @@ function createInitialShipmentForm(): ShipmentFormState {
 }
 
 function formatAddress(order: AdminOrderDetail): string {
-  const addressParts = [order.contact.zipcode, order.contact.address1, order.contact.address2].filter(Boolean);
-  return addressParts.length > 0 ? addressParts.join(' ') : '-';
+  const { zipcode, address1, address2 } = order.contact;
+  const parts: string[] = [];
+  if (zipcode) parts.push(`(${zipcode})`);
+  if (address1) parts.push(address1);
+  if (address2) parts.push(address2);
+  return parts.length > 0 ? parts.join(' ') : '-';
 }
 
 export function AdminOrderDetailPage() {
@@ -244,42 +247,45 @@ export function AdminOrderDetailPage() {
       <div className="admin-two-column admin-order-detail-grid">
         <div className="admin-card-stack">
           <section className="surface-card admin-card-stack">
+            <span className="admin-card-id-pill">ID : {order.id}</span>
             <div className="admin-section-head">
               <div>
                 <p className="section-kicker">Summary</p>
                 <h3 className="section-subtitle">주문 기본 정보</h3>
               </div>
-              <span className="status-pill">ID : {order.id}</span>
             </div>
 
-            <div className="admin-summary-grid">
-              <div className="admin-summary-item">
+            <section className="admin-status-preview-grid">
+              <div className="admin-status-preview-card">
                 <span>전체 주문 상태</span>
                 <strong>{getOrderStatusLabel(order.orderStatus)}</strong>
               </div>
-              <div className="admin-summary-item">
+              <div className="admin-status-preview-card">
                 <span>입금 상태</span>
                 <strong>{getDepositStatusLabel(order.deposit.depositStatus)}</strong>
               </div>
-              <div className="admin-summary-item">
+              <div className="admin-status-preview-card">
                 <span>배송 상태</span>
-                <span className={`status-pill ${getShipmentStatusPillClass(order.shipment.shipmentStatus)}`}>
-                  {getShipmentStatusLabel(order.shipment.shipmentStatus)}
-                </span>
+                <strong>{getShipmentStatusLabel(order.shipment.shipmentStatus)}</strong>
               </div>
-              <div className="admin-summary-item">
+              <div className="admin-status-preview-card">
                 <span>주문 접수 날짜</span>
                 <strong>{formatAdminDateTime(order.createdAt)}</strong>
               </div>
-              <div className="admin-summary-item">
+              <div className="admin-status-preview-card">
                 <span>최근 수정</span>
                 <strong>{formatAdminDateTime(order.updatedAt)}</strong>
               </div>
-              <div className="admin-summary-item">
+              <div className="admin-status-preview-card has-tooltip">
                 <span>고객 요청 사항</span>
-                <strong>{order.customerRequest?.trim() || '없음'}</strong>
+                <strong>{order.customerRequest?.trim() ? '마우스를 올려 확인' : '없음'}</strong>
+                {order.customerRequest?.trim() ? (
+                  <>
+                    <div className="admin-preview-tooltip">{order.customerRequest}</div>
+                  </>
+                ) : null}
               </div>
-            </div>
+            </section>
           </section>
 
           <section className="surface-card admin-card-stack">
@@ -288,7 +294,7 @@ export function AdminOrderDetailPage() {
                 <p className="section-kicker">Items</p>
                 <h3 className="section-subtitle">주문 상품</h3>
               </div>
-              <span className="admin-inline-note">{order.items.length}개 항목</span>
+              <span className="status-pill">{order.items.length}개 항목</span>
             </div>
 
             <div className="admin-list-grid">
@@ -422,22 +428,22 @@ export function AdminOrderDetailPage() {
               <div className="admin-status-history-list">
                 {order.statusHistories.map((history) => (
                   <article className="admin-list-card" key={history.orderStatusHistoryId}>
-                    <div className="admin-list-card-head">
-                      <div>
-                        <strong>{getOrderStatusLabel(history.newStatus)}</strong>
-                        <p>
+                    <div className="admin-list-card-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'nowrap', width: '100%' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <strong style={{ display: 'block', fontSize: '1rem' }}>{getOrderStatusLabel(history.newStatus)}</strong>
+                        <p style={{ margin: '4px 0 0 0', opacity: 0.8 }}>
                           {history.previousStatus ? `${getOrderStatusLabel(history.previousStatus)} -> ` : ''}
                           {getOrderStatusLabel(history.newStatus)}
                         </p>
                       </div>
-                      <span className="status-pill is-muted">{formatAdminDateTime(history.createdAt)}</span>
+                      <span className="status-pill is-muted" style={{ flexShrink: 0, marginLeft: 'auto' }}>
+                        {formatAdminDateTime(history.createdAt)}
+                      </span>
                     </div>
-
-                    <div className="admin-meta-row">
-                      <span>변경 관리자 {history.changedByAdminId ? `#${history.changedByAdminId}` : '시스템'}</span>
-                    </div>
-
-                    <p className="section-copy admin-history-reason">{history.changeReason?.trim() || '변경 사유 기록 없음'}</p>
+                    {/* <div className="admin-meta-row">
+                      <span>변경 관리자 : {history.changedByAdminId ? `#${history.changedByAdminId}` : '시스템'}</span>
+                    </div> */}
+                    <p className="section-copy admin-history-reason">변경 사유 : {history.changeReason?.trim() || '변경 사유 기록 없음'}</p>
                   </article>
                 ))}
               </div>
@@ -457,16 +463,13 @@ export function AdminOrderDetailPage() {
             <form className="admin-card-stack" onSubmit={onSubmitStatus}>
               <div className="admin-overview-chip">
                 <span>현재 상태</span>
-                <strong>{getOrderStatusLabel(order.orderStatus)}</strong>
-                <small>
-                  {allowedNextStatuses.length > 0
-                    ? `다음 가능 상태 ${allowedNextStatuses.length}개`
-                    : '현재 상태에서는 추가 전이가 허용되지 않습니다.'}
-                </small>
+                <strong className="status-pill">{getOrderStatusLabel(order.orderStatus)}</strong>
               </div>
 
               <label className="field">
-                <span>변경할 주문 상태</span>
+                <span>변경할 주문 상태({allowedNextStatuses.length > 0
+                  ? `다음 가능 상태 ${allowedNextStatuses.length}개`
+                  : '추가 상태 변경 불가능'})</span>
                 <select
                   value={statusForm.orderStatus}
                   onChange={(event) =>
@@ -487,7 +490,7 @@ export function AdminOrderDetailPage() {
               </label>
 
               <label className="field">
-                <span>변경 사유</span>
+                <span>변경 사유(선택사항)</span>
                 <textarea
                   value={statusForm.changeReason}
                   onChange={(event) =>
@@ -511,7 +514,7 @@ export function AdminOrderDetailPage() {
             <div className="admin-section-head">
               <div>
                 <p className="section-kicker">Shipment</p>
-                <h3 className="section-subtitle">배송 정보 입력 / 수정</h3>
+                <h3 className="section-subtitle">배송 정보</h3>
               </div>
             </div>
 
@@ -519,9 +522,7 @@ export function AdminOrderDetailPage() {
               <div className="admin-summary-grid">
                 <div className="admin-summary-item">
                   <span>현재 배송 상태</span>
-                  <span className={`status-pill ${getShipmentStatusPillClass(order.shipment.shipmentStatus)}`}>
-                    {getShipmentStatusLabel(order.shipment.shipmentStatus)}
-                  </span>
+                  <strong>{getShipmentStatusLabel(order.shipment.shipmentStatus)}</strong>
                 </div>
                 <div className="admin-summary-item">
                   <span>운송장 링크</span>

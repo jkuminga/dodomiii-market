@@ -8,7 +8,6 @@ import {
   formatAdminDateTime,
   formatAdminPhone,
   formatCurrency,
-  getAllowedNextOrderStatuses,
   getOrderStatusLabel,
 } from './adminUtils';
 
@@ -61,9 +60,8 @@ export function AdminOrdersPage() {
   const [meta, setMeta] = useState<PaginationMeta>(DEFAULT_META);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
 
-  const q = searchParams.get('q') ?? '';
+  const keyword = searchParams.get('keyword') ?? searchParams.get('q') ?? '';
   const orderStatusParam = searchParams.get('orderStatus') ?? 'all';
   const page = parsePage(searchParams.get('page'));
 
@@ -73,7 +71,7 @@ export function AdminOrdersPage() {
 
     try {
       const result = await apiClient.getAdminOrders({
-        q: q || undefined,
+        keyword: keyword || undefined,
         orderStatus: parseOrderStatusFilter(orderStatusParam === 'all' ? null : orderStatusParam),
         page,
         size: 10,
@@ -90,17 +88,17 @@ export function AdminOrdersPage() {
 
   useEffect(() => {
     void loadOrders();
-  }, [orderStatusParam, page, q]);
+  }, [keyword, orderStatusParam, page]);
 
   const onFilterSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
 
     const next = new URLSearchParams();
-    const nextQuery = String(formData.get('q') ?? '').trim();
+    const nextQuery = String(formData.get('keyword') ?? '').trim();
 
     if (nextQuery) {
-      next.set('q', nextQuery);
+      next.set('keyword', nextQuery);
     }
 
     if (orderStatusParam !== 'all') {
@@ -128,27 +126,6 @@ export function AdminOrdersPage() {
 
     next.set('page', '1');
     setSearchParams(next);
-  };
-
-  const onQuickChangeOrderStatus = async (order: AdminOrderListItem, nextStatus: StoreOrderStatus) => {
-    if (nextStatus === order.orderStatus || updatingOrderId !== null) {
-      return;
-    }
-
-    setUpdatingOrderId(order.id);
-
-    try {
-      await apiClient.updateAdminOrderStatus(order.id, {
-        orderStatus: nextStatus,
-      });
-
-      showToast(`${order.buyerName} 주문 상태를 변경했습니다.`);
-      await loadOrders();
-    } catch (caught) {
-      showToast(caught instanceof Error ? caught.message : '주문 상태 변경에 실패했습니다.', 'error');
-    } finally {
-      setUpdatingOrderId(null);
-    }
   };
 
   return (
@@ -192,9 +169,9 @@ export function AdminOrdersPage() {
           <label className="field">
             <span>검색어</span>
             <input
-              name="q"
-              defaultValue={q}
-              placeholder="주문번호, 구매자명, 수령인명 검색"
+              name="keyword"
+              defaultValue={keyword}
+              placeholder="주문번호, 이름, 전화번호 검색"
               autoComplete="off"
             />
           </label>
@@ -259,7 +236,7 @@ export function AdminOrdersPage() {
           <>
             <div className="admin-list-grid">
               {orders.map((order) => (
-                <article className="admin-list-card admin-order-list-card" key={order.id}>
+                <Link className="admin-list-card admin-order-list-card" key={order.id} to={`/admin/orders/${order.id}`}>
                   <div className="admin-list-card-head">
                     <div>
                       <strong>
@@ -281,32 +258,7 @@ export function AdminOrdersPage() {
                     <span>주문번호 {order.orderNumber}</span>
                     <span>주문 생성 {formatAdminDateTime(order.createdAt)}</span>
                   </div>
-
-                  <div className="admin-order-card-actions">
-                    <label className="field admin-compact-field">
-                      <span>빠른 상태 변경</span>
-                      <select
-                        value={order.orderStatus}
-                        disabled={updatingOrderId !== null}
-                        onChange={(event) =>
-                          void onQuickChangeOrderStatus(order, event.currentTarget.value as StoreOrderStatus)
-                        }
-                      >
-                        {[order.orderStatus, ...getAllowedNextOrderStatuses(order.orderStatus)].map((status) => (
-                          <option key={status} value={status}>
-                            {getOrderStatusLabel(status)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <span>
-                      <Link className="button button-ghost" to={`/admin/orders/${order.id}`}>
-                        상세 보기
-                      </Link>
-                    </span>
-                  </div>
-                </article>
+                </Link>
               ))}
             </div>
 

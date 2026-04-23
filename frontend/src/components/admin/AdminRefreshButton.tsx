@@ -15,12 +15,13 @@ function RefreshIcon() {
 export function AdminRefreshButton({ disabled = false, onClick }: AdminRefreshButtonProps) {
   return (
     <button
-      className="button button-ghost admin-refresh-button"
+      className="button button-secondary admin-refresh-button"
       type="button"
       onClick={onClick}
       disabled={disabled}
       aria-label="새로고침"
       title="새로고침"
+      style={{ borderRadius: '1.5rem' }}
     >
       <RefreshIcon />
     </button>

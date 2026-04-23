@@ -732,7 +732,7 @@ export type StoreCustomCheckoutOrderCreateRequest = {
 };
 
 export type AdminOrderListQuery = {
-  q?: string;
+  keyword?: string;
   orderStatus?: StoreOrderStatus;
   page?: number;
   size?: number;
@@ -1362,7 +1362,7 @@ export const apiClient = {
   getAdminOrders: async (query: AdminOrderListQuery) => {
     const result = await requestWithMeta<{ items: Array<Parameters<typeof normalizeAdminOrderListItem>[0]> }, PaginationMeta>(
       `/admin/orders${buildQueryString({
-        q: query.q,
+        keyword: query.keyword,
         orderStatus: query.orderStatus,
         page: query.page,
         size: query.size,
