@@ -390,7 +390,7 @@ export function AdminHomePopupPage() {
                   <strong>{form.isActive ? '표시됨' : '숨김'}</strong>
                 </div>
                 <div className="admin-overview-chip">
-                  <span>이미지 자산</span>
+                  <span>이미지</span>
                   <strong>{trimmedImageUrl !== '' ? '연결 완료' : '입력 필요'}</strong>
                 </div>
                 <div className="admin-overview-chip">
@@ -434,13 +434,13 @@ export function AdminHomePopupPage() {
                       onChange={(event) => updateField('isActive', event.target.checked)}
                     />
                     <span>
-                      <strong>홈 화면에 팝업 활성화</strong>
+                      <strong>팝업 노출 여부</strong>
                       <small>{form.isActive ? '현재 홈 화면에 팝업이 노출됩니다.' : '현재 홈 화면에 팝업이 노출되지 않습니다.'}</small>
                     </span>
                   </label>
                 </div>
               </section>
-              <br/>
+              <br />
 
               <section className="admin-form-section">
                 <div className="admin-section-head">
@@ -500,23 +500,23 @@ export function AdminHomePopupPage() {
                 </label>
 
                 <p className="admin-inline-note admin-home-popup-upload-help" id="admin-home-popup-upload-help">
-                  ※ 업로드 없이 직접 입력도 가능. 저장 전에 아래 미리보기에서 이미지를 확인하세요.
+                  ※ 업로드 없이 직접 이미지 주소 입력도 가능. 저장 전에 아래 미리보기에서 이미지를 확인하세요.
                 </p>
               </section>
 
-              <section className="admin-home-popup-action-bar" aria-label="저장 안내">
+              {/* <section className="admin-home-popup-action-bar" aria-label="저장 안내">
                 <div className="admin-home-popup-action-copy" role="status" aria-live="polite">
                   <strong>{hasExistingPopup ? '기존 팝업을 수정 중입니다.' : '새 홈 팝업을 만들 준비가 되었습니다.'}</strong>
                   <p>
                     {trimmedImageUrl !== ''
-                      ? '저장하면 현재 설정이 스토어 홈 팝업에 반영됩니다.'
+                      ? '저장하면 현재 설정이 팝업에 반영됩니다.'
                       : '이미지 URL을 입력하거나 업로드한 뒤 저장하면 스토어 팝업에 반영됩니다.'}
                   </p>
                 </div>
                 <button className="button" type="submit" disabled={saving}>
                   {saving ? '저장 중...' : '변경사항 저장'}
                 </button>
-              </section>
+              </section> */}
             </>
           ) : null}
         </section>
@@ -572,10 +572,6 @@ export function AdminHomePopupPage() {
                   <span>링크</span>
                   <strong>{linkStatusLabel}</strong>
                 </div>
-                <div className="admin-summary-item admin-home-popup-summary-span-2">
-                  <span>운영 메모</span>
-                  <strong>{trimmedTitle !== '' ? '제목은 alt 텍스트와 운영 식별에 함께 사용됩니다.' : '제목을 입력하면 운영 식별과 접근성 텍스트를 더 명확하게 관리할 수 있습니다.'}</strong>
-                </div>
               </div>
             </>
           )}
@@ -587,14 +583,14 @@ export function AdminHomePopupPage() {
           busy={heroSaving}
           busyLabel="저장 중..."
           disabled={heroSaving || loading}
-          label="히어로 저장"
+          label="홈 이미지 저장"
           success={heroSaveSuccess}
         />
         <section className="surface-card admin-card-stack admin-home-popup-editor">
           <div className="admin-section-head">
             <div>
-              <p className="section-kicker">Hero</p>
-              <h3 className="section-subtitle">홈 히어로 이미지</h3>
+              <p className="section-kicker">Main Image</p>
+              <h3 className="section-subtitle">홈 메인 이미지</h3>
             </div>
             <button className="button" type="submit" disabled={heroSaving || loading}>
               {heroSaving ? '저장 중...' : '저장'}
@@ -628,15 +624,15 @@ export function AdminHomePopupPage() {
                 <div className="admin-section-head">
                   <div>
                     <p className="section-kicker">Upload</p>
-                    <h4 className="section-subtitle">히어로 배경 이미지</h4>
+                    <h4 className="section-subtitle">홈 메인 배경 이미지</h4>
                   </div>
                   <div className="admin-inline-note">※ Cloudinary 업로드 클릭 시 이미지 URL이 자동 입력됨.</div>
                 </div>
 
                 <div className="admin-home-popup-upload-grid">
                   <label className={`admin-home-popup-file-picker${selectedHeroFile ? ' is-selected' : ''}`} htmlFor="admin-home-hero-file">
-                    <span className="admin-home-popup-file-picker-kicker">Hero Image</span>
-                    <strong>{selectedHeroFile ? selectedHeroFile.name : '히어로 이미지를 선택하세요'}</strong>
+                    <span className="admin-home-popup-file-picker-kicker">Image</span>
+                    <strong>{selectedHeroFile ? selectedHeroFile.name : '이미지를 선택하세요'}</strong>
                     <p>스토어 홈 상단 배경으로 사용됩니다.</p>
                     <span className="admin-home-popup-file-picker-action">{selectedHeroFile ? '다른 파일 선택' : '파일 고르기'}</span>
                   </label>
@@ -670,7 +666,7 @@ export function AdminHomePopupPage() {
                 />
 
                 <label className="field">
-                  <span>히어로 이미지 URL</span>
+                  <span>홈 메인 이미지 URL</span>
                   <input
                     value={heroForm.imageUrl}
                     onChange={(event) => updateHeroField('imageUrl', event.target.value)}
@@ -679,7 +675,7 @@ export function AdminHomePopupPage() {
                 </label>
               </section>
 
-              <section className="admin-home-popup-action-bar" aria-label="히어로 저장 안내">
+              {/* <section className="admin-home-popup-action-bar" aria-label="히어로 저장 안내">
                 <div className="admin-home-popup-action-copy" role="status" aria-live="polite">
                   <strong>{hasHeroImage ? '기존 히어로 이미지를 수정 중입니다.' : '새 홈 히어로 이미지를 설정할 수 있습니다.'}</strong>
                   <p>
@@ -691,7 +687,7 @@ export function AdminHomePopupPage() {
                 <button className="button" type="submit" disabled={heroSaving}>
                   {heroSaving ? '저장 중...' : '변경사항 저장'}
                 </button>
-              </section>
+              </section> */}
             </>
           ) : null}
         </section>
@@ -700,7 +696,7 @@ export function AdminHomePopupPage() {
           <div className="admin-section-head">
             <div>
               <p className="section-kicker">Preview</p>
-              <h3 className="section-subtitle">히어로 미리보기</h3>
+              <h3 className="section-subtitle">미리보기</h3>
             </div>
             <span className={`admin-home-popup-preview-badge${loading || trimmedHeroImageUrl !== '' ? '' : ' is-muted'}`}>
               {loading ? '설정 확인 중' : trimmedHeroImageUrl !== '' ? '노출 예정' : '미설정'}
@@ -714,7 +710,7 @@ export function AdminHomePopupPage() {
               <img className="admin-home-hero-preview-image" src={trimmedHeroImageUrl} alt="홈 히어로 미리보기" />
             ) : (
               <div className="admin-home-popup-preview-empty">
-                <strong>히어로 이미지 미리보기 준비 중</strong>
+                <strong>홈 메인 이미지 미리보기 준비 중</strong>
                 <p>이미지 URL을 입력하거나 업로드를 완료하면 이 영역에 실제 히어로 이미지가 표시됩니다.</p>
               </div>
             )}

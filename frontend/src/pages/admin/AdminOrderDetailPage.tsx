@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, Navigate, useOutletContext, useParams } from 'react-router-dom';
 
-import { AdminFloatingSubmitButton } from '../../components/admin/AdminFloatingSubmitButton';
 import { AdminRefreshButton } from '../../components/admin/AdminRefreshButton';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { AdminOrderDetail, StoreOrderStatus, StoreShipmentStatus, apiClient } from '../../lib/api';
@@ -27,8 +26,6 @@ type ShipmentFormState = {
   trackingNumber: string;
   shipmentStatus: StoreShipmentStatus;
 };
-
-const FLOATING_SUBMIT_SUCCESS_MS = 700;
 
 const INITIAL_STATUS_FORM: StatusFormState = {
   changeReason: '',
@@ -62,8 +59,6 @@ export function AdminOrderDetailPage() {
   const [shipmentForm, setShipmentForm] = useState<ShipmentFormState>(createInitialShipmentForm());
   const [statusSubmitting, setStatusSubmitting] = useState(false);
   const [shipmentSubmitting, setShipmentSubmitting] = useState(false);
-  const [statusSubmitSuccess, setStatusSubmitSuccess] = useState(false);
-  const [shipmentSubmitSuccess, setShipmentSubmitSuccess] = useState(false);
   const [actionError, setActionError] = useState('');
 
   const loadOrder = async () => {
@@ -127,7 +122,6 @@ export function AdminOrderDetailPage() {
     }
 
     setStatusSubmitting(true);
-    setStatusSubmitSuccess(false);
     setActionError('');
 
     try {
@@ -136,16 +130,12 @@ export function AdminOrderDetailPage() {
         changeReason: statusForm.changeReason.trim() || undefined,
       });
 
-      setStatusSubmitSuccess(true);
-      await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
       await loadOrder();
       showToast('주문 상태를 변경했습니다.');
     } catch (caught) {
-      setStatusSubmitSuccess(false);
       setActionError(caught instanceof Error ? caught.message : '주문 상태 변경에 실패했습니다.');
     } finally {
       setStatusSubmitting(false);
-      setStatusSubmitSuccess(false);
     }
   };
 
@@ -157,7 +147,6 @@ export function AdminOrderDetailPage() {
     }
 
     setShipmentSubmitting(true);
-    setShipmentSubmitSuccess(false);
     setActionError('');
 
     try {
@@ -167,16 +156,12 @@ export function AdminOrderDetailPage() {
         shipmentStatus: shipmentForm.shipmentStatus,
       });
 
-      setShipmentSubmitSuccess(true);
-      await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
       await loadOrder();
       showToast('배송 정보를 저장했습니다.');
     } catch (caught) {
-      setShipmentSubmitSuccess(false);
       setActionError(caught instanceof Error ? caught.message : '배송 정보 저장에 실패했습니다.');
     } finally {
       setShipmentSubmitting(false);
-      setShipmentSubmitSuccess(false);
     }
   };
 
@@ -470,14 +455,6 @@ export function AdminOrderDetailPage() {
             </div>
 
             <form className="admin-card-stack" onSubmit={onSubmitStatus}>
-              <AdminFloatingSubmitButton
-                busy={statusSubmitting}
-                busyLabel="변경 중..."
-                disabled={!canSubmitStatusChange}
-                label="주문 상태 변경"
-                success={statusSubmitSuccess}
-                stackIndex={0}
-              />
               <div className="admin-overview-chip">
                 <span>현재 상태</span>
                 <strong>{getOrderStatusLabel(order.orderStatus)}</strong>
@@ -539,14 +516,6 @@ export function AdminOrderDetailPage() {
             </div>
 
             <form className="admin-card-stack" onSubmit={onSubmitShipment}>
-              <AdminFloatingSubmitButton
-                busy={shipmentSubmitting}
-                busyLabel="저장 중..."
-                disabled={shipmentSubmitting}
-                label="배송 정보 저장"
-                success={shipmentSubmitSuccess}
-                stackIndex={1}
-              />
               <div className="admin-summary-grid">
                 <div className="admin-summary-item">
                   <span>현재 배송 상태</span>

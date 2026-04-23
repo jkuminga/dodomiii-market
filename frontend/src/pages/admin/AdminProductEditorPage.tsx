@@ -1141,14 +1141,14 @@ export function AdminProductEditorPage() {
               </label>
             </div>
           </section>
-          <br/>
+          <br />
 
           <section className="admin-form-section">
             <div className="admin-section-head">
               <div>
                 <p className="section-kicker">Images</p>
                 <h3 className="section-subtitle">이미지</h3>
-                <span style={{fontSize:"12px"}}>※ 드래그로 출력 순서 변경</span>
+                <span style={{ fontSize: "12px" }}>※ 드래그로 출력 순서 변경</span>
               </div>
               <div className="inline-actions">
                 {!isCreateMode ? (
@@ -1257,9 +1257,8 @@ export function AdminProductEditorPage() {
 
                       return (
                         <article
-                          className={`admin-list-card admin-editor-list-card ${isExpanded ? 'is-active' : ''} ${
-                            draggingImageKey === image.key ? 'is-dragging' : ''
-                          } ${dragOverImageKey === image.key ? 'is-drag-over' : ''}`}
+                          className={`admin-list-card admin-editor-list-card ${isExpanded ? 'is-active' : ''} ${draggingImageKey === image.key ? 'is-dragging' : ''
+                            } ${dragOverImageKey === image.key ? 'is-drag-over' : ''}`}
                           key={image.key}
                           draggable
                           onDragStart={(event) => onImageDragStart(event, image.key)}
@@ -1377,14 +1376,14 @@ export function AdminProductEditorPage() {
               </div>
             )}
           </section>
-          <br/>
+          <br />
 
           <section className="admin-form-section">
             <div className="admin-section-head">
               <div>
                 <p className="section-kicker">Options</p>
                 <h3 className="section-subtitle">옵션</h3>
-                <span style={{fontSize:"12px"}}>※ 드래그로 출력 순서 변경</span>
+                <span style={{ fontSize: "12px" }}>※ 드래그로 출력 순서 변경</span>
               </div>
               <div className="inline-actions">
                 {!isCreateMode ? (
@@ -1526,9 +1525,8 @@ export function AdminProductEditorPage() {
 
                   return (
                     <article
-                      className={`admin-list-card admin-editor-list-card ${isExpanded ? 'is-active' : ''} ${
-                        draggingOptionKey === option.key ? 'is-dragging' : ''
-                      } ${dragOverOptionKey === option.key ? 'is-drag-over' : ''}`}
+                      className={`admin-list-card admin-editor-list-card ${isExpanded ? 'is-active' : ''} ${draggingOptionKey === option.key ? 'is-dragging' : ''
+                        } ${dragOverOptionKey === option.key ? 'is-drag-over' : ''}`}
                       key={option.key}
                       draggable
                       onDragStart={(event) => onOptionDragStart(event, option.key)}
@@ -1556,10 +1554,10 @@ export function AdminProductEditorPage() {
                                 {/* <p>{option.optionValue.trim() || '옵션 값 미입력'}</p> */}
                               </div>
                             </div>
-                            <div className="admin-product-summary" style={{marginTop: "5px"}}>
-                              <span className={`status-pill ${option.isActive ? '' : 'is-muted'}`} style={{marginRight : "10px"}}>{option.isActive ? '활성' : '비활성'}</span>
-                              <span style={{marginTop: "6px", marginRight: "10px"}}>{option.selectionType === 'SINGLE' ? '단일 선택' : '수량 선택'}</span>
-                              <span style={{marginTop: "6px"}}>{extraPriceLabel}</span>
+                            <div className="admin-product-summary" style={{ marginTop: "5px" }}>
+                              <span className={`status-pill ${option.isActive ? '' : 'is-muted'}`} style={{ marginRight: "10px" }}>{option.isActive ? '활성' : '비활성'}</span>
+                              <span style={{ marginTop: "6px", marginRight: "10px" }}>{option.selectionType === 'SINGLE' ? '단일 선택' : '수량 선택'}</span>
+                              <span style={{ marginTop: "6px" }}>{extraPriceLabel}</span>
                               {/* <span>정렬 {option.sortOrder || '-'}</span>
                               <span>드래그로 순서 변경</span> */}
                             </div>
@@ -1747,7 +1745,7 @@ export function AdminProductEditorPage() {
                 <p className="section-kicker">운영 지표</p>
                 <div className="admin-summary-grid">
                   <div className="admin-summary-item">
-                    <span>카테고리 슬러그</span>
+                    <span>카테고리 영문명</span>
                     <strong>{product.category.slug}</strong>
                   </div>
                   <div className="admin-summary-item">
@@ -1755,7 +1753,7 @@ export function AdminProductEditorPage() {
                     <strong>{product.orderItemCount}건</strong>
                   </div>
                   <div className="admin-summary-item">
-                    <span>카테고리 노출</span>
+                    <span>카테고리 노출 여부</span>
                     <strong>{product.category.isVisible ? '노출' : '숨김'}</strong>
                   </div>
                 </div>
@@ -1777,7 +1775,7 @@ export function AdminProductEditorPage() {
                 <strong>{configuredOptionCount}개</strong>
               </div>
               <div className="admin-summary-item">
-                <span>활성 옵션</span>
+                <span>활성화 된 옵션</span>
                 <strong>{activeOptionCount}개</strong>
               </div>
               <div className="admin-summary-item">

@@ -319,7 +319,7 @@ export function AdminAccountFormPage() {
 
             <div className="inline-actions">
               <button className="button" type="submit" disabled={saving}>
-                {saving ? '처리 중...' : isEditMode ? '수정 저장' : '계정 생성'}
+                {saving ? '처리 중...' : isEditMode ? '저장' : '계정 생성'}
               </button>
               <button className="button button-secondary" type="button" onClick={() => navigate('/admin/accounts')} disabled={saving}>
                 목록으로
