@@ -631,26 +631,64 @@ export function AdminNoticeEditorPage() {
                   ) : (
                     <div className="admin-card-stack">
                       <label className="admin-notice-image-picker">
-                        <span className="section-kicker">Image Asset</span>
-                        <strong>{block.imageUrl ? '다른 이미지로 교체' : '이미지 선택'}</strong>
-                        <span className="admin-inline-note">파일 선택 즉시 업로드가 시작됩니다.</span>
-                        <input type="file" accept="image/*" onChange={(event) => void onSelectImageFile(block.key, event)} />
+                        <div className="picker-trigger">
+                          <span className="picker-icon">
+                            <svg fill="none" height="24" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                              <polyline points="17 8 12 3 7 8" />
+                              <line x1="12" x2="12" y1="3" y2="15" />
+                            </svg>
+                          </span>
+                          <span className="section-kicker">Image Asset</span>
+                          <strong>{block.imageUrl ? '다른 이미지로 교체' : '이미지 선택'}</strong>
+                          <span className="admin-inline-note">파일 선택 즉시 업로드가 시작됩니다.</span>
+                        </div>
+                        <input className="picker-input" type="file" accept="image/*" onChange={(event) => void onSelectImageFile(block.key, event)} />
                       </label>
 
-                      {block.isUploading ? <p className="feedback-copy">이미지 업로드 중입니다...</p> : null}
-                      {block.uploadError ? (
-                        <p className="feedback-copy is-error" role="alert">
-                          {block.uploadError}
-                        </p>
-                      ) : null}
-
-                      {block.imageUrl ? (
-                        <div className="admin-notice-image-preview">
-                          <img src={block.imageUrl} alt={block.alt || '공지 이미지 미리보기'} />
-                        </div>
-                      ) : (
-                        <div className="admin-notice-image-empty">업로드된 이미지가 없습니다.</div>
-                      )}
+                      <div className="admin-notice-image-area">
+                        {block.imageUrl ? (
+                          <div className={`admin-notice-image-preview ${block.isUploading ? 'is-loading' : ''}`}>
+                            <img src={block.imageUrl} alt={block.alt || '공지 이미지 미리보기'} />
+                            {block.isUploading ? (
+                              <div className="preview-loading-overlay">
+                                <div className="loading-spinner"></div>
+                                <span>업로드 중...</span>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <div className={`admin-notice-image-empty ${block.isUploading ? 'is-loading' : ''}`}>
+                            {block.isUploading ? (
+                              <div className="preview-loading-overlay">
+                                <div className="loading-spinner"></div>
+                                <span>이미지 업로드 중...</span>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="empty-icon">
+                                  <svg fill="none" height="24" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                                    <rect height="18" rx="2" ry="2" width="18" x="3" y="3" />
+                                    <circle cx="8.5" cy="8.5" r="1.5" />
+                                    <polyline points="21 15 16 10 5 21" />
+                                  </svg>
+                                </div>
+                                <span>업로드된 이미지가 없습니다.</span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                        {block.uploadError ? (
+                          <div className="admin-notice-image-error">
+                            <svg fill="none" height="16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
+                              <circle cx="12" cy="12" r="10" />
+                              <line x1="12" x2="12" y1="8" y2="12" />
+                              <line x1="12" x2="12.01" y1="16" y2="16" />
+                            </svg>
+                            <span>{block.uploadError}</span>
+                          </div>
+                        ) : null}
+                      </div>
 
                       <label className="field">
                         <span>대체 텍스트</span>

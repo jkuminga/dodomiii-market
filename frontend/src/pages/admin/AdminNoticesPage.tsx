@@ -188,47 +188,40 @@ export function AdminNoticesPage() {
           <>
             <div className="admin-list-grid">
               {notices.map((notice) => (
-                <article className="admin-list-card admin-notice-list-card" key={notice.id}>
-                  <div className="admin-notice-list-thumbnail">
-                    {notice.thumbnailImageUrl ? (
-                      <img src={notice.thumbnailImageUrl} alt={`${notice.title} 썸네일`} loading="lazy" />
-                    ) : (
-                      <span>NO IMAGE</span>
-                    )}
+                <article className="admin-list-card admin-notice-dashboard-card" key={notice.id}>
+                  <div className="admin-notice-dashboard-main">
+                    <strong className="admin-notice-dashboard-title">{notice.title}</strong>
+                    <div className="admin-pill-row">
+                      {notice.isPinned ? <span className="status-pill">고정</span> : null}
+                      <span className={`status-pill ${notice.isPublished ? '' : 'is-muted'}`}>
+                        {notice.isPublished ? '공개' : '비공개'}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="admin-product-list-content">
-                    <div className="admin-list-card-head">
-                      <div>
-                        <strong>{notice.title}</strong>
-                        <p>{notice.summary || '요약 없음'}</p>
-                      </div>
-                      <div className="admin-pill-row">
-                        {notice.isPinned ? <span className="status-pill">고정</span> : null}
-                        <span className={`status-pill ${notice.isPublished ? '' : 'is-muted'}`}>
-                          {notice.isPublished ? '공개' : '비공개'}
-                        </span>
-                      </div>
+                  <dl className="admin-notice-dashboard-meta">
+                    <div>
+                      <dt>게시일</dt>
+                      <dd>{notice.publishedAt ? formatAdminDateTime(notice.publishedAt) : '게시 전'}</dd>
                     </div>
+                    <div>
+                      <dt>수정일</dt>
+                      <dd>{formatAdminDateTime(notice.updatedAt)}</dd>
+                    </div>
+                  </dl>
 
-                    <div className="admin-product-summary">
-                      <span>블록 {notice.blockCount}개</span>
-                      <span>{notice.publishedAt ? `게시 ${formatAdminDateTime(notice.publishedAt)}` : '게시 전'}</span>
-                    </div>
-
-                    <div className="inline-actions">
-                      <Link className="button button-secondary" to={`/admin/notices/${notice.id}`}>
-                        상세/수정
-                      </Link>
-                      <button
-                        className="button button-ghost"
-                        type="button"
-                        onClick={() => void onDelete(notice)}
-                        disabled={deletingId === notice.id}
-                      >
-                        {deletingId === notice.id ? '삭제 중...' : '삭제'}
-                      </button>
-                    </div>
+                  <div className="admin-notice-dashboard-actions">
+                    <Link className="button button-secondary" to={`/admin/notices/${notice.id}`}>
+                      수정
+                    </Link>
+                    <button
+                      className="button button-ghost"
+                      type="button"
+                      onClick={() => void onDelete(notice)}
+                      disabled={deletingId === notice.id}
+                    >
+                      {deletingId === notice.id ? '삭제 중...' : '삭제'}
+                    </button>
                   </div>
                 </article>
               ))}
