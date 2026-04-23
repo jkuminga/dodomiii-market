@@ -96,6 +96,8 @@ export function AdminCategoriesPage() {
   const [form, setForm] = useState<CategoryFormState>(createEmptyForm());
   const [draggingCategoryId, setDraggingCategoryId] = useState<number | null>(null);
   const [dragOverCategoryId, setDragOverCategoryId] = useState<number | null>(null);
+  const [landingSwapOpen, setLandingSwapOpen] = useState(false);
+  const [landingReplacementCategoryId, setLandingReplacementCategoryId] = useState<number | null>(null);
 
   const loadCategories = async () => {
     setLoading(true);
@@ -214,16 +216,28 @@ export function AdminCategoriesPage() {
 
   const visibleCount = draftCategories.filter((category) => category.isVisible).length;
   const landingSelectedCount = draftCategories.filter((category) => category.isOnLandingPage).length;
+  const landingExposedCategories = useMemo(
+    () => sortAdminCategories(draftCategories.filter((category) => category.isOnLandingPage)),
+    [draftCategories],
+  );
+  const landingSwapCandidates = useMemo(
+    () => landingExposedCategories.filter((category) => category.id !== selectedCategoryId),
+    [landingExposedCategories, selectedCategoryId],
+  );
 
   const onSelectCategory = (category: AdminCategoryItem) => {
     setSelectedCategoryId(category.id);
     setForm(formFromCategory(category));
+    setLandingSwapOpen(false);
+    setLandingReplacementCategoryId(null);
     setError('');
   };
 
   const onResetForm = () => {
     setSelectedCategoryId(null);
     setForm(createEmptyForm(getNextSortOrder(null)));
+    setLandingSwapOpen(false);
+    setLandingReplacementCategoryId(null);
     setError('');
   };
 
@@ -234,6 +248,15 @@ export function AdminCategoriesPage() {
     setError('');
 
     try {
+      const shouldReplaceLandingCategory =
+        form.isOnLandingPage && landingReplacementCategoryId !== null && !selectedCategory?.isOnLandingPage;
+
+      if (shouldReplaceLandingCategory) {
+        await apiClient.updateAdminCategory(landingReplacementCategoryId, {
+          isOnLandingPage: false,
+        });
+      }
+
       const payload = buildPayload(form, selectedCategoryId);
 
       if (selectedCategoryId === null) {
@@ -253,6 +276,9 @@ export function AdminCategoriesPage() {
         setSelectedCategoryId(updated.id);
         setForm(formFromCategory(updated));
       }
+
+      setLandingSwapOpen(false);
+      setLandingReplacementCategoryId(null);
     } catch (caught) {
       setSubmitSuccess(false);
       setError(caught instanceof Error ? caught.message : '카테고리 저장에 실패했습니다.');
@@ -405,6 +431,40 @@ export function AdminCategoriesPage() {
     }
   };
 
+  const onToggleLandingPage = (checked: boolean) => {
+    if (!checked) {
+      setForm((current) => ({ ...current, isOnLandingPage: false }));
+      setLandingSwapOpen(false);
+      setLandingReplacementCategoryId(null);
+      return;
+    }
+
+    if (!form.isOnLandingPage && landingSelectedCount >= 3) {
+      if (landingSwapCandidates.length === 0) {
+        showToast('해제할 홈 화면 노출 카테고리를 찾지 못했습니다.', 'error');
+        return;
+      }
+
+      setLandingSwapOpen(true);
+      setLandingReplacementCategoryId((current) => current ?? landingSwapCandidates[0].id);
+      return;
+    }
+
+    setForm((current) => ({ ...current, isOnLandingPage: true }));
+    setLandingSwapOpen(false);
+    setLandingReplacementCategoryId(null);
+  };
+
+  const onApplyLandingSwap = () => {
+    if (landingReplacementCategoryId === null) {
+      showToast('해제할 카테고리를 선택해주세요.', 'info');
+      return;
+    }
+
+    setForm((current) => ({ ...current, isOnLandingPage: true }));
+    setLandingSwapOpen(false);
+  };
+
   return (
     <section className="admin-section">
       <section className="surface-hero compact-hero admin-hero-card">
@@ -483,9 +543,8 @@ export function AdminCategoriesPage() {
                   <section key={root.category.id} className={`admin-category-group ${isSelectedGroup ? 'is-current' : ''}`}>
                     <button
                       type="button"
-                      className={`admin-category-root-card ${selectedCategoryId === root.category.id ? 'is-active' : ''} ${
-                        draggingCategoryId === root.category.id ? 'is-dragging' : ''
-                      } ${dragOverCategoryId === root.category.id ? 'is-drag-over' : ''}`}
+                      className={`admin-category-root-card ${selectedCategoryId === root.category.id ? 'is-active' : ''} ${draggingCategoryId === root.category.id ? 'is-dragging' : ''
+                        } ${dragOverCategoryId === root.category.id ? 'is-drag-over' : ''}`}
                       onClick={() => onSelectCategory(root.category)}
                       aria-pressed={selectedCategoryId === root.category.id}
                       draggable={!submitting && !reordering}
@@ -506,7 +565,7 @@ export function AdminCategoriesPage() {
                         <span className="admin-category-depth-badge">하위</span>
                         <span>{root.hasChildren ? `하위 ${root.childCount}개` : '하위 디렉토리 없음'}</span>
                         {!root.category.isVisible ? <span className="admin-category-hidden-indicator">숨김</span> : null}
-                        {root.category.isOnLandingPage ? <span className="admin-category-hidden-indicator">랜딩 노출</span> : null}
+                        {root.category.isOnLandingPage ? <span className="admin-category-hidden-indicator">홈 화면 노출</span> : null}
                         {root.isOrphan ? <span className="admin-category-tree-warning">상위 누락</span> : null}
                       </div>
                     </button>
@@ -537,9 +596,8 @@ export function AdminCategoriesPage() {
 
                                 <div className="admin-category-tree-content">
                                   <div
-                                    className={`admin-category-tree-row ${draggingCategoryId === category.id ? 'is-dragging' : ''} ${
-                                      dragOverCategoryId === category.id ? 'is-drag-over' : ''
-                                    }`}
+                                    className={`admin-category-tree-row ${draggingCategoryId === category.id ? 'is-dragging' : ''} ${dragOverCategoryId === category.id ? 'is-drag-over' : ''
+                                      }`}
                                   >
                                     <div className="admin-category-tree-title">
                                       <span className="admin-category-depth-badge">D{depth + 1}</span>
@@ -549,7 +607,7 @@ export function AdminCategoriesPage() {
                                     <div className="admin-category-tree-indicators">
                                       {childCount > 0 ? <span className="admin-category-child-count">하위 {childCount}</span> : null}
                                       {!category.isVisible ? <span className="admin-category-hidden-indicator">숨김</span> : null}
-                                      {category.isOnLandingPage ? <span className="admin-category-hidden-indicator">랜딩 노출</span> : null}
+                                      {category.isOnLandingPage ? <span className="admin-category-hidden-indicator">홈 화면 노출</span> : null}
                                     </div>
                                   </div>
                                 </div>
@@ -683,10 +741,47 @@ export function AdminCategoriesPage() {
             <input
               type="checkbox"
               checked={form.isOnLandingPage}
-              onChange={(event) => setForm((current) => ({ ...current, isOnLandingPage: event.target.checked }))}
+              onChange={(event) => onToggleLandingPage(event.target.checked)}
             />
             <span>홈 화면 카테고리 섹션에 노출 (최대 3개)</span>
           </label>
+
+          {landingSwapOpen ? (
+            <div className="field">
+              <span>어떤 카테고리 노출을 해제할까요?</span>
+              <select
+                value={landingReplacementCategoryId === null ? '' : String(landingReplacementCategoryId)}
+                onChange={(event) => {
+                  const nextValue = Number(event.target.value);
+                  if (!Number.isFinite(nextValue)) {
+                    setLandingReplacementCategoryId(null);
+                    return;
+                  }
+                  setLandingReplacementCategoryId(nextValue);
+                }}
+              >
+                {landingSwapCandidates.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <div className="inline-actions">
+                <button className="button button-secondary" type="button" onClick={onApplyLandingSwap}>
+                  이 카테고리 해제 후 현재 카테고리 노출
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {form.isOnLandingPage && landingReplacementCategoryId !== null ? (
+            <p className="feedback-copy" role="status">
+              저장 시{' '}
+              {landingExposedCategories.find((category) => category.id === landingReplacementCategoryId)?.name ??
+                '선택된 카테고리'}{' '}
+              노출이 해제됩니다.
+            </p>
+          ) : null}
 
           {error ? (
             <p className="feedback-copy is-error" role="alert">
