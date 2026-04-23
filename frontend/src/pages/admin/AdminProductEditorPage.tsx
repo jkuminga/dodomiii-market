@@ -512,6 +512,21 @@ export function AdminProductEditorPage() {
     ],
     [thumbnailImages, detailImages],
   );
+  const optionGroupsForDisplay = useMemo(() => {
+    const grouped = new Map<string, { label: string; items: ProductOptionDraft[] }>();
+
+    for (const option of form.options) {
+      const label = option.optionGroupName.trim() || '옵션 그룹 미입력';
+      const existing = grouped.get(label);
+      if (existing) {
+        existing.items.push(option);
+      } else {
+        grouped.set(label, { label, items: [option] });
+      }
+    }
+
+    return [...grouped.values()];
+  }, [form.options]);
 
   const replaceImage = (key: string, patch: Partial<ProductImageDraft>) => {
     setForm((current) => ({
@@ -991,27 +1006,20 @@ export function AdminProductEditorPage() {
             긴 입력 행 나열 대신 구성 요소를 카드 리스트로 먼저 확인하고, 필요한 항목만 펼쳐서 수정할 수 있게 편집 흐름을 정리했습니다.
           </p> */}
         </div>
-
-        <div className="admin-stat-grid">
-          <div className="admin-stat-card">
-            <span>카테고리</span>
-            <strong>{previewCategoryLabel}</strong>
+        <section className="admin-editor-overview-bar" aria-label="편집 요약">
+          <div className="admin-overview-chip">
+            <span>이미지</span>
+            <strong>{form.images.length}</strong>
           </div>
-          <div className="admin-stat-card">
-            <span>기본가</span>
-            <strong>{form.basePrice ? formatCurrency(Number(form.basePrice)) : '-'}</strong>
+          <div className="admin-overview-chip">
+            <span>옵션</span>
+            <strong>{form.options.length}</strong>
           </div>
-          <div className="admin-stat-card">
-            <span>이미지 / 옵션</span>
-            <strong>
-              {form.images.length} / {form.options.length}
-            </strong>
-          </div>
-          <div className="admin-stat-card">
-            <span>작업 상태</span>
+          <div className="admin-overview-chip">
+            <span>변경 상태</span>
             <strong>{hasUnsavedChanges ? '변경됨' : '저장됨'}</strong>
           </div>
-        </div>
+        </section>
       </section>
 
       <div className="admin-two-column admin-product-editor-grid">
@@ -1040,23 +1048,34 @@ export function AdminProductEditorPage() {
             </div>
           </div>
 
-          <section className="admin-editor-overview-bar" aria-label="편집 요약">
-            <div className="admin-overview-chip">
-              <span>이미지</span>
-              <strong>{form.images.length}</strong>
-              {/* <small>{configuredImageCount}개 구성 완료</small> */}
-            </div>
-            <div className="admin-overview-chip">
-              <span>옵션</span>
-              <strong>{form.options.length}</strong>
-              {/* <small>{activeOptionCount}개 활성</small> */}
-            </div>
-            <div className="admin-overview-chip">
-              <span>변경 상태</span>
-              <strong>{hasUnsavedChanges ? '변경됨' : '저장됨'}</strong>
-              {/* <small>{hasUnsavedChanges ? '저장 전 변경사항이 있습니다.' : '마지막 불러오기 기준과 동일합니다.'}</small> */}
-            </div>
-          </section>
+
+
+          <div className="admin-check-grid">
+            <label className="admin-check-field">
+              <input
+                type="checkbox"
+                checked={form.isVisible}
+                onChange={(event) => setForm((current) => ({ ...current, isVisible: event.target.checked }))}
+              />
+              <span>스토어 노출 여부</span>
+            </label>
+            <label className="admin-check-field">
+              <input
+                type="checkbox"
+                checked={form.isSoldOut}
+                onChange={(event) => setForm((current) => ({ ...current, isSoldOut: event.target.checked }))}
+              />
+              <span>품절 처리 여부</span>
+            </label>
+            <label className="admin-check-field">
+              <input
+                type="checkbox"
+                checked={form.consultationRequired}
+                onChange={(event) => setForm((current) => ({ ...current, consultationRequired: event.target.checked }))}
+              />
+              <span>상담 필요 여부</span>
+            </label>
+          </div>
 
           <section className="admin-form-section">
             <div className="admin-field-grid">
@@ -1077,7 +1096,7 @@ export function AdminProductEditorPage() {
                 <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
               </label>
 
-              <label className="field">
+              <label className="field admin-field-span-2">
                 <span>영문명</span>
                 <input
                   value={form.slug}
@@ -1085,6 +1104,8 @@ export function AdminProductEditorPage() {
                   placeholder="moru-tulip-bouquet"
                 />
               </label>
+
+              <hr className="admin-field-divider" />
 
               <label className="field">
                 <span>기본 가격</span>
@@ -1108,6 +1129,34 @@ export function AdminProductEditorPage() {
                 />
               </label>
 
+              <section className="admin-price-preview-grid" aria-label="할인 미리보기">
+                <div className="admin-price-preview-card">
+                  <span>설정된 할인 적용가</span>
+                  <strong>{Number.isFinite(previewBasePrice) ? formatCurrency(previewDiscountedPrice) : '-'}</strong>
+                  <small>{form.basePrice ? `기본가 ${formatCurrency(Number(form.basePrice))}` : '기본가 미입력'}</small>
+                </div>
+
+                <div className="admin-price-preview-card">
+                  <span>할인 정보</span>
+                  <strong>{hasDiscount ? `${formatDiscountRate(previewDiscountRate)} 할인` : '할인 없음'}</strong>
+                  <small>{hasDiscount ? '현재 입력값 기준' : '할인율 0% 상태'}</small>
+                </div>
+
+                <div className="admin-price-preview-card">
+                  <span>정가</span>
+                  <strong>{form.basePrice ? formatCurrency(Number(form.basePrice)) : '-'}</strong>
+                  <small>원가 기준 금액</small>
+                </div>
+
+                <div className="admin-price-preview-card">
+                  <span>원가 대비</span>
+                  <strong>{hasDiscount ? `-${formatCurrency(Math.max(0, previewBasePrice - previewDiscountedPrice))}` : '-'}</strong>
+                  <small>{hasDiscount ? '할인 금액' : '할인 없음'}</small>
+                </div>
+              </section>
+
+              <hr className="admin-field-divider" />
+
               <label className="field admin-field-span-2">
                 <span>짧은 소개</span>
                 <input
@@ -1121,54 +1170,9 @@ export function AdminProductEditorPage() {
                 <span>상세 설명</span>
                 <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
               </label>
-
-              <label className="field">
-                <span>설정된 할인 적용가</span>
-                <strong>{Number.isFinite(previewBasePrice) ? formatCurrency(previewDiscountedPrice) : '-'}</strong>
-              </label>
-
-              <label className="field">
-                <span>할인 정보</span>
-                <strong>{hasDiscount ? `${formatDiscountRate(previewDiscountRate)} 할인` : '할인 없음'}</strong>
-              </label>
-
-              <label className="field">
-                <span>정가</span>
-                <strong>{form.basePrice ? formatCurrency(Number(form.basePrice)) : '-'}</strong>
-              </label>
-
-              <label className="field">
-                <span>원가 대비</span>
-                <strong>{hasDiscount ? `-${formatCurrency(Math.max(0, previewBasePrice - previewDiscountedPrice))}` : '-'}</strong>
-              </label>
             </div>
 
-            <div className="admin-check-grid">
-              <label className="admin-check-field">
-                <input
-                  type="checkbox"
-                  checked={form.isVisible}
-                  onChange={(event) => setForm((current) => ({ ...current, isVisible: event.target.checked }))}
-                />
-                <span>스토어 노출</span>
-              </label>
-              <label className="admin-check-field">
-                <input
-                  type="checkbox"
-                  checked={form.isSoldOut}
-                  onChange={(event) => setForm((current) => ({ ...current, isSoldOut: event.target.checked }))}
-                />
-                <span>품절 처리</span>
-              </label>
-              <label className="admin-check-field">
-                <input
-                  type="checkbox"
-                  checked={form.consultationRequired}
-                  onChange={(event) => setForm((current) => ({ ...current, consultationRequired: event.target.checked }))}
-                />
-                <span>상담 필요</span>
-              </label>
-            </div>
+
           </section>
           <br />
 
@@ -1542,163 +1546,180 @@ export function AdminProductEditorPage() {
                 <p className="section-copy">옵션이 필요할 때만 추가하고, 기본은 모두 접힌 상태로 유지됩니다.</p>
               </section>
             ) : (
-              <div className="admin-repeatable-grid">
-                {form.options.map((option, index) => {
-                  const isExpanded = expandedOptionKey === option.key;
-                  const extraPrice = Number(option.extraPrice || '0');
-                  const extraPriceLabel = Number.isFinite(extraPrice)
-                    ? extraPrice === 0
-                      ? '추가 금액 x'
-                      : `${extraPrice > 0 ? '+' : ''}${formatCurrency(extraPrice)}`
-                    : '금액 확인 필요';
+              <div className="admin-option-group-list">
+                {optionGroupsForDisplay.map((group) => (
+                  <section className="admin-option-group" key={group.label}>
+                    <div className="admin-option-group-divider" aria-hidden="true">
+                      <hr />
+                      <span>{group.label}</span>
+                      <hr />
+                    </div>
+                    <div className="admin-repeatable-grid">
+                      {group.items.map((option) => {
+                        const optionIndex = form.options.findIndex((candidate) => candidate.key === option.key);
+                        const isExpanded = expandedOptionKey === option.key;
+                        const extraPrice = Number(option.extraPrice || '0');
+                        const extraPriceLabel = Number.isFinite(extraPrice)
+                          ? extraPrice === 0
+                            ? '추가 금액 x'
+                            : `${extraPrice > 0 ? '+' : ''}${formatCurrency(extraPrice)}`
+                          : '금액 확인 필요';
 
-                  return (
-                    <article
-                      className={`admin-list-card admin-editor-list-card ${isExpanded ? 'is-active' : ''} ${draggingOptionKey === option.key ? 'is-dragging' : ''
-                        } ${dragOverOptionKey === option.key ? 'is-drag-over' : ''}`}
-                      key={option.key}
-                      draggable
-                      onDragStart={(event) => onOptionDragStart(event, option.key)}
-                      onDragEnd={onOptionDragEnd}
-                      onDragOver={(event) => onOptionDragOver(event, option.key)}
-                      onDrop={(event) => onOptionDrop(event, option.key)}
-                    >
-                      <div className="admin-item-card-shell">
-                        <button
-                          className="admin-item-toggle"
-                          type="button"
-                          aria-expanded={isExpanded}
-                          aria-controls={`admin-option-panel-${option.key}`}
-                          onClick={() => {
-                            setIsAddingOption(false);
-                            setExpandedOptionKey((current) => (current === option.key ? null : option.key));
-                          }}
-                        >
-                          <div className="admin-item-copy">
-                            <div className="admin-list-card-head">
-                              <div>
-                                <strong>
-                                  {index + 1}. {option.optionGroupName.trim() || '옵션 그룹 미입력'} |   {option.optionValue.trim() || '옵션 값 미입력'}
-                                </strong>
-                                {/* <p>{option.optionValue.trim() || '옵션 값 미입력'}</p> */}
+                        return (
+                          <article
+                            className={`admin-list-card admin-editor-list-card ${isExpanded ? 'is-active' : ''} ${draggingOptionKey === option.key ? 'is-dragging' : ''
+                              } ${dragOverOptionKey === option.key ? 'is-drag-over' : ''}`}
+                            key={option.key}
+                            draggable
+                            onDragStart={(event) => onOptionDragStart(event, option.key)}
+                            onDragEnd={onOptionDragEnd}
+                            onDragOver={(event) => onOptionDragOver(event, option.key)}
+                            onDrop={(event) => onOptionDrop(event, option.key)}
+                          >
+                            <div className="admin-item-card-shell">
+                              <button
+                                className="admin-item-toggle"
+                                type="button"
+                                aria-expanded={isExpanded}
+                                aria-controls={`admin-option-panel-${option.key}`}
+                                onClick={() => {
+                                  setIsAddingOption(false);
+                                  setExpandedOptionKey((current) => (current === option.key ? null : option.key));
+                                }}
+                              >
+                                <div className="admin-item-copy">
+                                  <div className="admin-list-card-head">
+                                    <div>
+                                      <strong>
+                                        {optionIndex + 1}. {option.optionGroupName.trim() || '옵션 그룹 미입력'} |{' '}
+                                        {option.optionValue.trim() || '옵션 값 미입력'}
+                                      </strong>
+                                    </div>
+                                  </div>
+                                  <div className="admin-product-summary" style={{ marginTop: '5px' }}>
+                                    <span
+                                      className={`status-pill ${option.isActive ? '' : 'is-muted'}`}
+                                      style={{ marginRight: '10px' }}
+                                    >
+                                      {option.isActive ? '활성' : '비활성'}
+                                    </span>
+                                    <span style={{ marginTop: '6px', marginRight: '10px' }}>
+                                      {option.selectionType === 'SINGLE' ? '단일 선택' : '수량 선택'}
+                                    </span>
+                                    <span style={{ marginTop: '6px' }}>{extraPriceLabel}</span>
+                                  </div>
+                                </div>
+                              </button>
+
+                              <div className="admin-item-actions">
+                                <button
+                                  className="button button-secondary"
+                                  type="button"
+                                  onClick={() => {
+                                    setIsAddingOption(false);
+                                    setExpandedOptionKey((current) => (current === option.key ? null : option.key));
+                                  }}
+                                >
+                                  {isExpanded ? '접기' : '편집'}
+                                </button>
+                                <button className="button button-ghost" type="button" onClick={() => removeOption(option.key)}>
+                                  삭제
+                                </button>
                               </div>
                             </div>
-                            <div className="admin-product-summary" style={{ marginTop: "5px" }}>
-                              <span className={`status-pill ${option.isActive ? '' : 'is-muted'}`} style={{ marginRight: "10px" }}>{option.isActive ? '활성' : '비활성'}</span>
-                              <span style={{ marginTop: "6px", marginRight: "10px" }}>{option.selectionType === 'SINGLE' ? '단일 선택' : '수량 선택'}</span>
-                              <span style={{ marginTop: "6px" }}>{extraPriceLabel}</span>
-                              {/* <span>정렬 {option.sortOrder || '-'}</span>
-                              <span>드래그로 순서 변경</span> */}
-                            </div>
-                          </div>
-                        </button>
 
-                        <div className="admin-item-actions">
-                          <button
-                            className="button button-secondary"
-                            type="button"
-                            onClick={() => {
-                              setIsAddingOption(false);
-                              setExpandedOptionKey((current) => (current === option.key ? null : option.key));
-                            }}
-                          >
-                            {isExpanded ? '접기' : '편집'}
-                          </button>
-                          <button className="button button-ghost" type="button" onClick={() => removeOption(option.key)}>
-                            삭제
-                          </button>
-                        </div>
-                      </div>
+                            {isExpanded ? (
+                              <div className="admin-item-editor" id={`admin-option-panel-${option.key}`}>
+                                <div className="admin-field-grid">
+                                  <label className="field">
+                                    <span>옵션 그룹</span>
+                                    <input
+                                      value={option.optionGroupName}
+                                      onChange={(event) => replaceOption(option.key, { optionGroupName: event.target.value })}
+                                      placeholder="색상"
+                                    />
+                                  </label>
 
-                      {isExpanded ? (
-                        <div className="admin-item-editor" id={`admin-option-panel-${option.key}`}>
-                          <div className="admin-field-grid">
-                            <label className="field">
-                              <span>옵션 그룹</span>
-                              <input
-                                value={option.optionGroupName}
-                                onChange={(event) => replaceOption(option.key, { optionGroupName: event.target.value })}
-                                placeholder="색상"
-                              />
-                            </label>
+                                  <label className="field">
+                                    <span>옵션 값</span>
+                                    <input
+                                      value={option.optionValue}
+                                      onChange={(event) => replaceOption(option.key, { optionValue: event.target.value })}
+                                      placeholder="핑크"
+                                    />
+                                  </label>
 
-                            <label className="field">
-                              <span>옵션 값</span>
-                              <input
-                                value={option.optionValue}
-                                onChange={(event) => replaceOption(option.key, { optionValue: event.target.value })}
-                                placeholder="핑크"
-                              />
-                            </label>
+                                  <label className="field">
+                                    <span>선택 방식</span>
+                                    <select
+                                      value={option.selectionType}
+                                      onChange={(event) =>
+                                        replaceOption(option.key, {
+                                          selectionType: event.target.value as 'SINGLE' | 'QUANTITY',
+                                        })
+                                      }
+                                    >
+                                      <option value="SINGLE">하나만 선택</option>
+                                      <option value="QUANTITY">수량 선택</option>
+                                    </select>
+                                  </label>
 
-                            <label className="field">
-                              <span>선택 방식</span>
-                              <select
-                                value={option.selectionType}
-                                onChange={(event) =>
-                                  replaceOption(option.key, {
-                                    selectionType: event.target.value as 'SINGLE' | 'QUANTITY',
-                                  })
-                                }
-                              >
-                                <option value="SINGLE">하나만 선택</option>
-                                <option value="QUANTITY">수량 선택</option>
-                              </select>
-                            </label>
+                                  <label className="field">
+                                    <span>추가 금액</span>
+                                    <input
+                                      type="number"
+                                      value={option.extraPrice}
+                                      onChange={(event) => replaceOption(option.key, { extraPrice: event.target.value })}
+                                    />
+                                  </label>
 
-                            <label className="field">
-                              <span>추가 금액</span>
-                              <input
-                                type="number"
-                                value={option.extraPrice}
-                                onChange={(event) => replaceOption(option.key, { extraPrice: event.target.value })}
-                              />
-                            </label>
+                                  <label className="field">
+                                    <span>최대 수량</span>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      value={option.maxQuantity}
+                                      onChange={(event) => replaceOption(option.key, { maxQuantity: event.target.value })}
+                                      placeholder={option.selectionType === 'QUANTITY' ? '선택 가능 최대 수량' : '비워두기'}
+                                    />
+                                  </label>
 
-                            <label className="field">
-                              <span>최대 수량</span>
-                              <input
-                                type="number"
-                                min={1}
-                                value={option.maxQuantity}
-                                onChange={(event) => replaceOption(option.key, { maxQuantity: event.target.value })}
-                                placeholder={option.selectionType === 'QUANTITY' ? '선택 가능 최대 수량' : '비워두기'}
-                              />
-                            </label>
+                                  <label className="field">
+                                    <span>정렬 순서</span>
+                                    <input
+                                      type="number"
+                                      value={option.sortOrder}
+                                      onChange={(event) => replaceOption(option.key, { sortOrder: event.target.value })}
+                                    />
+                                  </label>
+                                </div>
 
-                            <label className="field">
-                              <span>정렬 순서</span>
-                              <input
-                                type="number"
-                                value={option.sortOrder}
-                                onChange={(event) => replaceOption(option.key, { sortOrder: event.target.value })}
-                              />
-                            </label>
-                          </div>
-
-                          <div className="inline-actions">
-                            <label className="admin-check-field admin-check-field-inline">
-                              <input
-                                type="checkbox"
-                                checked={option.isRequired}
-                                onChange={(event) => replaceOption(option.key, { isRequired: event.target.checked })}
-                              />
-                              <span>필수 그룹</span>
-                            </label>
-                            <label className="admin-check-field admin-check-field-inline">
-                              <input
-                                type="checkbox"
-                                checked={option.isActive}
-                                onChange={(event) => replaceOption(option.key, { isActive: event.target.checked })}
-                              />
-                              <span>옵션 활성화</span>
-                            </label>
-                          </div>
-                        </div>
-                      ) : null}
-                    </article>
-                  );
-                })}
+                                <div className="inline-actions">
+                                  <label className="admin-check-field admin-check-field-inline">
+                                    <input
+                                      type="checkbox"
+                                      checked={option.isRequired}
+                                      onChange={(event) => replaceOption(option.key, { isRequired: event.target.checked })}
+                                    />
+                                    <span>필수 그룹</span>
+                                  </label>
+                                  <label className="admin-check-field admin-check-field-inline">
+                                    <input
+                                      type="checkbox"
+                                      checked={option.isActive}
+                                      onChange={(event) => replaceOption(option.key, { isActive: event.target.checked })}
+                                    />
+                                    <span>옵션 활성화</span>
+                                  </label>
+                                </div>
+                              </div>
+                            ) : null}
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
               </div>
             )}
           </section>
