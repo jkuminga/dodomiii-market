@@ -3,8 +3,10 @@ import 'reflect-metadata';
 import { BadRequestException, ValidationError, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import session from 'express-session';
+import { RedisStore } from 'connect-redis';
+import session, { type SessionOptions } from 'express-session';
 import pinoHttp from 'pino-http';
+import { createClient } from 'redis';
 
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -26,24 +28,50 @@ async function bootstrap() {
   const sessionSecret = config.get<string>('SESSION_SECRET', 'dev-session-secret');
   const sessionCookieSecure = config.get<string>('SESSION_COOKIE_SECURE', 'false') === 'true';
   const sessionCookieMaxAgeMs = Number(config.get<string>('SESSION_COOKIE_MAX_AGE_MS', '604800000'));
+  const sessionRedisEnabled = config.get<boolean>('SESSION_REDIS_ENABLED', false);
 
   if (sessionCookieSecure) {
     app.getHttpAdapter().getInstance().set('trust proxy', 1);
   }
 
+  const sessionOptions: SessionOptions = {
+    name: sessionName,
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: sessionCookieSecure,
+      sameSite: 'lax',
+      maxAge: sessionCookieMaxAgeMs,
+    },
+  };
+
+  if (sessionRedisEnabled) {
+    const redisUrl = config.get<string>('REDIS_URL', '').trim();
+    if (!redisUrl) {
+      throw new Error('SESSION_REDIS_ENABLED=true requires REDIS_URL.');
+    }
+
+    const redisClient = createClient({
+      url: redisUrl,
+    });
+    redisClient.on('error', (error) => {
+      console.error('Redis session client error', error);
+    });
+    await redisClient.connect();
+    app.enableShutdownHooks();
+
+    const redisKeyPrefix = config.get<string>('REDIS_KEY_PREFIX', 'dodomi:');
+    sessionOptions.store = new RedisStore({
+      client: redisClient,
+      prefix: `${redisKeyPrefix}${sessionName}:`,
+      ttl: Math.ceil(sessionCookieMaxAgeMs / 1000),
+    });
+  }
+
   app.use(
-    session({
-      name: sessionName,
-      secret: sessionSecret,
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        httpOnly: true,
-        secure: sessionCookieSecure,
-        sameSite: 'lax',
-        maxAge: sessionCookieMaxAgeMs,
-      },
-    }),
+    session(sessionOptions),
   );
 
   app.use(

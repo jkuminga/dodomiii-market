@@ -8,6 +8,7 @@ import {
   UseGuards,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 
 import { LoginDto } from './dto/login.dto';
@@ -16,7 +17,10 @@ import { AdminSessionGuard } from './guards/admin-session.guard';
 
 @Controller('admin/auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post('login')
   async login(@Body() dto: LoginDto, @Req() request: Request) {
@@ -66,7 +70,7 @@ export class AuthController {
       });
     });
 
-    response.clearCookie('admin_session');
+    response.clearCookie(this.configService.get<string>('SESSION_NAME', 'admin_session'));
 
     return {
       success: true,

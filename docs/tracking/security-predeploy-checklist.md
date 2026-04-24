@@ -13,7 +13,7 @@
 - [x] 공개 주문 조회 API에서 주문번호만으로 개인정보가 조회되지 않는다.
 - [x] 입금 확인 요청 API가 주문번호만으로 상태를 바꾸지 못한다.
 - [ ] 관리자 로그인에 rate limit 또는 실패 제한이 있다.
-- [ ] 프로덕션 세션이 MemoryStore가 아닌 영속 store를 사용한다.
+- [x] 프로덕션 세션이 MemoryStore가 아닌 영속 store를 사용한다.
 - [ ] 프로덕션 필수 환경변수가 누락되면 서버가 시작되지 않는다.
 - [ ] 백엔드 의존성 취약점 audit 결과가 해결되어 있다.
 
@@ -81,11 +81,11 @@
 
 ### 4. 프로덕션 세션 store 적용
 
-- [ ] `express-session` 기본 MemoryStore를 제거한다.
-- [ ] Redis, Postgres, Supabase 호환 DB store 중 하나를 선택한다.
-- [ ] 세션 TTL이 `SESSION_COOKIE_MAX_AGE_MS`와 일관되게 만료되는지 확인한다.
+- [x] `express-session` 기본 MemoryStore를 제거한다.
+- [x] Redis, Postgres, Supabase 호환 DB store 중 하나를 선택한다.
+- [x] 세션 TTL이 `SESSION_COOKIE_MAX_AGE_MS`와 일관되게 만료되는지 확인한다.
 - [ ] 서버 재시작 후 세션 동작 방식을 명확히 정한다.
-- [ ] 스케일아웃 환경에서 여러 인스턴스가 같은 세션 store를 사용하도록 한다.
+- [x] 스케일아웃 환경에서 여러 인스턴스가 같은 세션 store를 사용하도록 한다.
 
 위험 설명:
 

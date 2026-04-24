@@ -15,6 +15,13 @@ export default () => ({
   SESSION_SECRET: process.env.SESSION_SECRET ?? 'dev-session-secret',
   SESSION_COOKIE_SECURE: process.env.SESSION_COOKIE_SECURE ?? 'false',
   SESSION_COOKIE_MAX_AGE_MS: process.env.SESSION_COOKIE_MAX_AGE_MS ?? '604800000',
+  REDIS_URL: process.env.REDIS_URL ?? '',
+  REDIS_KEY_PREFIX: process.env.REDIS_KEY_PREFIX ?? 'dodomi:',
+  SESSION_REDIS_ENABLED: parseBoolean(process.env.SESSION_REDIS_ENABLED, false),
+  ADMIN_LOGIN_RATE_LIMIT_REDIS_ENABLED: parseBoolean(
+    process.env.ADMIN_LOGIN_RATE_LIMIT_REDIS_ENABLED,
+    false,
+  ),
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME ?? '',
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY ?? '',
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET ?? '',
