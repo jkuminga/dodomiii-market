@@ -8,6 +8,10 @@ import { Prisma, ProductImageType } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StoreCacheService } from '../store/store-cache.service';
+import {
+  normalizeProductImages,
+  normalizeProductOptionGroups,
+} from './domain/admin-product-write';
 import type {
   AdminCategoryResponse,
   AdminHomeHeroResponse,
@@ -661,11 +665,11 @@ export class AdminService {
 
         if (dto.images?.length) {
           await tx.productImage.createMany({
-            data: dto.images.map((image, index) => ({
+            data: normalizeProductImages(dto.images).map((image) => ({
               productId: product.id,
               imageType: image.imageType,
               imageUrl: image.imageUrl,
-              sortOrder: image.sortOrder ?? index,
+              sortOrder: image.sortOrder,
             })),
           });
         }
@@ -869,11 +873,11 @@ export class AdminService {
 
           if (dto.images.length > 0) {
             await tx.productImage.createMany({
-              data: dto.images.map((image, index) => ({
+              data: normalizeProductImages(dto.images).map((image) => ({
                 productId: existingProduct.id,
                 imageType: image.imageType,
                 imageUrl: image.imageUrl,
-                sortOrder: image.sortOrder ?? index,
+                sortOrder: image.sortOrder,
               })),
             });
           }
@@ -1153,15 +1157,15 @@ export class AdminService {
       },
     });
 
-    for (const [groupIndex, group] of optionGroups.entries()) {
+    for (const group of normalizeProductOptionGroups(optionGroups)) {
       const createdGroup = await tx.productOptionGroup.create({
         data: {
           productId,
           name: group.name,
           selectionType: group.selectionType,
-          isRequired: group.isRequired ?? false,
-          isActive: group.isActive ?? true,
-          sortOrder: group.sortOrder ?? groupIndex,
+          isRequired: group.isRequired,
+          isActive: group.isActive,
+          sortOrder: group.sortOrder,
         },
         select: {
           id: true,
@@ -1170,13 +1174,13 @@ export class AdminService {
 
       if (group.options.length > 0) {
         await tx.productOption.createMany({
-          data: group.options.map((option, optionIndex) => ({
+          data: group.options.map((option) => ({
             optionGroupId: createdGroup.id,
             name: option.name,
-            extraPrice: option.extraPrice ?? 0,
-            maxQuantity: option.maxQuantity ?? null,
-            isActive: option.isActive ?? true,
-            sortOrder: option.sortOrder ?? optionIndex,
+            extraPrice: option.extraPrice,
+            maxQuantity: option.maxQuantity,
+            isActive: option.isActive,
+            sortOrder: option.sortOrder,
           })),
         });
       }

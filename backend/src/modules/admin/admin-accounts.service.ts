@@ -8,6 +8,10 @@ import { AdminRole, Prisma } from '@prisma/client';
 import { hash } from 'bcryptjs';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  assertPrimaryDepositAccountInput,
+  normalizeOptional,
+} from './domain/admin-account-rules';
 import type { AdminAccountResponse } from './admin.types';
 import { CreateAdminAccountDto } from './dto/create-admin-account.dto';
 import { UpdateAdminAccountDto } from './dto/update-admin-account.dto';
@@ -29,19 +33,6 @@ const adminAccountSelect = Prisma.validator<Prisma.AdminSelect>()({
 });
 
 type AdminAccountRecord = Prisma.AdminGetPayload<{ select: typeof adminAccountSelect }>;
-
-function normalizeOptional(value: string | null | undefined): string | null | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (value === null) {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
-}
 
 @Injectable()
 export class AdminAccountsService {
@@ -85,7 +76,7 @@ export class AdminAccountsService {
       });
     }
 
-    this.assertPrimaryDepositAccountInput({
+    assertPrimaryDepositAccountInput({
       isPrimaryDepositAccount,
       depositBankName: depositBankName ?? null,
       depositAccountHolder: depositAccountHolder ?? null,
@@ -194,7 +185,7 @@ export class AdminAccountsService {
           nextIsActive,
         });
 
-        this.assertPrimaryDepositAccountInput({
+        assertPrimaryDepositAccountInput({
           isPrimaryDepositAccount: nextIsPrimaryDepositAccount,
           depositBankName: nextDepositBankName,
           depositAccountHolder: nextDepositAccountHolder,
@@ -331,24 +322,6 @@ export class AdminAccountsService {
           message: '활성화된 SUPER 관리자 계정은 최소 1개 이상 유지되어야 합니다.',
         });
       }
-    }
-  }
-
-  private assertPrimaryDepositAccountInput(input: {
-    isPrimaryDepositAccount: boolean;
-    depositBankName: string | null;
-    depositAccountHolder: string | null;
-    depositAccountNumber: string | null;
-  }) {
-    if (!input.isPrimaryDepositAccount) {
-      return;
-    }
-
-    if (!input.depositBankName || !input.depositAccountHolder || !input.depositAccountNumber) {
-      throw new BadRequestException({
-        code: 'PRIMARY_DEPOSIT_ACCOUNT_INCOMPLETE',
-        message: '대표 입금계좌로 지정하려면 은행명, 예금주, 계좌번호를 모두 입력해야 합니다.',
-      });
     }
   }
 

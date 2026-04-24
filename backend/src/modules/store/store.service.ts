@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
-import { DepositStatus, Prisma, ShipmentStatus } from '@prisma/client';
+import { DepositStatus, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OrderNotificationsService } from '../notifications/order-notifications.service';
@@ -27,8 +27,26 @@ import {
   StoreOrderContact,
   StoreOrderDetailResponse,
   StoreOrderTrackingResponse,
-  StoreTrackingEvent,
 } from './store.types';
+import {
+  assertCustomOrderLinkAvailable,
+  buildCustomCheckoutUrl,
+  getCustomOrderLinkAvailability,
+  parseCustomOrderLinkExpiresAt,
+} from './domain/custom-order-link';
+import {
+  formatOrderDate,
+  getDepositDeadlineAt,
+  toIsoString,
+} from './domain/order-deadline';
+import { buildDepositRequestReason, getDepositRequestDecision } from './domain/deposit-request';
+import {
+  buildCustomOrderPricing,
+  buildOrderPricingFromItems,
+  calculateDiscountedPrice,
+  type OrderPricingSnapshot,
+} from './domain/order-pricing';
+import { buildTrackingEvents, getShipmentSnapshot } from './domain/order-tracking';
 import { normalizeOrderContactAddress } from './utils/order-contact.util';
 import { StoreCacheService } from './store-cache.service';
 
@@ -66,12 +84,6 @@ type DepositAccountInfo = {
   bankName: string;
   accountHolder: string;
   accountNumber: string;
-};
-
-type OrderPricingSnapshot = {
-  totalProductPrice: number;
-  shippingFee: number;
-  finalTotalPrice: number;
 };
 
 type StoreCreatedOrderItem = {
@@ -144,10 +156,7 @@ type AdminCustomOrderLinkView = {
 const ORDER_NUMBER_PREFIX = 'DM';
 const ORDER_NUMBER_RETRY_LIMIT = 3;
 const CUSTOM_ORDER_LINK_RETRY_LIMIT = 5;
-const KST_OFFSET_HOURS = 9;
 const ORDER_NUMBER_SEQUENCE_WIDTH = 4;
-const TRACKING_BASE_URL = 'https://tracker.example.com';
-const DEPOSIT_REQUEST_REASON = '입금 요청 접수';
 const CUSTOM_ORDER_PRODUCT_NAME = '커스텀 주문';
 const CUSTOM_ORDER_TOKEN_PREFIX = 'cus_';
 const CUSTOM_ORDER_TOKEN_BYTES = 24;
@@ -289,11 +298,6 @@ const customOrderLinkArgs = Prisma.validator<Prisma.CustomOrderLinkDefaultArgs>(
 });
 
 type CustomOrderLinkRecord = Prisma.CustomOrderLinkGetPayload<typeof customOrderLinkArgs>;
-
-function calculateDiscountedPrice(basePrice: number, discountRate: number): number {
-  const normalizedRate = Math.max(0, Math.min(100, discountRate));
-  return Math.max(0, Math.floor((basePrice * (100 - normalizedRate)) / 100));
-}
 
 @Injectable()
 export class StoreService {
@@ -743,7 +747,7 @@ export class StoreService {
             const now = new Date();
             const orderNumber = await this.generateOrderNumber(tx, now);
             const resolvedItems = await this.resolveOrderItems(tx, dto.items);
-            const pricing = this.buildOrderPricingFromItems(resolvedItems);
+            const pricing = buildOrderPricingFromItems(resolvedItems, this.getShippingFee());
 
             return this.createOrderRecord(tx, {
               orderNumber,
@@ -784,8 +788,8 @@ export class StoreService {
     adminId: number,
     dto: CustomOrderLinkCreateInput,
   ): Promise<AdminCustomOrderLinkView> {
-    const expiresAt = this.parseCustomOrderLinkExpiresAt(dto.expiresAt);
-    const pricing = this.buildCustomOrderPricing(dto.finalTotalPrice, dto.shippingFee);
+    const expiresAt = parseCustomOrderLinkExpiresAt(dto.expiresAt);
+    const pricing = buildCustomOrderPricing(dto.finalTotalPrice, dto.shippingFee);
 
     for (let attempt = 1; attempt <= CUSTOM_ORDER_LINK_RETRY_LIMIT; attempt += 1) {
       try {
@@ -863,7 +867,7 @@ export class StoreService {
             const now = new Date();
             const link = await this.findCustomOrderLinkByTokenOrThrow(tx, token);
 
-            this.assertCustomOrderLinkAvailable(link, now);
+            assertCustomOrderLinkAvailable(link, now);
             await this.reserveCustomOrderLink(tx, link.id, now);
 
             const order = await this.createOrderRecord(tx, {
@@ -946,24 +950,21 @@ export class StoreService {
             this.assertOrderHasDeposit(order);
             this.assertOrderAccess(order, dto.contactPhone);
 
-            if (
-              order.deposit.depositStatus === DepositStatus.CONFIRMED ||
-              (order.deposit.depositStatus === DepositStatus.REQUESTED &&
-                order.orderStatus === 'PAYMENT_REQUESTED')
-            ) {
+            const decision = getDepositRequestDecision({
+              orderStatus: order.orderStatus,
+              depositStatus: order.deposit.depositStatus,
+            });
+
+            if (!decision.requestAccepted) {
               return {
                 orderId: Number(order.id),
                 orderNumber: order.orderNumber,
                 orderStatus: order.orderStatus,
                 depositStatus: order.deposit.depositStatus,
-                requestedAt: this.toIsoString(order.deposit.requestedAt),
-                confirmedAt: this.toIsoString(order.deposit.confirmedAt),
+                requestedAt: toIsoString(order.deposit.requestedAt),
+                confirmedAt: toIsoString(order.deposit.confirmedAt),
                 requestAccepted: false,
               };
-            }
-
-            if (order.orderStatus !== 'PENDING_PAYMENT' && order.orderStatus !== 'PAYMENT_REQUESTED') {
-              throw this.createInvalidDepositRequestStateException();
             }
 
             const now = new Date();
@@ -981,7 +982,7 @@ export class StoreService {
 
             let nextOrderStatus = order.orderStatus;
 
-            if (order.orderStatus === 'PENDING_PAYMENT') {
+            if (decision.shouldTransitionOrder) {
               assertOrderStatusTransition(order.orderStatus, 'PAYMENT_REQUESTED');
 
               await tx.order.update({
@@ -999,7 +1000,7 @@ export class StoreService {
                   orderId: order.id,
                   previousStatus: order.orderStatus,
                   newStatus: 'PAYMENT_REQUESTED',
-                  changeReason: this.buildDepositRequestReason(dto.memo),
+                  changeReason: buildDepositRequestReason(dto.memo),
                 },
               });
 
@@ -1064,7 +1065,7 @@ export class StoreService {
   ): Promise<StoreOrderTrackingResponse> {
     const order = await this.findOrderDetailByOrderNumberOrThrow(orderNumber);
     this.assertOrderAccess(order, contactPhone);
-    const shipment = this.getShipmentSnapshot(order);
+    const shipment = getShipmentSnapshot(order);
 
     return {
       orderNumber: order.orderNumber,
@@ -1075,7 +1076,7 @@ export class StoreService {
       trackingUrl: shipment.trackingUrl,
       shippedAt: shipment.shippedAt,
       deliveredAt: shipment.deliveredAt,
-      events: this.buildTrackingEvents(order),
+      events: buildTrackingEvents(order),
     };
   }
 
@@ -1263,7 +1264,7 @@ export class StoreService {
   }
 
   private async generateOrderNumber(tx: Prisma.TransactionClient, now: Date): Promise<string> {
-    const datePart = this.formatOrderDate(now);
+    const datePart = formatOrderDate(now);
     const prefix = `${ORDER_NUMBER_PREFIX}${datePart}-`;
     const latestOrder = await tx.order.findFirst({
       where: {
@@ -1286,61 +1287,10 @@ export class StoreService {
     return `${prefix}${String(lastSequence + 1).padStart(ORDER_NUMBER_SEQUENCE_WIDTH, '0')}`;
   }
 
-  private formatOrderDate(now: Date): string {
-    const kstDate = this.toKstDate(now);
-    const year = kstDate.getUTCFullYear();
-    const month = String(kstDate.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(kstDate.getUTCDate()).padStart(2, '0');
-
-    return `${year}${month}${day}`;
-  }
-
   private getDepositDeadlineAt(now: Date): Date {
-    const kstDate = this.toKstDate(now);
     const deadlineDays = Number(this.configService.get<number>('ORDER_DEPOSIT_DEADLINE_DAYS', 1));
 
-    return new Date(
-      Date.UTC(
-        kstDate.getUTCFullYear(),
-        kstDate.getUTCMonth(),
-        kstDate.getUTCDate() + deadlineDays,
-        23 - KST_OFFSET_HOURS,
-        59,
-        59,
-      ),
-    );
-  }
-
-  private toKstDate(now: Date): Date {
-    return new Date(now.getTime() + KST_OFFSET_HOURS * 60 * 60 * 1000);
-  }
-
-  private buildOrderPricingFromItems(items: ResolvedOrderItem[]): OrderPricingSnapshot {
-    const totalProductPrice = items.reduce((sum, item) => sum + item.lineTotalPrice, 0);
-    const shippingFee = this.getShippingFee();
-
-    return {
-      totalProductPrice,
-      shippingFee,
-      finalTotalPrice: totalProductPrice + shippingFee,
-    };
-  }
-
-  private buildCustomOrderPricing(finalTotalPrice: number, shippingFee: number): OrderPricingSnapshot {
-    const totalProductPrice = finalTotalPrice - shippingFee;
-
-    if (totalProductPrice < 0) {
-      throw new BadRequestException({
-        code: 'VALIDATION_ERROR',
-        message: '최종 결제 금액은 배송비보다 작을 수 없습니다.',
-      });
-    }
-
-    return {
-      totalProductPrice,
-      shippingFee,
-      finalTotalPrice,
-    };
+    return getDepositDeadlineAt(now, deadlineDays);
   }
 
   private async createOrderRecord(
@@ -1555,26 +1505,6 @@ export class StoreService {
     return target.includes('token');
   }
 
-  private parseCustomOrderLinkExpiresAt(value: string): Date {
-    const expiresAt = new Date(value);
-
-    if (Number.isNaN(expiresAt.getTime())) {
-      throw new BadRequestException({
-        code: 'VALIDATION_ERROR',
-        message: '만료 시각 형식이 올바르지 않습니다.',
-      });
-    }
-
-    if (expiresAt.getTime() <= Date.now()) {
-      throw new BadRequestException({
-        code: 'VALIDATION_ERROR',
-        message: '만료 시각은 현재 시각 이후여야 합니다.',
-      });
-    }
-
-    return expiresAt;
-  }
-
   private generateCustomOrderToken(): string {
     return `${CUSTOM_ORDER_TOKEN_PREFIX}${randomBytes(CUSTOM_ORDER_TOKEN_BYTES).toString('base64url')}`;
   }
@@ -1586,7 +1516,7 @@ export class StoreService {
   }
 
   private buildCustomCheckoutUrl(token: string): string {
-    return `${this.getCustomCheckoutBaseUrl()}/${encodeURIComponent(token)}`;
+    return buildCustomCheckoutUrl(this.getCustomCheckoutBaseUrl(), token);
   }
 
   private async findCustomOrderLinkByTokenOrThrow(
@@ -1652,7 +1582,7 @@ export class StoreService {
       throw this.createCustomOrderLinkNotFoundException();
     }
 
-    this.assertCustomOrderLinkAvailable(link, now);
+    assertCustomOrderLinkAvailable(link, now);
     throw new ConflictException({
       code: 'CUSTOM_ORDER_LINK_UNAVAILABLE',
       message: '사용할 수 없는 커스텀 주문 링크입니다.',
@@ -1661,8 +1591,7 @@ export class StoreService {
 
   private mapAdminCustomOrderLink(link: CustomOrderLinkRecord): AdminCustomOrderLinkView {
     const now = new Date();
-    const isExpired = link.expiresAt.getTime() <= now.getTime();
-    const isUsed = Boolean(link.usedOrderId);
+    const { isExpired, isUsed, isAvailable } = getCustomOrderLinkAvailability(link, now);
 
     return {
       linkId: Number(link.id),
@@ -1675,22 +1604,22 @@ export class StoreService {
       finalTotalPrice: link.finalTotalPrice,
       isActive: link.isActive,
       isExpired,
-      isAvailable: link.isActive && !isExpired && !link.deletedAt && !isUsed,
+      isAvailable,
       isUsed,
       usageCount: link.usageCount,
-      usedAt: this.toIsoString(link.usedAt),
+      usedAt: toIsoString(link.usedAt),
       usedOrderId: link.usedOrderId ? Number(link.usedOrderId) : null,
       usedOrderNumber: link.usedOrder?.orderNumber ?? null,
       expiresAt: link.expiresAt.toISOString(),
       createdAt: link.createdAt.toISOString(),
       updatedAt: link.updatedAt.toISOString(),
-      deletedAt: this.toIsoString(link.deletedAt),
+      deletedAt: toIsoString(link.deletedAt),
     };
   }
 
   private mapStoreCustomCheckout(link: CustomOrderLinkRecord): StoreCustomCheckoutResponse {
     const now = new Date();
-    const isExpired = link.expiresAt.getTime() <= now.getTime();
+    const { isExpired, isAvailable } = getCustomOrderLinkAvailability(link, now);
 
     return {
       token: link.token,
@@ -1700,31 +1629,8 @@ export class StoreService {
       finalTotalPrice: link.finalTotalPrice,
       expiresAt: link.expiresAt.toISOString(),
       isExpired,
-      isAvailable: link.isActive && !isExpired && !link.usedOrderId,
+      isAvailable,
     };
-  }
-
-  private assertCustomOrderLinkAvailable(link: CustomOrderLinkRecord, now: Date): void {
-    if (!link.isActive) {
-      throw new ConflictException({
-        code: 'CUSTOM_ORDER_LINK_INACTIVE',
-        message: '비활성화된 커스텀 주문 링크입니다.',
-      });
-    }
-
-    if (link.expiresAt.getTime() <= now.getTime()) {
-      throw new ConflictException({
-        code: 'CUSTOM_ORDER_LINK_EXPIRED',
-        message: '만료된 커스텀 주문 링크입니다.',
-      });
-    }
-
-    if (link.usedAt || link.usedOrderId) {
-      throw new ConflictException({
-        code: 'CUSTOM_ORDER_LINK_ALREADY_USED',
-        message: '이미 사용된 커스텀 주문 링크입니다.',
-      });
-    }
   }
 
   private async findOrderDetailByOrderNumberOrThrow(
@@ -1747,7 +1653,7 @@ export class StoreService {
   private mapOrderDetail(order: StoreOrderDetailRecord): StoreOrderDetailResponse {
     this.assertOrderHasRequiredRelations(order);
 
-    const shipment = this.getShipmentSnapshot(order);
+    const shipment = getShipmentSnapshot(order);
     const contact = order.contact;
     const deposit = order.deposit;
 
@@ -1785,78 +1691,15 @@ export class StoreService {
         accountNumber: deposit.accountNumber,
         expectedAmount: deposit.expectedAmount,
         depositorName: deposit.depositorName,
-        requestedAt: this.toIsoString(deposit.requestedAt),
-        confirmedAt: this.toIsoString(deposit.confirmedAt),
-        depositDeadlineAt: this.toIsoString(order.depositDeadlineAt),
+        requestedAt: toIsoString(deposit.requestedAt),
+        confirmedAt: toIsoString(deposit.confirmedAt),
+        depositDeadlineAt: toIsoString(order.depositDeadlineAt),
       },
       shipment,
-      trackingEvents: this.buildTrackingEvents(order),
+      trackingEvents: buildTrackingEvents(order),
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
     };
-  }
-
-  private getShipmentSnapshot(order: StoreOrderDetailRecord) {
-    return {
-      shipmentStatus: order.shipment?.shipmentStatus ?? ShipmentStatus.READY,
-      courierName: order.shipment?.courierName ?? null,
-      trackingNumber: order.shipment?.trackingNumber ?? null,
-      trackingUrl: this.buildTrackingUrl(order.shipment?.trackingNumber ?? null),
-      shippedAt: this.toIsoString(order.shipment?.shippedAt ?? null),
-      deliveredAt: this.toIsoString(order.shipment?.deliveredAt ?? null),
-    };
-  }
-
-  private buildTrackingEvents(order: StoreOrderDetailRecord): StoreTrackingEvent[] {
-    const events: StoreTrackingEvent[] = [
-      {
-        source: 'ORDER',
-        status: 'PENDING_PAYMENT',
-        label: '주문 접수',
-        occurredAt: order.createdAt.toISOString(),
-        description: '주문이 접수되었습니다.',
-      },
-      ...order.statusHistories.map((history) => ({
-        source: 'ORDER' as const,
-        status: history.newStatus,
-        label: this.getOrderTrackingLabel(history.newStatus),
-        occurredAt: history.createdAt.toISOString(),
-        description: history.changeReason,
-      })),
-    ];
-
-    const hasShippedEvent = order.statusHistories.some((history) => history.newStatus === 'SHIPPED');
-    const hasDeliveredEvent = order.statusHistories.some((history) => history.newStatus === 'DELIVERED');
-    const shipmentDescription = this.buildShipmentEventDescription(order.shipment);
-
-    if (order.shipment?.shippedAt && !hasShippedEvent) {
-      events.push({
-        source: 'SHIPMENT',
-        status: 'SHIPPED',
-        label: '배송 시작',
-        occurredAt: order.shipment.shippedAt.toISOString(),
-        description: shipmentDescription,
-      });
-    }
-
-    if (order.shipment?.deliveredAt && !hasDeliveredEvent) {
-      events.push({
-        source: 'SHIPMENT',
-        status: 'DELIVERED',
-        label: '배송 완료',
-        occurredAt: order.shipment.deliveredAt.toISOString(),
-        description: shipmentDescription,
-      });
-    }
-
-    return events.sort((left, right) => {
-      const timeDiff = new Date(left.occurredAt).getTime() - new Date(right.occurredAt).getTime();
-      if (timeDiff !== 0) {
-        return timeDiff;
-      }
-
-      return left.source.localeCompare(right.source);
-    });
   }
 
   private normalizeNoticeContent(content: Prisma.JsonValue): { version: number; blocks: StoreNoticeContentBlock[] } {
@@ -1897,63 +1740,6 @@ export class StoreService {
   private extractNoticeThumbnail(blocks: StoreNoticeContentBlock[]): string | null {
     const imageBlock = blocks.find((block) => block.type === 'image');
     return imageBlock?.imageUrl ?? null;
-  }
-
-  private buildTrackingUrl(trackingNumber: string | null): string | null {
-    if (!trackingNumber) {
-      return null;
-    }
-
-    return `${TRACKING_BASE_URL}/${encodeURIComponent(trackingNumber)}`;
-  }
-
-  private buildShipmentEventDescription(
-    shipment: StoreOrderDetailRecord['shipment'],
-  ): string | null {
-    if (!shipment) {
-      return null;
-    }
-
-    const parts = [shipment.courierName, shipment.trackingNumber].filter(
-      (value): value is string => Boolean(value),
-    );
-
-    return parts.length > 0 ? parts.join(' / ') : null;
-  }
-
-  private getOrderTrackingLabel(status: StoreOrderDetailRecord['orderStatus']): string {
-    switch (status) {
-      case 'PENDING_PAYMENT':
-        return '주문 접수';
-      case 'PAYMENT_REQUESTED':
-        return '입금 요청 확인 중';
-      case 'PAYMENT_CONFIRMED':
-        return '입금 확인 완료';
-      case 'PREPARING':
-        return '상품 준비 중';
-      case 'SHIPPED':
-        return '배송 중';
-      case 'DELIVERED':
-        return '배송 완료';
-      case 'CANCELLED':
-        return '주문 취소';
-      case 'EXPIRED':
-        return '입금 기한 만료';
-      default:
-        return status;
-    }
-  }
-
-  private buildDepositRequestReason(memo?: string): string {
-    if (!memo) {
-      return DEPOSIT_REQUEST_REASON;
-    }
-
-    return `${DEPOSIT_REQUEST_REASON}: ${memo}`;
-  }
-
-  private toIsoString(value: Date | null | undefined): string | null {
-    return value ? value.toISOString() : null;
   }
 
   private assertOrderHasRequiredRelations(
