@@ -125,20 +125,32 @@
 
 ### 5. 프로덕션 환경변수 fail-fast
 
-- [ ] `NODE_ENV=production`일 때 필수 env 검증을 추가한다.
-- [ ] `SESSION_SECRET`이 기본값이거나 너무 짧으면 서버 시작을 막는다.
-- [ ] `SESSION_COOKIE_SECURE=true`가 아니면 서버 시작을 막는다.
-- [ ] `CORS_ORIGIN`이 localhost이거나 비어 있으면 서버 시작을 막는다.
-- [ ] `DATABASE_URL`, Cloudinary, 알림 관련 필수값 정책을 정리한다.
-- [ ] 프론트 `VITE_API_BASE_URL`, `VITE_APP_URL`을 실제 배포 도메인으로 설정한다.
+- [x] `NODE_ENV=production`일 때 필수 env 검증을 추가한다.
+- [x] `SESSION_SECRET`이 기본값이거나 너무 짧으면 서버 시작을 막는다.
+- [x] `SESSION_COOKIE_SECURE=true`가 아니면 서버 시작을 막는다.
+- [x] `CORS_ORIGIN`이 localhost이거나 비어 있으면 서버 시작을 막는다.
+- [x] `DATABASE_URL`, Cloudinary, 알림 관련 필수값 정책을 정리한다.
+- [x] 프론트 `VITE_API_BASE_URL`, `VITE_APP_URL`을 실제 배포 도메인으로 설정하도록 `.env.example`에 명시한다.
 
 위험 설명:
 
 현재 설정은 개발 기본값을 많이 가진다. 배포 환경에서 env 하나가 빠져도 서버가 개발 설정으로 뜰 수 있다. 특히 세션 secret, secure cookie, CORS origin은 프로덕션에서 강제해야 한다.
 
+현재 정책:
+
+- `NODE_ENV=production`일 때 `DATABASE_URL`, `SESSION_SECRET`, `CORS_ORIGIN`, `REDIS_URL`, `STORE_WEB_BASE_URL`, `ADMIN_WEB_BASE_URL`, Cloudinary 값을 필수로 검사한다.
+- 프로덕션에서는 `SESSION_COOKIE_SECURE=true`, `SESSION_REDIS_ENABLED=true`, `ADMIN_LOGIN_RATE_LIMIT_REDIS_ENABLED=true`를 강제한다.
+- `CORS_ORIGIN`, `STORE_WEB_BASE_URL`, `ADMIN_WEB_BASE_URL`은 localhost를 허용하지 않는다.
+- SMS 알림은 사용하므로 `NOTIFICATIONS_ENABLED=true`가 기본이다.
+- SMTP 이메일은 현재 사용하지 않으므로 SMTP 값은 비워둘 수 있다.
+- 알림이 켜져 있으면 `SOLAPI_*` 자격 증명 또는 SMTP 자격 증명 중 하나를 필수로 검사한다. 현재 운영 기준은 `SOLAPI_*`를 설정하는 것이다.
+- `NOTIFICATIONS_DRY_RUN=true`이면 실제 발송 자격 증명 없이도 허용한다.
+- 프론트 배포 후 `CORS_ORIGIN`에는 브라우저가 접속하는 프론트 도메인을 넣는다. 예: `https://dodomi.example`
+
 관련 코드:
 
 - `backend/src/common/config/env.config.ts`
+- `backend/src/common/config/env.validation.ts`
 - `backend/src/main.ts`
 - `backend/.env.example`
 - `frontend/.env.example`
