@@ -50,6 +50,7 @@ export function DepositRequestCompletePage() {
   const locationState = location.state as DepositRequestCompleteLocationState | null;
   const orderSummaryFromState = locationState?.orderSummary ?? null;
   const orderNumber = orderNumberParam ? decodeURIComponent(orderNumberParam).trim().toUpperCase() : '';
+  const contactPhoneParam = new URLSearchParams(location.search).get('contactPhone')?.trim() ?? '';
 
   const [order, setOrder] = useState<StoreOrderLookupResponse | null>(null);
   const [loading, setLoading] = useState(!orderSummaryFromState);
@@ -61,6 +62,12 @@ export function DepositRequestCompletePage() {
       return;
     }
 
+    if (!contactPhoneParam) {
+      setLoading(false);
+      setError('주문번호와 주문 시 입력한 연락처가 필요합니다.');
+      return;
+    }
+
     let cancelled = false;
 
     const run = async () => {
@@ -68,7 +75,7 @@ export function DepositRequestCompletePage() {
       setError('');
 
       try {
-        const result = await apiClient.getOrderByNumber(orderNumber);
+        const result = await apiClient.getOrderByNumber(orderNumber, contactPhoneParam);
         if (!cancelled) {
           setOrder(result);
         }
@@ -88,7 +95,7 @@ export function DepositRequestCompletePage() {
     return () => {
       cancelled = true;
     };
-  }, [orderNumber, orderSummaryFromState]);
+  }, [contactPhoneParam, orderNumber, orderSummaryFromState]);
 
   const summary = useMemo(() => {
     if (orderSummaryFromState) {

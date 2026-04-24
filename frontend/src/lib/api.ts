@@ -567,6 +567,15 @@ export type StoreOrderCreateResponse = {
   orderId: number;
   orderNumber: string;
   orderStatus: StoreOrderStatus;
+  contact: {
+    buyerName: string;
+    buyerPhone: string;
+    receiverName: string;
+    receiverPhone: string;
+    zipcode: string;
+    address1: string;
+    address2: string | null;
+  };
   items?: Array<{
     productId: number;
     productOptionId: number | null;
@@ -637,7 +646,6 @@ export type StoreOrderLookupResponse = {
     requestedAt: string | null;
     confirmedAt: string | null;
     depositDeadlineAt?: string | null;
-    adminMemo?: string | null;
   };
   shipment: {
     shipmentStatus: StoreShipmentStatus;
@@ -660,6 +668,7 @@ export type StoreOrderLookupResponse = {
 };
 
 export type StoreDepositRequestPayload = {
+  contactPhone: string;
   depositorName?: string;
   memo?: string;
 };
@@ -1438,7 +1447,10 @@ export const apiClient = {
       body: JSON.stringify(payload),
     }),
 
-  getOrderByNumber: (orderNumber: string) => request<StoreOrderLookupResponse>(`/store/orders/${encodeURIComponent(orderNumber)}`),
+  getOrderByNumber: (orderNumber: string, contactPhone: string) =>
+    request<StoreOrderLookupResponse>(
+      `/store/orders/${encodeURIComponent(orderNumber)}${buildQueryString({ contactPhone })}`,
+    ),
 
   requestDeposit: (orderNumber: string, payload?: StoreDepositRequestPayload) =>
     request<StoreDepositRequestResponse>(`/store/orders/${encodeURIComponent(orderNumber)}/deposit-requests`, {
@@ -1446,8 +1458,10 @@ export const apiClient = {
       body: JSON.stringify(payload ?? {}),
     }),
 
-  getOrderTracking: (orderNumber: string) =>
-    request<StoreOrderTrackingResponse>(`/store/orders/${encodeURIComponent(orderNumber)}/tracking`),
+  getOrderTracking: (orderNumber: string, contactPhone: string) =>
+    request<StoreOrderTrackingResponse>(
+      `/store/orders/${encodeURIComponent(orderNumber)}/tracking${buildQueryString({ contactPhone })}`,
+    ),
 
   getStoreNotices: async () => {
     const result = await request<{ items: StoreNoticeListItem[] }>('/store/notices');

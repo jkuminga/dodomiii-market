@@ -291,10 +291,12 @@ export function OrderLookupPage() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const searchOrderNumber = normalizeOrderNumber(searchParams.get('orderNumber') ?? '');
+  const searchContactPhone = searchParams.get('contactPhone') ?? '';
   const locationState = location.state as OrderLookupLocationState | null;
   const createdOrder = locationState?.createdOrder ?? null;
 
   const [orderNumberInput, setOrderNumberInput] = useState(searchOrderNumber);
+  const [contactPhoneInput, setContactPhoneInput] = useState(searchContactPhone);
   const [order, setOrder] = useState<StoreOrderLookupResponse | null>(null);
   const [tracking, setTracking] = useState<StoreOrderTrackingResponse | null>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
@@ -308,7 +310,11 @@ export function OrderLookupPage() {
   }, [searchOrderNumber]);
 
   useEffect(() => {
-    if (!searchOrderNumber) {
+    setContactPhoneInput(searchContactPhone);
+  }, [searchContactPhone]);
+
+  useEffect(() => {
+    if (!searchOrderNumber || !searchContactPhone) {
       setOrder(null);
       setTracking(null);
       setLookupLoading(false);
@@ -325,8 +331,8 @@ export function OrderLookupPage() {
       setTrackingError('');
 
       const [orderResult, trackingResult] = await Promise.allSettled([
-        apiClient.getOrderByNumber(searchOrderNumber),
-        apiClient.getOrderTracking(searchOrderNumber),
+        apiClient.getOrderByNumber(searchOrderNumber, searchContactPhone),
+        apiClient.getOrderTracking(searchOrderNumber, searchContactPhone),
       ]);
 
       if (cancelled) {
@@ -363,7 +369,7 @@ export function OrderLookupPage() {
     return () => {
       cancelled = true;
     };
-  }, [createdOrder, refreshKey, searchOrderNumber]);
+  }, [createdOrder, refreshKey, searchContactPhone, searchOrderNumber]);
 
   const timelineItems = order ? buildTimeline(order, tracking) : [];
   const activeTracking = tracking ?? (order ? buildFallbackTracking(order) : null);
@@ -394,11 +400,21 @@ export function OrderLookupPage() {
       return;
     }
 
+    const nextContactPhone = contactPhoneInput.trim();
+
+    if (!nextContactPhone) {
+      setLookupError('주문 시 입력한 연락처를 입력해 주세요.');
+      setOrder(null);
+      setTracking(null);
+      return;
+    }
+
     const nextParams = new URLSearchParams();
     nextParams.set('orderNumber', nextOrderNumber);
+    nextParams.set('contactPhone', nextContactPhone);
     setSearchParams(nextParams);
 
-    if (nextOrderNumber === searchOrderNumber) {
+    if (nextOrderNumber === searchOrderNumber && nextContactPhone === searchContactPhone) {
       setRefreshKey((value) => value + 1);
     }
   };
@@ -447,7 +463,7 @@ export function OrderLookupPage() {
             ) : null}
           </div> */}
 
-          <div className="lookup-input-row" style={{ marginTop: '18px' }}>
+          <div className="lookup-input-row order-lookup-fields" style={{ marginTop: '18px' }}>
             <label className="field">
               <input
                 value={orderNumberInput}
@@ -455,6 +471,16 @@ export function OrderLookupPage() {
                 placeholder="예: DM20260327-0001"
                 autoComplete="off"
                 inputMode="text"
+              />
+            </label>
+
+            <label className="field">
+              <input
+                value={contactPhoneInput}
+                onChange={(event) => setContactPhoneInput(event.target.value)}
+                placeholder="주문 시 입력한 연락처"
+                autoComplete="tel"
+                inputMode="tel"
               />
             </label>
 

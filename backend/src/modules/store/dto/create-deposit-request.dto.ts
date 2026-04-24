@@ -5,6 +5,12 @@ export class CreateDepositRequestDto {
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
+  @MaxLength(30)
+  contactPhone!: string;
+
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @IsNotEmpty()
   @MaxLength(100)
   depositorName!: string;
 

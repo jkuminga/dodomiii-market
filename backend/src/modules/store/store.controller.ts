@@ -6,6 +6,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { CustomCheckoutTokenParamDto } from './dto/custom-checkout-token-param.dto';
 import { GetProductsQueryDto } from './dto/get-products.query.dto';
 import { NoticeIdParamDto } from './dto/notice-id-param.dto';
+import { OrderAccessQueryDto } from './dto/order-access.query.dto';
 import { OrderNumberParamDto } from './dto/order-number-param.dto';
 import { StoreService } from './store.service';
 
@@ -120,8 +121,11 @@ export class StoreController {
   }
 
   @Get('orders/:orderNumber')
-  async getOrder(@Param() params: OrderNumberParamDto) {
-    const data = await this.storeService.getOrderByOrderNumber(params.orderNumber);
+  async getOrder(@Param() params: OrderNumberParamDto, @Query() query: OrderAccessQueryDto) {
+    const data = await this.storeService.getOrderByOrderNumber(
+      params.orderNumber,
+      query.contactPhone,
+    );
 
     return {
       success: true,
@@ -143,8 +147,8 @@ export class StoreController {
   }
 
   @Get('orders/:orderNumber/tracking')
-  async getOrderTracking(@Param() params: OrderNumberParamDto) {
-    const data = await this.storeService.getOrderTracking(params.orderNumber);
+  async getOrderTracking(@Param() params: OrderNumberParamDto, @Query() query: OrderAccessQueryDto) {
+    const data = await this.storeService.getOrderTracking(params.orderNumber, query.contactPhone);
 
     return {
       success: true,

@@ -24,6 +24,7 @@ import {
   StoreNoticeContentBlock,
   StoreNoticeDetailResponse,
   StoreNoticeListItemResponse,
+  StoreOrderContact,
   StoreOrderDetailResponse,
   StoreOrderTrackingResponse,
   StoreTrackingEvent,
@@ -97,6 +98,7 @@ type StoreCreatedOrderResponse = {
   orderNumber: string;
   orderStatus: string;
   items: StoreCreatedOrderItem[];
+  contact: StoreOrderContact;
   pricing: OrderPricingSnapshot;
   depositInfo: {
     bankName: string;
@@ -211,7 +213,6 @@ const storeOrderDetailArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
         requestedAt: true,
         confirmedAt: true,
         depositStatus: true,
-        adminMemo: true,
       },
     },
     shipment: {
@@ -243,6 +244,12 @@ const depositRequestOrderArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
     orderStatus: true,
     paymentRequestedAt: true,
     paymentConfirmedAt: true,
+    contact: {
+      select: {
+        buyerPhone: true,
+        receiverPhone: true,
+      },
+    },
     deposit: {
       select: {
         depositStatus: true,
@@ -909,8 +916,12 @@ export class StoreService {
     });
   }
 
-  async getOrderByOrderNumber(orderNumber: string): Promise<StoreOrderDetailResponse> {
+  async getOrderByOrderNumber(
+    orderNumber: string,
+    contactPhone: string,
+  ): Promise<StoreOrderDetailResponse> {
     const order = await this.findOrderDetailByOrderNumberOrThrow(orderNumber);
+    this.assertOrderAccess(order, contactPhone);
 
     return this.mapOrderDetail(order);
   }
@@ -933,6 +944,7 @@ export class StoreService {
             }
 
             this.assertOrderHasDeposit(order);
+            this.assertOrderAccess(order, dto.contactPhone);
 
             if (
               order.deposit.depositStatus === DepositStatus.CONFIRMED ||
@@ -1046,8 +1058,12 @@ export class StoreService {
     });
   }
 
-  async getOrderTracking(orderNumber: string): Promise<StoreOrderTrackingResponse> {
+  async getOrderTracking(
+    orderNumber: string,
+    contactPhone: string,
+  ): Promise<StoreOrderTrackingResponse> {
     const order = await this.findOrderDetailByOrderNumberOrThrow(orderNumber);
+    this.assertOrderAccess(order, contactPhone);
     const shipment = this.getShipmentSnapshot(order);
 
     return {
@@ -1417,6 +1433,15 @@ export class StoreService {
       orderId: Number(order.id),
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
+      contact: {
+        buyerName: params.contact.buyerName,
+        buyerPhone: params.contact.buyerPhone,
+        receiverName: params.contact.receiverName,
+        receiverPhone: params.contact.receiverPhone,
+        zipcode: params.contact.zipcode,
+        address1: normalizedContactAddress.address1,
+        address2: normalizedContactAddress.address2,
+      },
       items: params.resolvedItems.map((item) => ({
         productId: Number(item.productId),
         productOptionId: item.productOptionId ? Number(item.productOptionId) : null,
@@ -1763,7 +1788,6 @@ export class StoreService {
         requestedAt: this.toIsoString(deposit.requestedAt),
         confirmedAt: this.toIsoString(deposit.confirmedAt),
         depositDeadlineAt: this.toIsoString(order.depositDeadlineAt),
-        adminMemo: deposit.adminMemo,
       },
       shipment,
       trackingEvents: this.buildTrackingEvents(order),
@@ -1959,10 +1983,29 @@ export class StoreService {
     }
   }
 
+  private assertOrderAccess(
+    order: { contact: { buyerPhone: string; receiverPhone: string } | null },
+    contactPhone: string,
+  ): void {
+    const requestedPhone = this.normalizePhoneForAccess(contactPhone);
+    const buyerPhone = this.normalizePhoneForAccess(order.contact?.buyerPhone ?? '');
+    const receiverPhone = this.normalizePhoneForAccess(order.contact?.receiverPhone ?? '');
+
+    if (requestedPhone && (requestedPhone === buyerPhone || requestedPhone === receiverPhone)) {
+      return;
+    }
+
+    throw this.createOrderNotFoundException();
+  }
+
+  private normalizePhoneForAccess(value: string): string {
+    return value.replace(/\D/g, '');
+  }
+
   private createOrderNotFoundException(): NotFoundException {
     return new NotFoundException({
       code: 'ORDER_NOT_FOUND',
-      message: '주문을 찾을 수 없습니다.',
+      message: '주문 정보를 확인할 수 없습니다.',
     });
   }
 

@@ -36,7 +36,6 @@ export type StoreOrderDepositInfo = {
   requestedAt: string | null;
   confirmedAt: string | null;
   depositDeadlineAt: string | null;
-  adminMemo: string | null;
 };
 
 export type StoreOrderShipmentInfo = {

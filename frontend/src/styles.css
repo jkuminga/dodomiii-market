@@ -3828,6 +3828,15 @@ img {
   width: 100%;
 }
 
+.order-lookup-fields {
+  grid-template-columns: minmax(0, 1fr);
+  width: min(100%, 520px);
+}
+
+.order-lookup-fields .button {
+  width: 100%;
+}
+
 .order-lookup-divider {
   height: 1px;
   margin: 2px 6px 6px;
@@ -4783,6 +4792,14 @@ img {
   .lookup-input-row .button {
     width: auto;
     min-width: 120px;
+  }
+
+  .order-lookup-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .order-lookup-fields .button {
+    width: 100%;
   }
 
   .order-lookup-page .lookup-item-line {

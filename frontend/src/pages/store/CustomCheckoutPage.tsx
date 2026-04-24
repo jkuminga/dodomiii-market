@@ -356,7 +356,10 @@ export function CustomCheckoutPage() {
           </div>
 
           <div className="inline-actions order-inline-actions">
-            <Link className="button" to={`/orders?orderNumber=${encodeURIComponent(submittedOrder.orderNumber)}`}>
+            <Link
+              className="button"
+              to={`/orders?orderNumber=${encodeURIComponent(submittedOrder.orderNumber)}&contactPhone=${encodeURIComponent(submittedOrder.contact.buyerPhone || submittedOrder.contact.receiverPhone)}`}
+            >
               주문 조회
             </Link>
             <button className="button button-secondary" type="button" onClick={() => setSubmittedOrder(null)}>

@@ -69,13 +69,13 @@ function buildOrderFromCreated(createdOrder: StoreOrderCreateResponse): StoreOrd
         lineTotalPrice: item.lineTotalPrice,
       })) ?? [],
     contact: {
-      buyerName: '',
-      buyerPhone: '',
-      receiverName: '',
-      receiverPhone: '',
-      zipcode: '',
-      address1: '',
-      address2: null,
+      buyerName: createdOrder.contact.buyerName,
+      buyerPhone: createdOrder.contact.buyerPhone,
+      receiverName: createdOrder.contact.receiverName,
+      receiverPhone: createdOrder.contact.receiverPhone,
+      zipcode: createdOrder.contact.zipcode,
+      address1: createdOrder.contact.address1,
+      address2: createdOrder.contact.address2,
     },
     pricing: createdOrder.pricing,
     deposit: {
@@ -87,7 +87,6 @@ function buildOrderFromCreated(createdOrder: StoreOrderCreateResponse): StoreOrd
       requestedAt: null,
       confirmedAt: null,
       depositorName: null,
-      adminMemo: null,
     },
     shipment: {
       shipmentStatus: 'READY',
@@ -111,11 +110,12 @@ export function OrderPaymentPage() {
   const locationState = location.state as OrderPaymentLocationState | null;
   const createdOrder = locationState?.createdOrder ?? null;
   const orderNumber = orderNumberParam ? decodeURIComponent(orderNumberParam).trim().toUpperCase() : '';
+  const contactPhoneParam = new URLSearchParams(location.search).get('contactPhone')?.trim() ?? '';
 
   const [order, setOrder] = useState<StoreOrderLookupResponse | null>(
     createdOrder && createdOrder.orderNumber === orderNumber ? buildOrderFromCreated(createdOrder) : null,
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!(createdOrder && createdOrder.orderNumber === orderNumber));
   const [error, setError] = useState('');
   const [depositRequestForm, setDepositRequestForm] = useState<DepositRequestFormState>(INITIAL_DEPOSIT_REQUEST_FORM);
   const [depositRequestLoading, setDepositRequestLoading] = useState(false);
@@ -129,6 +129,19 @@ export function OrderPaymentPage() {
       return;
     }
 
+    if (createdOrder && createdOrder.orderNumber === orderNumber) {
+      setOrder(buildOrderFromCreated(createdOrder));
+      setLoading(false);
+      setError('');
+      return;
+    }
+
+    if (!contactPhoneParam) {
+      setLoading(false);
+      setError('주문번호와 주문 시 입력한 연락처가 필요합니다.');
+      return;
+    }
+
     let cancelled = false;
 
     const run = async () => {
@@ -136,7 +149,7 @@ export function OrderPaymentPage() {
       setError('');
 
       try {
-        const result = await apiClient.getOrderByNumber(orderNumber);
+        const result = await apiClient.getOrderByNumber(orderNumber, contactPhoneParam);
         if (cancelled) {
           return;
         }
@@ -158,7 +171,7 @@ export function OrderPaymentPage() {
     return () => {
       cancelled = true;
     };
-  }, [orderNumber]);
+  }, [contactPhoneParam, createdOrder, orderNumber]);
 
   useEffect(() => {
     if (!order) {
@@ -232,6 +245,7 @@ export function OrderPaymentPage() {
     setDepositRequestError('');
 
     const payload: StoreDepositRequestPayload = {
+      contactPhone: order.contact.buyerPhone || order.contact.receiverPhone,
       depositorName: depositRequestForm.depositorName.trim() || undefined,
       memo: depositRequestForm.memo.trim() || undefined,
     };
@@ -417,7 +431,11 @@ export function OrderPaymentPage() {
           <button
             className="button button-secondary"
             type="button"
-            onClick={() => navigate(`/orders?orderNumber=${encodeURIComponent(order.orderNumber)}`)}
+            onClick={() =>
+              navigate(
+                `/orders?orderNumber=${encodeURIComponent(order.orderNumber)}&contactPhone=${encodeURIComponent(order.contact.buyerPhone || order.contact.receiverPhone)}`,
+              )
+            }
           >
             주문 조회로 이동
           </button>
