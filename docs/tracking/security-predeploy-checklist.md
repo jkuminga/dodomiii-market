@@ -64,20 +64,46 @@
 
 ### 3. 관리자 로그인 rate limit
 
-- [ ] `/admin/auth/login`에 IP 기준 rate limit을 적용한다.
-- [ ] 가능하면 loginId 기준 실패 횟수 제한도 추가한다.
-- [ ] 실패 로그를 남기되 비밀번호나 민감값은 기록하지 않는다.
-- [ ] 테스트 추가: 짧은 시간 내 과도한 로그인 실패가 차단된다.
+- [x] Redis-backed rate limiter를 구현한다.
+- [x] `/admin/auth/login`에 IP 기준 rate limit을 적용한다.
+- [x] `loginId + IP` 기준 실패 횟수 제한도 추가한다.
+- [x] 로그인 실패 시 Redis 카운터를 증가시키고 TTL을 설정한다.
+- [x] 로그인 성공 시 해당 `loginId + IP` 실패 카운터를 초기화한다.
+- [x] 제한 초과 시 `429 Too Many Requests`를 반환한다.
+- [x] 실패 로그를 남기되 비밀번호, 세션 쿠키, Redis token 같은 민감값은 기록하지 않는다.
+- [x] 테스트 추가: 제한 횟수 전까지는 기존 인증 실패 응답이 유지된다.
+- [x] 테스트 추가: 제한 초과 후에는 429가 반환된다.
+- [x] 테스트 추가: 로그인 성공 시 실패 카운터가 초기화된다.
 
 위험 설명:
 
 관리자 로그인은 bcrypt 검증과 공통 에러 메시지를 쓰고 있어 기본 구조는 괜찮다. 하지만 시도 횟수 제한이 없어 배포 후 무차별 대입 공격에 노출된다.
+
+현재 기반:
+
+- Redis 세션 store 적용이 완료되어 `REDIS_URL`, `REDIS_KEY_PREFIX`를 사용할 수 있다.
+- Redis 연결은 `backend/src/common/redis/redis.service.ts`에서 공용 provider로 관리한다.
+- `ADMIN_LOGIN_RATE_LIMIT_REDIS_ENABLED` env가 준비되어 있다.
+- 프록시 배포 환경의 실제 클라이언트 IP 확인을 위해 `TRUST_PROXY` env가 준비되어 있다.
+- rate limit 키는 같은 Redis DB 안에서 `REDIS_KEY_PREFIX`를 붙여 세션 키와 충돌하지 않게 관리한다.
+
+권장 키 설계:
+
+- IP 기준: `${REDIS_KEY_PREFIX}admin-login:ip:<ip>`
+- 계정+IP 기준: `${REDIS_KEY_PREFIX}admin-login:account:<normalizedLoginId>:ip:<ip>`
+- TTL: 10-15분부터 시작한다.
+- 제한 예시: 같은 IP 20회/15분, 같은 계정+IP 5회/15분.
 
 관련 코드:
 
 - `backend/src/modules/auth/auth.controller.ts`
 - `backend/src/modules/auth/auth.service.ts`
 - `backend/src/modules/auth/dto/login.dto.ts`
+- `backend/src/common/redis/redis.module.ts`
+- `backend/src/common/redis/redis.service.ts`
+- `backend/src/common/config/env.config.ts`
+- `backend/src/main.ts`
+- `backend/.env.example`
 
 ### 4. 프로덕션 세션 store 적용
 
@@ -94,6 +120,8 @@
 관련 코드:
 
 - `backend/src/main.ts`
+- `backend/src/common/redis/redis.module.ts`
+- `backend/src/common/redis/redis.service.ts`
 
 ### 5. 프로덕션 환경변수 fail-fast
 

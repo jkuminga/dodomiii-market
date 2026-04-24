@@ -13,6 +13,7 @@ import { Request, Response } from 'express';
 
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './auth.service';
+import { AdminLoginRateLimitService } from './admin-login-rate-limit.service';
 import { AdminSessionGuard } from './guards/admin-session.guard';
 
 @Controller('admin/auth')
@@ -20,11 +21,25 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
+    private readonly adminLoginRateLimitService: AdminLoginRateLimitService,
   ) {}
 
   @Post('login')
   async login(@Body() dto: LoginDto, @Req() request: Request) {
-    const admin = await this.authService.validateAdmin(dto.loginId, dto.password);
+    const clientIp = this.getClientIp(request);
+    await this.adminLoginRateLimitService.checkOrThrow(dto.loginId, clientIp);
+
+    let admin: Awaited<ReturnType<AuthService['validateAdmin']>>;
+    try {
+      admin = await this.authService.validateAdmin(dto.loginId, dto.password);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        await this.adminLoginRateLimitService.recordFailure(dto.loginId, clientIp);
+      }
+      throw error;
+    }
+
+    await this.adminLoginRateLimitService.resetAccountIp(dto.loginId, clientIp);
 
     request.session.admin = {
       adminId: admin.id.toString(),
@@ -97,5 +112,9 @@ export class AuthController {
       success: true,
       data: me,
     };
+  }
+
+  private getClientIp(request: Request): string {
+    return request.ip || request.socket.remoteAddress || 'unknown';
   }
 }

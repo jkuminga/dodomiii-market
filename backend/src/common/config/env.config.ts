@@ -11,6 +11,7 @@ export default () => ({
   PORT: Number(process.env.PORT ?? 4000),
   API_PREFIX: process.env.API_PREFIX ?? 'api/v1',
   CORS_ORIGIN: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+  TRUST_PROXY: process.env.TRUST_PROXY ?? '',
   SESSION_NAME: process.env.SESSION_NAME ?? 'admin_session',
   SESSION_SECRET: process.env.SESSION_SECRET ?? 'dev-session-secret',
   SESSION_COOKIE_SECURE: process.env.SESSION_COOKIE_SECURE ?? 'false',
@@ -21,6 +22,15 @@ export default () => ({
   ADMIN_LOGIN_RATE_LIMIT_REDIS_ENABLED: parseBoolean(
     process.env.ADMIN_LOGIN_RATE_LIMIT_REDIS_ENABLED,
     false,
+  ),
+  ADMIN_LOGIN_RATE_LIMIT_WINDOW_SECONDS: Number(
+    process.env.ADMIN_LOGIN_RATE_LIMIT_WINDOW_SECONDS ?? 900,
+  ),
+  ADMIN_LOGIN_RATE_LIMIT_IP_MAX_ATTEMPTS: Number(
+    process.env.ADMIN_LOGIN_RATE_LIMIT_IP_MAX_ATTEMPTS ?? 20,
+  ),
+  ADMIN_LOGIN_RATE_LIMIT_ACCOUNT_IP_MAX_ATTEMPTS: Number(
+    process.env.ADMIN_LOGIN_RATE_LIMIT_ACCOUNT_IP_MAX_ATTEMPTS ?? 5,
   ),
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME ?? '',
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY ?? '',

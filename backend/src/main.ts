@@ -6,10 +6,10 @@ import { NestFactory } from '@nestjs/core';
 import { RedisStore } from 'connect-redis';
 import session, { type SessionOptions } from 'express-session';
 import pinoHttp from 'pino-http';
-import { createClient } from 'redis';
 
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { RedisService } from './common/redis/redis.service';
 
 function flattenValidationErrors(errors: ValidationError[]): string[] {
   return errors.flatMap((error) => {
@@ -20,18 +20,51 @@ function flattenValidationErrors(errors: ValidationError[]): string[] {
   });
 }
 
+function parseTrustProxy(value: string): boolean | number | string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (trimmed === 'true') {
+    return true;
+  }
+
+  if (trimmed === 'false') {
+    return false;
+  }
+
+  const numericValue = Number(trimmed);
+  if (Number.isInteger(numericValue) && numericValue >= 0) {
+    return numericValue;
+  }
+
+  return trimmed;
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
+  const redisService = app.get(RedisService);
 
   const sessionName = config.get<string>('SESSION_NAME', 'admin_session');
   const sessionSecret = config.get<string>('SESSION_SECRET', 'dev-session-secret');
   const sessionCookieSecure = config.get<string>('SESSION_COOKIE_SECURE', 'false') === 'true';
   const sessionCookieMaxAgeMs = Number(config.get<string>('SESSION_COOKIE_MAX_AGE_MS', '604800000'));
   const sessionRedisEnabled = config.get<boolean>('SESSION_REDIS_ENABLED', false);
+  const adminLoginRateLimitRedisEnabled = config.get<boolean>(
+    'ADMIN_LOGIN_RATE_LIMIT_REDIS_ENABLED',
+    false,
+  );
 
-  if (sessionCookieSecure) {
-    app.getHttpAdapter().getInstance().set('trust proxy', 1);
+  if (sessionRedisEnabled || adminLoginRateLimitRedisEnabled) {
+    app.enableShutdownHooks();
+  }
+
+  const configuredTrustProxy = parseTrustProxy(config.get<string>('TRUST_PROXY', ''));
+  const trustProxy = configuredTrustProxy ?? (sessionCookieSecure ? 1 : undefined);
+  if (trustProxy !== undefined) {
+    app.getHttpAdapter().getInstance().set('trust proxy', trustProxy);
   }
 
   const sessionOptions: SessionOptions = {
@@ -48,24 +81,11 @@ async function bootstrap() {
   };
 
   if (sessionRedisEnabled) {
-    const redisUrl = config.get<string>('REDIS_URL', '').trim();
-    if (!redisUrl) {
-      throw new Error('SESSION_REDIS_ENABLED=true requires REDIS_URL.');
-    }
+    const redisClient = await redisService.getClient();
 
-    const redisClient = createClient({
-      url: redisUrl,
-    });
-    redisClient.on('error', (error) => {
-      console.error('Redis session client error', error);
-    });
-    await redisClient.connect();
-    app.enableShutdownHooks();
-
-    const redisKeyPrefix = config.get<string>('REDIS_KEY_PREFIX', 'dodomi:');
     sessionOptions.store = new RedisStore({
       client: redisClient,
-      prefix: `${redisKeyPrefix}${sessionName}:`,
+      prefix: redisService.buildKey(`${sessionName}:`),
       ttl: Math.ceil(sessionCookieMaxAgeMs / 1000),
     });
   }
