@@ -1,16 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SolapiMessageService } from 'solapi';
 
 type SmsMessage = {
   to: string;
   message: string;
 };
 
+type SolapiMessageServiceLike = {
+  send(message: { to: string; from: string; text: string }): Promise<unknown>;
+};
+
 @Injectable()
 export class SmsNotificationService {
   private readonly logger = new Logger(SmsNotificationService.name);
-  private messageService: SolapiMessageService | null = null;
+  private messageService: SolapiMessageServiceLike | null = null;
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -37,7 +40,7 @@ export class SmsNotificationService {
       throw new Error('SOLAPI_SENDER is not configured.');
     }
 
-    const messageService = this.getMessageService();
+    const messageService = await this.getMessageService();
     await messageService.send({
       to: payload.to,
       from: sender,
@@ -45,7 +48,7 @@ export class SmsNotificationService {
     });
   }
 
-  private getMessageService(): SolapiMessageService {
+  private async getMessageService(): Promise<SolapiMessageServiceLike> {
     if (this.messageService) {
       return this.messageService;
     }
@@ -56,6 +59,8 @@ export class SmsNotificationService {
     if (!apiKey || !apiSecret) {
       throw new Error('SOLAPI_API_KEY or SOLAPI_API_SECRET is not configured.');
     }
+
+    const { SolapiMessageService } = await import('solapi');
 
     this.messageService = new SolapiMessageService(apiKey, apiSecret);
 
