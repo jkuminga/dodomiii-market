@@ -8,6 +8,8 @@
     "start:dev": "nest start --watch",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest",
+    "test:unit": "jest",
+    "test:integration": "jest --runInBand --testRegex \".*\\.integration-spec\\.ts$\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"
