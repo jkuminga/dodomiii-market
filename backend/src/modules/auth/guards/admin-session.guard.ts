@@ -1,10 +1,11 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
-import { Request } from 'express';
+
+import { AdminRequest } from '../admin-session.types';
 
 @Injectable()
 export class AdminSessionGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<AdminRequest>();
 
     if (request.session?.admin) {
       return true;

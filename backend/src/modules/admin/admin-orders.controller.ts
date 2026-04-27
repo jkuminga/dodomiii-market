@@ -8,8 +8,8 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { Request } from 'express';
 
+import { AdminRequest } from '../auth/admin-session.types';
 import { AdminSessionGuard } from '../auth/guards/admin-session.guard';
 import { AdminOrderIdParamDto } from './dto/admin-order-id-param.dto';
 import { GetAdminOrdersQueryDto } from './dto/get-admin-orders.query.dto';
@@ -49,7 +49,7 @@ export class AdminOrdersController {
   async updateOrderStatus(
     @Param() params: AdminOrderIdParamDto,
     @Body() body: UpdateAdminOrderStatusDto,
-    @Req() request: Request,
+    @Req() request: AdminRequest,
   ) {
     const data = await this.adminOrdersService.updateOrderStatus(
       params.orderId,
@@ -67,7 +67,7 @@ export class AdminOrdersController {
   async updateOrderShipment(
     @Param() params: AdminOrderIdParamDto,
     @Body() body: UpdateAdminOrderShipmentDto,
-    @Req() request: Request,
+    @Req() request: AdminRequest,
   ) {
     const data = await this.adminOrdersService.updateOrderShipment(
       params.orderId,

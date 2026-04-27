@@ -11,8 +11,24 @@ jobs:
     timeout-minutes: 2
 
     steps:
-      - name: Call warmup endpoint
+      - name: Call warmup endpoint with timing
         run: |
-          curl --fail --silent --show-error --max-time 30 "$WARMUP_URL"
+          call_endpoint() {
+            local label="$1"
+
+            echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $label"
+            curl \
+              --fail \
+              --silent \
+              --show-error \
+              --output /dev/null \
+              --max-time 30 \
+              --write-out "http_code=%{http_code} time_starttransfer=%{time_starttransfer}s time_total=%{time_total}s\n" \
+              "$WARMUP_URL"
+          }
+
+          call_endpoint "warmup"
+          sleep 3
+          call_endpoint "post-warm check"
         env:
           WARMUP_URL: ${{ secrets.WARMUP_URL }}

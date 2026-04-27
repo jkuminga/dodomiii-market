@@ -11,6 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 
+import { AdminRequest } from './admin-session.types';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './auth.service';
 import { AdminLoginRateLimitService } from './admin-login-rate-limit.service';
@@ -25,7 +26,7 @@ export class AuthController {
   ) {}
 
   @Post('login')
-  async login(@Body() dto: LoginDto, @Req() request: Request) {
+  async login(@Body() dto: LoginDto, @Req() request: AdminRequest) {
     const clientIp = this.getClientIp(request);
     await this.adminLoginRateLimitService.checkOrThrow(dto.loginId, clientIp);
 
@@ -97,7 +98,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(AdminSessionGuard)
-  async me(@Req() request: Request) {
+  async me(@Req() request: AdminRequest) {
     const sessionAdmin = request.session.admin;
     if (!sessionAdmin) {
       throw new UnauthorizedException({

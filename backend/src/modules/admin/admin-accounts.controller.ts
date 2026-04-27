@@ -9,8 +9,8 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { Request } from 'express';
 
+import { AdminRequest } from '../auth/admin-session.types';
 import { AdminSuperGuard } from '../auth/guards/admin-super.guard';
 import { AdminSessionGuard } from '../auth/guards/admin-session.guard';
 import { AdminAccountsService } from './admin-accounts.service';
@@ -47,7 +47,7 @@ export class AdminAccountsController {
   async updateAccount(
     @Param() params: AdminAccountIdParamDto,
     @Body() body: UpdateAdminAccountDto,
-    @Req() request: Request,
+    @Req() request: AdminRequest,
   ) {
     const data = await this.adminAccountsService.updateAccount(
       params.adminId,
@@ -64,7 +64,7 @@ export class AdminAccountsController {
   @Delete(':adminId')
   async deleteAccount(
     @Param() params: AdminAccountIdParamDto,
-    @Req() request: Request,
+    @Req() request: AdminRequest,
   ) {
     const data = await this.adminAccountsService.deleteAccount(
       params.adminId,

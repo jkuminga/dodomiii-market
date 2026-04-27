@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { Request } from 'express';
 
+import { AdminRequest } from '../auth/admin-session.types';
 import { AdminSessionGuard } from '../auth/guards/admin-session.guard';
 import { StoreService } from '../store/store.service';
 import { AdminCustomOrderLinksQueryDto } from './dto/admin-custom-order-links-query.dto';
@@ -13,7 +13,7 @@ export class AdminCustomOrdersController {
   constructor(private readonly storeService: StoreService) {}
 
   @Post('links')
-  async createLink(@Body() body: CreateAdminCustomOrderLinkDto, @Req() request: Request) {
+  async createLink(@Body() body: CreateAdminCustomOrderLinkDto, @Req() request: AdminRequest) {
     const data = await this.storeService.createCustomOrderLink(
       Number(request.session.admin!.adminId),
       body,
