@@ -79,7 +79,7 @@ SESSION_SECRET=<32자 이상의 강한 랜덤 문자열>
 SESSION_NAME=admin_session
 SESSION_COOKIE_SECURE=true
 SESSION_COOKIE_MAX_AGE_MS=604800000
-CORS_ORIGIN=https://dodomi.example.com
+CORS_ORIGIN=https://dodomi.example.com,https://www.dodomi.example.com
 TRUST_PROXY=1
 REDIS_URL=<Upstash Redis-compatible rediss:// URL>
 REDIS_KEY_PREFIX=dodomi:
@@ -320,7 +320,7 @@ Warmer:
 
 - Vercel의 NestJS 배포는 단일 Vercel Function으로 동작한다. 상시 실행 서버가 아니므로 process memory에 상태를 저장하면 안 된다.
 - `DB_KEEP_WARM_ENABLED=false`를 권장한다. Vercel Function 내부 timer는 항상 실행되는 워커가 아니므로, keep-warm은 GitHub Actions가 담당한다.
-- `CORS_ORIGIN`은 현재 단일 origin 값이다. Preview 도메인을 여러 개 허용하려면 백엔드 CORS 설정을 별도로 확장해야 한다.
+- `CORS_ORIGIN`은 쉼표로 구분해 여러 origin을 허용할 수 있다. 예: `https://dodomi.example.com,https://www.dodomi.example.com`
 - Frontend env는 build 결과물에 박힌다. backend URL 변경 후에는 frontend 재배포가 필요하다.
 - Backend env 변경은 기존 deployment에 반영되지 않는다. env 변경 후 backend를 재배포한다.
 - `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`, `REDIS_URL`, Cloudinary secret은 frontend에 절대 넣지 않는다.

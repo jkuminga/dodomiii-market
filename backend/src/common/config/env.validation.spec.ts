@@ -26,6 +26,15 @@ describe('validateEnv', () => {
     expect(validateEnv(env)).toBe(env);
   });
 
+  it('accepts comma-separated production CORS origins', () => {
+    const env = createValidProductionEnv({
+      CORS_ORIGIN: 'https://dodomi.example,https://www.dodomi.example',
+      NOTIFICATIONS_ENABLED: 'false',
+    });
+
+    expect(validateEnv(env)).toBe(env);
+  });
+
   it('accepts production env when SMS notifications are enabled with SOLAPI credentials and SMTP is empty', () => {
     const env = createValidProductionEnv({
       NOTIFICATIONS_ENABLED: 'true',

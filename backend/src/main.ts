@@ -43,6 +43,15 @@ function parseTrustProxy(value: string): boolean | number | string | undefined {
   return trimmed;
 }
 
+function parseCorsOrigins(value: string): string | string[] {
+  const origins = value
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  return origins.length > 1 ? origins : origins[0] ?? value;
+}
+
 async function createApp() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
@@ -119,7 +128,7 @@ async function createApp() {
   const apiPrefix = config.get<string>('API_PREFIX', 'api/v1');
   app.setGlobalPrefix(apiPrefix);
 
-  const corsOrigin = config.get<string>('CORS_ORIGIN', 'http://localhost:5173');
+  const corsOrigin = parseCorsOrigins(config.get<string>('CORS_ORIGIN', 'http://localhost:5173'));
   app.enableCors({
     origin: corsOrigin,
     credentials: true,

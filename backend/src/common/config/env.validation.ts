@@ -32,7 +32,7 @@ export function validateEnv(config: EnvRecord): EnvRecord {
   requireBoolean(config, 'ADMIN_LOGIN_RATE_LIMIT_REDIS_ENABLED', true, errors);
   requireBoolean(config, 'SESSION_COOKIE_SECURE', true, errors);
   requireSafeSessionSecret(config.SESSION_SECRET, errors);
-  requirePublicOrigin(config.CORS_ORIGIN, 'CORS_ORIGIN', errors);
+  requirePublicOrigins(config.CORS_ORIGIN, 'CORS_ORIGIN', errors);
   requirePublicOrigin(config.STORE_WEB_BASE_URL, 'STORE_WEB_BASE_URL', errors);
   requirePublicOrigin(config.ADMIN_WEB_BASE_URL, 'ADMIN_WEB_BASE_URL', errors);
 
@@ -89,6 +89,21 @@ function requirePublicOrigin(value: string | undefined, key: string, errors: str
 
   if (localOriginPatterns.some((pattern) => pattern.test(origin))) {
     errors.push(`${key} must not point to localhost in production.`);
+  }
+}
+
+function requirePublicOrigins(value: string | undefined, key: string, errors: string[]): void {
+  const origins = (value ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (origins.length === 0) {
+    return;
+  }
+
+  for (const origin of origins) {
+    requirePublicOrigin(origin, key, errors);
   }
 }
 
