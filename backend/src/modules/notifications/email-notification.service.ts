@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Transporter } from 'nodemailer';
+import nodemailer from 'nodemailer';
 
 type EmailMessage = {
   to: string;
@@ -12,7 +12,7 @@ type EmailMessage = {
 @Injectable()
 export class EmailNotificationService {
   private readonly logger = new Logger(EmailNotificationService.name);
-  private transporter?: Transporter;
+  private transporter?: nodemailer.Transporter;
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -34,7 +34,7 @@ export class EmailNotificationService {
       return;
     }
 
-    const transporter = await this.getTransporter();
+    const transporter = this.getTransporter();
     const from = this.resolveFromAddress();
 
     if (!transporter || !from) {
@@ -50,7 +50,7 @@ export class EmailNotificationService {
     });
   }
 
-  private async getTransporter(): Promise<Transporter | null> {
+  private getTransporter(): nodemailer.Transporter | null {
     if (this.transporter) {
       return this.transporter;
     }
@@ -61,8 +61,6 @@ export class EmailNotificationService {
     if (!host || !port) {
       return null;
     }
-
-    const { default: nodemailer } = await import('nodemailer');
 
     this.transporter = nodemailer.createTransport({
       host,
