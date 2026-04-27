@@ -4,6 +4,7 @@ import { BadRequestException, ValidationError, ValidationPipe } from '@nestjs/co
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { RedisStore } from 'connect-redis';
+import type { Express, Request, Response } from 'express';
 import session, { type SessionOptions } from 'express-session';
 import pinoHttp from 'pino-http';
 
@@ -42,7 +43,7 @@ function parseTrustProxy(value: string): boolean | number | string | undefined {
   return trimmed;
 }
 
-async function bootstrap() {
+async function createApp() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
   const redisService = app.get(RedisService);
@@ -124,8 +125,35 @@ async function bootstrap() {
     credentials: true,
   });
 
+  return app;
+}
+
+async function bootstrap() {
+  const app = await createApp();
+  const config = app.get(ConfigService);
   const port = config.get<number>('PORT', 4000);
   await app.listen(port);
 }
 
-bootstrap();
+let cachedServer: Express | null = null;
+
+async function getServer(): Promise<Express> {
+  if (cachedServer) {
+    return cachedServer;
+  }
+
+  const app = await createApp();
+  await app.init();
+
+  cachedServer = app.getHttpAdapter().getInstance() as Express;
+  return cachedServer;
+}
+
+export default async function handler(request: Request, response: Response) {
+  const server = await getServer();
+  return server(request, response);
+}
+
+if (require.main === module) {
+  void bootstrap();
+}
