@@ -143,7 +143,7 @@ npm run check
 
 ### 5.1 일반 주문 생성
 
-- [ ] 테스트 fixture 생성
+- [x] 테스트 fixture 생성
   - 카테고리
   - 상품
   - 상품 이미지
@@ -151,9 +151,9 @@ npm run check
   - 옵션
   - 대표 입금계좌 관리자 또는 기본 입금계좌 환경값
 
-- [ ] `StoreService.createOrder(dto)` 호출
+- [x] `StoreService.createOrder(dto)` 호출
 
-- [ ] 응답 검증
+- [x] 응답 검증
   - 주문번호 형식
   - 주문 상태 `PENDING_PAYMENT`
   - 상품 snapshot
@@ -162,40 +162,40 @@ npm run check
   - 입금 정보
   - 입금 기한
 
-- [ ] DB 검증
+- [x] DB 검증
   - `Order` 생성
   - `OrderItem` 생성
   - `OrderItemOptionSelection` 생성
   - `OrderContact` 생성
   - `Deposit` 생성
 
-- [ ] cleanup 검증
+- [x] cleanup 검증
 
 ### 5.2 입금 확인 요청
 
-- [ ] 주문 fixture 생성
+- [x] 주문 fixture 생성
   - `PENDING_PAYMENT` 주문
   - `WAITING` deposit
 
-- [ ] `StoreService.createDepositRequest(orderNumber, dto)` 호출
+- [x] `StoreService.createDepositRequest(orderNumber, dto)` 호출
 
-- [ ] 응답 검증
+- [x] 응답 검증
   - `depositStatus`가 `REQUESTED`
   - `orderStatus`가 `PAYMENT_REQUESTED`
   - `requestAccepted`가 `true`
 
-- [ ] DB 검증
+- [x] DB 검증
   - `Deposit.requestedAt`
   - `Deposit.depositorName`
   - `Order.paymentRequestedAt`
   - `OrderStatusHistory`
 
-- [ ] 이미 요청된 주문 재요청 케이스 검증
+- [x] 이미 요청된 주문 재요청 케이스 검증
   - `requestAccepted`가 `false`
 
-- [ ] 비허용 상태 차단 검증
+- [x] 비허용 상태 차단 검증
 
-- [ ] cleanup 검증
+- [x] cleanup 검증
 
 ### 5.3 커스텀 주문 링크
 
@@ -313,10 +313,13 @@ API 통합 테스트에서 확인할 것:
 마지막 확인 기준:
 
 - [x] `npm --prefix backend test -- --runInBand`
+- [x] `npm --prefix backend run test:integration`
 - [x] `cd backend && npm exec tsc -- --noEmit -p tsconfig.spec.json`
 - [x] `npm --prefix backend run build`
 
 현재 자동 테스트 기준:
 
-- 테스트 파일: 11개
-- 테스트 케이스: 43개
+- 단위 테스트 파일: 15개
+- 단위 테스트 케이스: 66개
+- 통합 테스트 파일: 2개
+- 통합 테스트 케이스: 4개
