@@ -2,10 +2,6 @@
   "name": "dodomiii-market-workspace",
   "private": true,
   "version": "0.1.0",
-  "workspaces": [
-    "backend",
-    "frontend"
-  ],
   "scripts": {
     "dev": "./scripts/dev.sh",
     "dev:backend": "npm --prefix backend run start:dev",
