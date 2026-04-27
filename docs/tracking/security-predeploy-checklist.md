@@ -12,10 +12,10 @@
 
 - [x] 공개 주문 조회 API에서 주문번호만으로 개인정보가 조회되지 않는다.
 - [x] 입금 확인 요청 API가 주문번호만으로 상태를 바꾸지 못한다.
-- [ ] 관리자 로그인에 rate limit 또는 실패 제한이 있다.
+- [x] 관리자 로그인에 rate limit 또는 실패 제한이 있다.
 - [x] 프로덕션 세션이 MemoryStore가 아닌 영속 store를 사용한다.
-- [ ] 프로덕션 필수 환경변수가 누락되면 서버가 시작되지 않는다.
-- [ ] 백엔드 의존성 취약점 audit 결과가 해결되어 있다.
+- [x] 프로덕션 필수 환경변수가 누락되면 서버가 시작되지 않는다.
+- [x] 백엔드 의존성 취약점 audit 결과가 해결되어 있다.
 
 ## P0 - 배포 전 필수
 
@@ -28,7 +28,7 @@
   - [ ] 또는 주문 생성 시 랜덤 조회 토큰 발급 후 토큰으로 조회
 - [x] 고객 공개 응답에서 `deposit.adminMemo`를 제거한다.
 - [x] 실패 시 주문 존재 여부가 쉽게 추측되지 않도록 에러 메시지를 일반화한다.
-- [ ] 테스트 추가: 올바른 검증값 없이는 상세/배송조회가 실패한다.
+- [x] 테스트 추가: 올바른 검증값 없이는 상세/배송조회가 실패한다.
 
 위험 설명:
 
@@ -48,7 +48,7 @@
 ### 2. 입금 확인 요청 보호
 
 - [x] `POST /store/orders/:orderNumber/deposit-requests`에 주문 소유자 검증을 추가한다.
-- [ ] 검증 실패 시 입금 상태가 바뀌지 않는 테스트를 추가한다.
+- [x] 검증 실패 시 입금 상태가 바뀌지 않는 테스트를 추가한다.
 - [x] 반복 요청이 알림을 과도하게 발생시키지 않는지 확인한다.
 
 위험 설명:
@@ -110,12 +110,22 @@
 - [x] `express-session` 기본 MemoryStore를 제거한다.
 - [x] Redis, Postgres, Supabase 호환 DB store 중 하나를 선택한다.
 - [x] 세션 TTL이 `SESSION_COOKIE_MAX_AGE_MS`와 일관되게 만료되는지 확인한다.
-- [ ] 서버 재시작 후 세션 동작 방식을 명확히 정한다.
+- [x] 서버 재시작 후 세션 동작 방식을 명확히 정한다.
 - [x] 스케일아웃 환경에서 여러 인스턴스가 같은 세션 store를 사용하도록 한다.
 
 위험 설명:
 
 현재 `express-session`에 별도 store가 없다. 기본 MemoryStore는 운영용이 아니며, 서버 재시작 시 로그인이 풀리고 여러 서버 인스턴스에서는 세션이 공유되지 않는다.
+
+현재 운영 동작:
+
+- 프로덕션에서는 `SESSION_REDIS_ENABLED=true`를 강제하고, `connect-redis` 기반 Redis session store를 사용한다.
+- 서버 프로세스가 재시작되어도 Redis에 세션 key가 남아 있고 브라우저 쿠키가 유효하면 관리자 로그인 세션은 유지된다.
+- Redis session TTL은 `SESSION_COOKIE_MAX_AGE_MS`를 초 단위로 환산해 설정한다.
+- Redis session key가 TTL 만료, 수동 삭제, eviction 등으로 사라지면 해당 쿠키를 가진 요청도 세션이 없는 것으로 처리된다.
+- 여러 백엔드 인스턴스가 같은 `REDIS_URL`과 `REDIS_KEY_PREFIX`를 사용하면 세션을 공유한다.
+- `SESSION_SECRET`을 운영 중 변경하면 기존 세션 쿠키 서명 검증이 깨질 수 있으므로 임의 변경하지 않는다.
+- Upstash 등 Redis 관리형 서비스에서 max data size 도달 시 eviction을 켜면 세션 key가 밀려날 수 있으므로 운영 세션 저장소에서는 용량/eviction 정책을 주의한다.
 
 관련 코드:
 
@@ -157,16 +167,20 @@
 
 ### 6. 백엔드 의존성 취약점 해결
 
-- [ ] `npm --prefix backend audit --omit=dev --audit-level=moderate` 결과를 0건으로 만든다.
-- [ ] `npm audit fix` 적용 가능 범위를 확인한다.
-- [ ] NestJS, `path-to-regexp`, `lodash`, `nodemailer` 관련 업데이트 후 빌드/테스트를 실행한다.
-- [ ] `npm --prefix frontend audit --omit=dev --audit-level=moderate`도 재확인한다.
+- [x] `npm --prefix backend audit --omit=dev --audit-level=moderate` 결과를 0건으로 만든다.
+- [x] `npm audit fix` 적용 가능 범위를 확인한다.
+- [x] NestJS, `path-to-regexp`, `lodash`, `nodemailer` 관련 업데이트 후 빌드/테스트를 실행한다.
+- [x] `npm --prefix frontend audit --omit=dev --audit-level=moderate`도 재확인한다.
 
 확인된 현재 상태:
 
-- 백엔드: 6 vulnerabilities
-  - high: `@nestjs/core`, `@nestjs/platform-express`, `path-to-regexp`, `lodash`
-  - moderate: `nodemailer`
+- 백엔드: 0 vulnerabilities
+  - `@nestjs/core`: 11.1.19
+  - `@nestjs/platform-express`: 11.1.19
+  - `@nestjs/config`: 4.0.4
+  - `path-to-regexp`: 8.4.2
+  - `lodash`: 4.18.1
+  - `nodemailer`: 8.0.6
 - 프론트엔드: 0 vulnerabilities
 
 ## P1 - 강력 권장
