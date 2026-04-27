@@ -7,7 +7,11 @@
         },
         "backend": {
             "entrypoint": "backend",
-            "routePrefix": "/_/backend"
+            "routePrefix": "/_/backend",
+            "includeFiles": [
+                "node_modules/nodemailer/**",
+                "backend/node_modules/nodemailer/**"
+            ]
         }
     }
 }

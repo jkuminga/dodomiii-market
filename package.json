@@ -11,5 +11,8 @@
     "dev:backend": "npm --prefix backend run start:dev",
     "dev:frontend": "npm --prefix frontend run dev -- --host localhost --port 5173",
     "check": "npm --prefix backend run build && npm --prefix frontend run build"
+  },
+  "dependencies": {
+    "nodemailer": "^8.0.7"
   }
 }
