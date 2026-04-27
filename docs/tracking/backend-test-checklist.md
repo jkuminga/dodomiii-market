@@ -230,54 +230,54 @@ npm run check
 
 ### 5.4 관리자 상품 생성
 
-- [ ] 카테고리 fixture 생성
+- [x] 카테고리 fixture 생성
 
-- [ ] `AdminService.createProduct(dto)` 호출
+- [x] `AdminService.createProduct(dto)` 호출
 
-- [ ] 응답 검증
+- [x] 응답 검증
   - 상품 기본 필드
   - 이미지 정렬
   - 옵션 그룹 정렬
   - 옵션 기본값
 
-- [ ] DB 검증
+- [x] DB 검증
   - `Product`
   - `ProductImage`
   - `ProductOptionGroup`
   - `ProductOption`
 
-- [ ] 캐시 무효화 호출 검증
+- [x] 캐시 무효화 호출 검증
   - `store:products:`
   - `store:product-detail:`
 
-- [ ] cleanup 검증
+- [x] cleanup 검증
 
 ### 5.5 주문 조회/트래킹
 
-- [ ] 주문 fixture 생성
+- [x] 주문 fixture 생성
   - contact
   - deposit
   - shipment
   - status history
 
-- [ ] `StoreService.getOrderByOrderNumber(orderNumber)` 호출
+- [x] `StoreService.getOrderByOrderNumber(orderNumber)` 호출
 
-- [ ] 주문 상세 응답 검증
+- [x] 주문 상세 응답 검증
   - 연락처
   - 가격
   - 입금 정보
   - 배송 snapshot
   - trackingEvents
 
-- [ ] `StoreService.getOrderTracking(orderNumber)` 호출
+- [x] `StoreService.getOrderTracking(orderNumber)` 호출
 
-- [ ] 트래킹 응답 검증
+- [x] 트래킹 응답 검증
   - orderStatus
   - shipmentStatus
   - trackingUrl
   - events 정렬
 
-- [ ] cleanup 검증
+- [x] cleanup 검증
 
 ## 6. API 통합 테스트 후보
 
@@ -321,5 +321,5 @@ API 통합 테스트에서 확인할 것:
 
 - 단위 테스트 파일: 15개
 - 단위 테스트 케이스: 66개
-- 통합 테스트 파일: 2개
-- 통합 테스트 케이스: 4개
+- 통합 테스트 파일: 4개
+- 통합 테스트 케이스: 7개
