@@ -10,19 +10,7 @@
             "routePrefix": "/_/backend",
             "includeFiles": [
                 "node_modules/nodemailer/**",
-                "node_modules/solapi/**",
-                "node_modules/date-fns/**",
-                "node_modules/effect/**",
-                "node_modules/fast-check/**",
-                "node_modules/pure-rand/**",
-                "node_modules/@standard-schema/**",
-                "backend/node_modules/nodemailer/**",
-                "backend/node_modules/solapi/**",
-                "backend/node_modules/date-fns/**",
-                "backend/node_modules/effect/**",
-                "backend/node_modules/fast-check/**",
-                "backend/node_modules/pure-rand/**",
-                "backend/node_modules/@standard-schema/**"
+                "backend/node_modules/nodemailer/**"
             ]
         }
     }
