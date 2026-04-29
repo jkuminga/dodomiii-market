@@ -192,6 +192,8 @@ Vite 환경변수는 build 시점에 번들에 포함된다. 값을 바꾸면 fr
 
 1. Supabase DB migration 적용 상태 확인
 2. `DATABASE_URL`은 session pooler 주소 사용
+   - Vercel serverless에서는 Prisma connection pool 폭증을 피해야 한다.
+   - 현재 `PrismaService`는 `DATABASE_URL`에 `connection_limit=1`이 없으면 런타임에 자동으로 추가한다.
 3. Storage/RLS 정책이 현재 운영 요구와 맞는지 확인
 4. `SUPABASE_SERVICE_ROLE_KEY`는 backend에만 설정
 5. `VITE_SUPABASE_ANON_KEY`는 frontend에만 공개값으로 설정

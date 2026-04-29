@@ -2,13 +2,32 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
 
+function appendConnectionLimit(url: string | undefined, connectionLimit: number): string | undefined {
+  if (!url) {
+    return undefined;
+  }
+
+  const parsed = new URL(url);
+  if (!parsed.searchParams.has('connection_limit')) {
+    parsed.searchParams.set('connection_limit', String(connectionLimit));
+  }
+
+  return parsed.toString();
+}
+
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
   private keepWarmTimer: NodeJS.Timeout | null = null;
 
   constructor(private readonly configService: ConfigService) {
-    super();
+    super({
+      datasources: {
+        db: {
+          url: appendConnectionLimit(configService.get<string>('DATABASE_URL'), 1),
+        },
+      },
+    });
   }
 
   async onModuleInit(): Promise<void> {
