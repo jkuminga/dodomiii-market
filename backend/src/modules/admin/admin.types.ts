@@ -5,6 +5,7 @@ import type {
   ProductOptionSelectionType,
   ProductImageType,
   ShipmentStatus,
+  UserWebFontSize,
 } from '@prisma/client';
 
 export type AdminCategoryResponse = {
@@ -262,6 +263,13 @@ export type AdminHomePopupResponse = {
 export type AdminHomeHeroResponse = {
   key: string;
   imageUrl: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminStorefrontSettingsResponse = {
+  key: string;
+  userWebFontSize: UserWebFontSize;
   createdAt: string;
   updatedAt: string;
 };

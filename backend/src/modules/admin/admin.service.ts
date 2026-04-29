@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, ProductImageType } from '@prisma/client';
+import { Prisma, ProductImageType, UserWebFontSize } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StoreCacheService } from '../store/store-cache.service';
@@ -16,6 +16,7 @@ import type {
   AdminCategoryResponse,
   AdminHomeHeroResponse,
   AdminHomePopupResponse,
+  AdminStorefrontSettingsResponse,
   AdminNoticeDetailResponse,
   AdminNoticeListItemResponse,
   AdminProductDetailResponse,
@@ -29,6 +30,7 @@ import { UpdateAdminHomeHeroDto } from './dto/update-admin-home-hero.dto';
 import { CreateAdminCategoryDto } from './dto/create-admin-category.dto';
 import { GetAdminNoticesQueryDto } from './dto/get-admin-notices.query.dto';
 import { UpdateAdminHomePopupDto } from './dto/update-admin-home-popup.dto';
+import { UpdateAdminStorefrontSettingsDto } from './dto/update-admin-storefront-settings.dto';
 import { CreateAdminProductDto } from './dto/create-admin-product.dto';
 import { GetAdminProductsQueryDto } from './dto/get-admin-products.query.dto';
 import { UpdateAdminCategoryDto } from './dto/update-admin-category.dto';
@@ -143,6 +145,16 @@ export class AdminService {
     return hero ? this.mapHomeHero(hero) : null;
   }
 
+  async getStorefrontSettings(): Promise<AdminStorefrontSettingsResponse> {
+    const settings = await this.prisma.storefrontSetting.upsert({
+      where: { key: 'default' },
+      create: { key: 'default' },
+      update: {},
+    });
+
+    return this.mapStorefrontSettings(settings);
+  }
+
   async upsertHomePopup(dto: UpdateAdminHomePopupDto): Promise<AdminHomePopupResponse> {
     const popupId = dto.popupId ? BigInt(dto.popupId) : null;
 
@@ -223,6 +235,22 @@ export class AdminService {
 
     this.storeCache.invalidateByPrefix('store:home-hero:');
     return this.mapHomeHero(result);
+  }
+
+  async updateStorefrontSettings(dto: UpdateAdminStorefrontSettingsDto): Promise<AdminStorefrontSettingsResponse> {
+    const result = await this.prisma.storefrontSetting.upsert({
+      where: { key: 'default' },
+      create: {
+        key: 'default',
+        userWebFontSize: dto.userWebFontSize,
+      },
+      update: {
+        userWebFontSize: dto.userWebFontSize,
+      },
+    });
+
+    this.storeCache.invalidateByPrefix('store:settings:');
+    return this.mapStorefrontSettings(result);
   }
 
   async getNotices(query: GetAdminNoticesQueryDto) {
@@ -1563,6 +1591,20 @@ export class AdminService {
       imageUrl: hero.imageUrl,
       createdAt: hero.createdAt.toISOString(),
       updatedAt: hero.updatedAt.toISOString(),
+    };
+  }
+
+  private mapStorefrontSettings(settings: {
+    key: string;
+    userWebFontSize: UserWebFontSize;
+    createdAt: Date;
+    updatedAt: Date;
+  }): AdminStorefrontSettingsResponse {
+    return {
+      key: settings.key,
+      userWebFontSize: settings.userWebFontSize,
+      createdAt: settings.createdAt.toISOString(),
+      updatedAt: settings.updatedAt.toISOString(),
     };
   }
 

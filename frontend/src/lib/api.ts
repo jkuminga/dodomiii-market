@@ -299,6 +299,15 @@ export type AdminHomeHero = {
   updatedAt: string;
 };
 
+export type UserWebFontSize = 'VERY_SMALL' | 'SMALL' | 'NORMAL' | 'LARGE' | 'VERY_LARGE';
+
+export type AdminStorefrontSettings = {
+  key: string;
+  userWebFontSize: UserWebFontSize;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AdminHomePopupPayload = {
   popupId?: number;
   title?: string | null;
@@ -455,6 +464,11 @@ export type StoreHomePopup = {
 
 export type StoreHomeHero = {
   imageUrl: string;
+  updatedAt: string;
+};
+
+export type StorefrontSettings = {
+  userWebFontSize: UserWebFontSize;
   updatedAt: string;
 };
 
@@ -1217,6 +1231,8 @@ export const apiClient = {
 
   getHomeHero: () => request<StoreHomeHero | null>('/store/home-hero'),
 
+  getStorefrontSettings: () => request<StorefrontSettings>('/store/settings'),
+
   getProducts: (query: { categorySlug?: string; q?: string; sort?: string; page?: number; size?: number }) =>
     request<{ items: ProductListItem[] } & { meta?: unknown }>(
       `/store/products${buildQueryString({
@@ -1282,6 +1298,8 @@ export const apiClient = {
 
   getAdminHomeHero: () => request<AdminHomeHero | null>('/admin/home-popup/hero-image'),
 
+  getAdminStorefrontSettings: () => request<AdminStorefrontSettings>('/admin/home-popup/storefront-settings'),
+
   upsertAdminHomePopup: (payload: AdminHomePopupPayload) =>
     request<AdminHomePopup>('/admin/home-popup', {
       method: 'PUT',
@@ -1290,6 +1308,12 @@ export const apiClient = {
 
   upsertAdminHomeHero: (payload: { imageUrl: string }) =>
     request<AdminHomeHero>('/admin/home-popup/hero-image', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  updateAdminStorefrontSettings: (payload: { userWebFontSize: UserWebFontSize }) =>
+    request<AdminStorefrontSettings>('/admin/home-popup/storefront-settings', {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),

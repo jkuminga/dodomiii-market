@@ -1,4 +1,4 @@
-import type { DepositStatus, OrderStatus, ShipmentStatus } from '@prisma/client';
+import type { DepositStatus, OrderStatus, ShipmentStatus, UserWebFontSize } from '@prisma/client';
 
 export type StoreOrderItemSnapshot = {
   productNameSnapshot: string;
@@ -113,6 +113,11 @@ export type StoreHomePopupResponse = {
 
 export type StoreHomeHeroResponse = {
   imageUrl: string;
+  updatedAt: string;
+};
+
+export type StorefrontSettingsResponse = {
+  userWebFontSize: UserWebFontSize;
   updatedAt: string;
 };
 

@@ -21,6 +21,7 @@ import {
   StoreDepositRequestResponse,
   StoreHomeHeroResponse,
   StoreHomePopupResponse,
+  StorefrontSettingsResponse,
   StoreNoticeContentBlock,
   StoreNoticeDetailResponse,
   StoreNoticeListItemResponse,
@@ -404,6 +405,21 @@ export class StoreService {
       return {
         imageUrl: hero.imageUrl,
         updatedAt: hero.updatedAt.toISOString(),
+      };
+    });
+  }
+
+  async getStorefrontSettings(): Promise<StorefrontSettingsResponse> {
+    return this.storeCache.getOrSet('store:settings:v1', STORE_HOME_POPUP_CACHE_TTL_MS, async () => {
+      const settings = await this.prisma.storefrontSetting.upsert({
+        where: { key: 'default' },
+        create: { key: 'default' },
+        update: {},
+      });
+
+      return {
+        userWebFontSize: settings.userWebFontSize,
+        updatedAt: settings.updatedAt.toISOString(),
       };
     });
   }

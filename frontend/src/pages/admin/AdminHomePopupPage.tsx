@@ -1,9 +1,9 @@
-import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { type CSSProperties, ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
 import { AdminFloatingSubmitButton } from '../../components/admin/AdminFloatingSubmitButton';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
-import { AdminHomeHero, AdminHomePopup, AdminMediaUsage, apiClient } from '../../lib/api';
+import { AdminHomeHero, AdminHomePopup, AdminMediaUsage, AdminStorefrontSettings, UserWebFontSize, apiClient } from '../../lib/api';
 import { AdminLayoutContext, formatAdminDateTime } from './adminUtils';
 
 type PopupFormState = {
@@ -17,6 +17,21 @@ type PopupFormState = {
 type HeroFormState = {
   imageUrl: string;
 };
+
+type StorefrontSettingsFormState = {
+  userWebFontSize: UserWebFontSize;
+};
+
+const USER_WEB_FONT_SIZE_OPTIONS: Array<{
+  value: UserWebFontSize;
+  label: string;
+}> = [
+  { value: 'VERY_SMALL', label: '매우 작음' },
+  { value: 'SMALL', label: '작음' },
+  { value: 'NORMAL', label: '보통' },
+  { value: 'LARGE', label: '큼' },
+  { value: 'VERY_LARGE', label: '매우 큼' },
+];
 
 const FLOATING_SUBMIT_SUCCESS_MS = 700;
 
@@ -57,22 +72,33 @@ function toHeroFormState(hero: AdminHomeHero | null): HeroFormState {
   };
 }
 
+function toStorefrontSettingsFormState(settings: AdminStorefrontSettings | null): StorefrontSettingsFormState {
+  return {
+    userWebFontSize: settings?.userWebFontSize ?? 'NORMAL',
+  };
+}
+
 export function AdminHomePopupPage() {
   const { showToast } = useOutletContext<AdminLayoutContext>();
 
   const [popup, setPopup] = useState<AdminHomePopup | null>(null);
   const [hero, setHero] = useState<AdminHomeHero | null>(null);
+  const [storefrontSettings, setStorefrontSettings] = useState<AdminStorefrontSettings | null>(null);
   const [form, setForm] = useState<PopupFormState>(toFormState(null));
   const [heroForm, setHeroForm] = useState<HeroFormState>(toHeroFormState(null));
+  const [storefrontSettingsForm, setStorefrontSettingsForm] = useState<StorefrontSettingsFormState>(toStorefrontSettingsFormState(null));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [heroSaving, setHeroSaving] = useState(false);
+  const [storefrontSettingsSaving, setStorefrontSettingsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [heroSaveSuccess, setHeroSaveSuccess] = useState(false);
+  const [storefrontSettingsSaveSuccess, setStorefrontSettingsSaveSuccess] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [heroUploading, setHeroUploading] = useState(false);
   const [error, setError] = useState('');
   const [heroError, setHeroError] = useState('');
+  const [storefrontSettingsError, setStorefrontSettingsError] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedHeroFile, setSelectedHeroFile] = useState<File | null>(null);
 
@@ -82,15 +108,22 @@ export function AdminHomePopupPage() {
     setHeroError('');
 
     try {
-      const [popupResult, heroResult] = await Promise.all([apiClient.getAdminHomePopup(), apiClient.getAdminHomeHero()]);
+      const [popupResult, heroResult, storefrontSettingsResult] = await Promise.all([
+        apiClient.getAdminHomePopup(),
+        apiClient.getAdminHomeHero(),
+        apiClient.getAdminStorefrontSettings(),
+      ]);
       setPopup(popupResult);
       setForm(toFormState(popupResult));
       setHero(heroResult);
       setHeroForm(toHeroFormState(heroResult));
+      setStorefrontSettings(storefrontSettingsResult);
+      setStorefrontSettingsForm(toStorefrontSettingsFormState(storefrontSettingsResult));
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : '홈 화면 설정 정보를 불러오지 못했습니다.';
       setError(message);
       setHeroError(message);
+      setStorefrontSettingsError(message);
     } finally {
       setLoading(false);
     }
@@ -113,6 +146,17 @@ export function AdminHomePopupPage() {
 
     if (heroError !== '') {
       setHeroError('');
+    }
+  };
+
+  const updateStorefrontSettingsField = <Key extends keyof StorefrontSettingsFormState>(
+    key: Key,
+    value: StorefrontSettingsFormState[Key],
+  ) => {
+    setStorefrontSettingsForm((current) => ({ ...current, [key]: value }));
+
+    if (storefrontSettingsError !== '') {
+      setStorefrontSettingsError('');
     }
   };
 
@@ -304,6 +348,32 @@ export function AdminHomePopupPage() {
     }
   };
 
+  const onSubmitStorefrontSettings = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    setStorefrontSettingsSaving(true);
+    setStorefrontSettingsSaveSuccess(false);
+    setStorefrontSettingsError('');
+
+    try {
+      const result = await apiClient.updateAdminStorefrontSettings({
+        userWebFontSize: storefrontSettingsForm.userWebFontSize,
+      });
+
+      setStorefrontSettings(result);
+      setStorefrontSettingsForm(toStorefrontSettingsFormState(result));
+      showToast('사용자 웹 글자 크기를 저장했습니다.');
+      setStorefrontSettingsSaveSuccess(true);
+      await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
+    } catch (caught) {
+      setStorefrontSettingsSaveSuccess(false);
+      setStorefrontSettingsError(caught instanceof Error ? caught.message : '사용자 웹 글자 크기 저장에 실패했습니다.');
+    } finally {
+      setStorefrontSettingsSaving(false);
+      setStorefrontSettingsSaveSuccess(false);
+    }
+  };
+
   const trimmedTitle = form.title.trim();
   const trimmedImageUrl = form.imageUrl.trim();
   const trimmedLinkUrl = form.linkUrl.trim();
@@ -320,6 +390,13 @@ export function AdminHomePopupPage() {
       : '이미지 선택 후 업로드하면 URL이 자동으로 입력됩니다.';
   const trimmedHeroImageUrl = heroForm.imageUrl.trim();
   const heroImageStatusLabel = loading ? '확인 중' : trimmedHeroImageUrl !== '' ? '준비됨' : '미설정';
+  const selectedFontSizeOption =
+    USER_WEB_FONT_SIZE_OPTIONS.find((option) => option.value === storefrontSettingsForm.userWebFontSize) ??
+    USER_WEB_FONT_SIZE_OPTIONS[2];
+  const selectedFontSizeIndex = Math.max(
+    USER_WEB_FONT_SIZE_OPTIONS.findIndex((option) => option.value === storefrontSettingsForm.userWebFontSize),
+    0,
+  );
   const selectedHeroFileMeta =
     selectedHeroFile !== null
       ? `${selectedHeroFile.type || '형식 미확인'} · ${formatFileSize(selectedHeroFile.size)}`
@@ -350,8 +427,72 @@ export function AdminHomePopupPage() {
             <span>히어로 이미지</span>
             <strong>{heroImageStatusLabel}</strong>
           </div>
+          <div className="admin-stat-card">
+            <span>사용자 웹 글자</span>
+            <strong>{loading ? '확인 중' : selectedFontSizeOption.label}</strong>
+          </div>
         </div>
       </section>
+
+      <form className="surface-card admin-card-stack" onSubmit={onSubmitStorefrontSettings} aria-busy={loading || storefrontSettingsSaving}>
+        <AdminFloatingSubmitButton
+          busy={storefrontSettingsSaving}
+          busyLabel="저장 중..."
+          disabled={storefrontSettingsSaving || loading}
+          label="글자 크기 저장"
+          success={storefrontSettingsSaveSuccess}
+        />
+        <div className="admin-section-head">
+          <div>
+            <p className="section-kicker">User Web</p>
+            <h3 className="section-subtitle">사용자 웹 글자 크기</h3>
+            <p className="section-copy section-copy-compact">
+              사용자 웹 전체의 글자 크기를 설정합니다. 기본 값은 보통입니다.
+            </p>
+          </div>
+          <button className="button" type="submit" disabled={storefrontSettingsSaving || loading}>
+            {storefrontSettingsSaving ? '저장 중...' : '저장'}
+          </button>
+        </div>
+
+        {storefrontSettingsError !== '' ? (
+          <p className="feedback-copy is-error" role="alert">
+            {storefrontSettingsError}
+          </p>
+        ) : null}
+
+        {loading ? (
+          <LoadingScreen mode="inline" title="글자 크기 설정 로딩 중" message="사용자 웹 표시 설정을 불러오고 있습니다." />
+        ) : (
+          <div
+            className="admin-font-size-slider"
+            style={{ '--selected-font-size-index': selectedFontSizeIndex } as CSSProperties}
+            aria-label="사용자 웹 글자 크기 선택"
+          >
+            <div className="admin-font-size-slider-track" aria-hidden="true">
+              <span className="admin-font-size-slider-dot" />
+            </div>
+            <div className="admin-font-size-slider-options">
+              {USER_WEB_FONT_SIZE_OPTIONS.map((option) => (
+                <label
+                  className={`admin-font-size-slider-option${storefrontSettingsForm.userWebFontSize === option.value ? ' is-selected' : ''}`}
+                  key={option.value}
+                >
+                  <input
+                    type="radio"
+                    name="userWebFontSize"
+                    value={option.value}
+                    checked={storefrontSettingsForm.userWebFontSize === option.value}
+                    onChange={() => updateStorefrontSettingsField('userWebFontSize', option.value)}
+                  />
+                  <span className="admin-font-size-slider-hit" aria-hidden="true" />
+                  <strong>{option.label}</strong>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+      </form>
 
       <form className="admin-two-column admin-home-popup-layout" onSubmit={onSubmit} aria-busy={loading || saving || uploading}>
         <AdminFloatingSubmitButton

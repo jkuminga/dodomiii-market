@@ -44,6 +44,16 @@ export class StoreController {
     };
   }
 
+  @Get('settings')
+  async getStorefrontSettings() {
+    const data = await this.storeService.getStorefrontSettings();
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
   @Get('notices')
   async getNotices() {
     const data = await this.storeService.getVisibleNotices();

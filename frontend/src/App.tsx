@@ -8,7 +8,7 @@ import { MobileHeader } from './components/mobile/MobileHeader';
 import { AnimatedCursor } from './components/store/AnimatedCursor';
 import { DesktopHeader } from './components/store/DesktopHeader';
 import { ProductArtwork } from './components/store/ProductArtwork';
-import { apiClient, CategoryTreeNode, ProductListItem, StoreHomeHero, StoreHomePopup } from './lib/api';
+import { apiClient, CategoryTreeNode, ProductListItem, StoreHomeHero, StoreHomePopup, UserWebFontSize } from './lib/api';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
 import { AdminAccountFormPage } from './pages/admin/AdminAccountFormPage';
 import { AdminAccountsPage } from './pages/admin/AdminAccountsPage';
@@ -537,12 +537,21 @@ function NotFoundPage() {
   return <Navigate to="/" replace />;
 }
 
+const STORE_FONT_SIZE_ATTRIBUTE: Record<UserWebFontSize, string> = {
+  VERY_SMALL: 'very-small',
+  SMALL: 'small',
+  NORMAL: 'normal',
+  LARGE: 'large',
+  VERY_LARGE: 'very-large',
+};
+
 function AppFrame() {
   const location = useLocation();
   const navigate = useNavigate();
   const isAdminRoute = location.pathname.startsWith('/admin');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [storeFontSize, setStoreFontSize] = useState<UserWebFontSize>('NORMAL');
   const [isDesktopViewport, setIsDesktopViewport] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 960px)').matches : false,
   );
@@ -566,6 +575,51 @@ function AppFrame() {
   useEffect(() => {
     setSearchOpen(false);
   }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (isAdminRoute) {
+      setStoreFontSize('NORMAL');
+      return;
+    }
+
+    const loadStorefrontSettings = async () => {
+      try {
+        const settings = await apiClient.getStorefrontSettings();
+        if (!cancelled) {
+          setStoreFontSize(settings.userWebFontSize);
+        }
+      } catch {
+        if (!cancelled) {
+          setStoreFontSize('NORMAL');
+        }
+      }
+    };
+
+    void loadStorefrontSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdminRoute]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    if (isAdminRoute) {
+      delete document.documentElement.dataset.storeFontSize;
+      return;
+    }
+
+    document.documentElement.dataset.storeFontSize = STORE_FONT_SIZE_ATTRIBUTE[storeFontSize];
+
+    return () => {
+      delete document.documentElement.dataset.storeFontSize;
+    };
+  }, [isAdminRoute, storeFontSize]);
 
   const openSearch = () => {
     setSearchKeyword('');

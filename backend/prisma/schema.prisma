@@ -47,6 +47,14 @@ enum AdminRole {
   STAFF
 }
 
+enum UserWebFontSize {
+  VERY_SMALL
+  SMALL
+  NORMAL
+  LARGE
+  VERY_LARGE
+}
+
 model Category {
   id              BigInt   @id @default(autoincrement())
   parentId        BigInt?  @map("parent_id")
@@ -338,6 +346,15 @@ model HomeHeroSetting {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("home_hero_settings")
+}
+
+model StorefrontSetting {
+  key             String          @id @default("default") @db.VarChar(30)
+  userWebFontSize UserWebFontSize @default(NORMAL) @map("user_web_font_size")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  @@map("storefront_settings")
 }
 
 model Notice {
