@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 function HomeIcon() {
@@ -40,13 +41,41 @@ type BottomNavProps = {
 
 export function BottomNav({ onOpenSearch }: BottomNavProps) {
   const location = useLocation();
+  const [isHidden, setIsHidden] = useState(false);
+  const lastScrollYRef = useRef(0);
+
+  useEffect(() => {
+    lastScrollYRef.current = window.scrollY;
+    setIsHidden(false);
+
+    const onScroll = () => {
+      const currentScrollY = window.scrollY;
+      const scrollDelta = currentScrollY - lastScrollYRef.current;
+
+      if (currentScrollY < 32) {
+        setIsHidden(false);
+      } else if (scrollDelta > 8) {
+        setIsHidden(true);
+      } else if (scrollDelta < -8) {
+        setIsHidden(false);
+      }
+
+      lastScrollYRef.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, [location.pathname]);
 
   if (location.pathname.startsWith('/products/') || location.pathname === '/admin/login') {
     return null;
   }
 
   return (
-    <nav className="m-bottom-nav" aria-label="하단 내비게이션">
+    <nav className={`m-bottom-nav ${isHidden ? 'is-hidden' : ''}`} aria-label="하단 내비게이션">
       <div className="m-bottom-nav-inner">
         {navItems.map((item) => {
           if (item.isSearch) {

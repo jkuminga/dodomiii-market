@@ -2707,6 +2707,127 @@ img {
   color: var(--muted);
 }
 
+.landing-footer {
+  display: grid;
+  overflow: hidden;
+  width: 100vw;
+  margin-top: 18px;
+  margin-right: calc(50% - 50vw);
+  margin-bottom: calc(-1 * var(--store-page-bottom-space, calc(108px + env(safe-area-inset-bottom))));
+  margin-left: calc(50% - 50vw);
+  border-top: 1px solid rgb(var(--primary-rgb) / 0.1);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.landing-footer-inner {
+  display: grid;
+  gap: 14px;
+  width: min(100%, var(--store-content-max-width, 100%));
+  margin: 0 auto;
+  padding: 18px 16px 22px;
+}
+
+.landing-footer-divider {
+  display: none;
+  width: 100%;
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: linear-gradient(90deg,
+      rgb(var(--primary-rgb) / 0),
+      rgb(var(--primary-rgb) / 0.24) 18%,
+      rgb(var(--primary-deep-rgb) / 0.22) 50%,
+      rgb(var(--primary-rgb) / 0.24) 82%,
+      rgb(var(--primary-rgb) / 0));
+}
+
+.landing-footer-brand {
+  display: none;
+  gap: 6px;
+}
+
+.landing-footer-kicker,
+.landing-footer-section h3 {
+  margin: 0;
+  color: var(--primary-deep);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.landing-footer-brand h2 {
+  margin: 0;
+  color: rgb(var(--primary-deep-rgb) / 0.98);
+  font-size: clamp(1.55rem, 7vw, 2.2rem);
+  line-height: 1.05;
+}
+
+.landing-footer-brand p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.landing-footer-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.landing-footer-section {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.landing-footer-section h3 {
+  display: none;
+}
+
+.landing-footer-list {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.landing-footer-list div {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+}
+
+.landing-footer-list dt {
+  color: rgb(var(--primary-deep-rgb) / 0.66);
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1.55;
+  white-space: nowrap;
+}
+
+.landing-footer-list dd {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  margin: 0;
+  color: rgb(42 48 40 / 0.84);
+  font-size: 0.83rem;
+  line-height: 1.55;
+  overflow-wrap: break-word;
+}
+
+.landing-footer-list a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.landing-footer-list a:hover,
+.landing-footer-list a:focus-visible {
+  color: var(--primary-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .category-row {
   display: flex;
   gap: 10px;
@@ -5014,6 +5135,14 @@ img {
   width: min(100%, var(--store-shell-max-width, 480px));
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
   background: transparent;
+  transition: transform 220ms ease, opacity 180ms ease;
+  will-change: transform, opacity;
+}
+
+.m-bottom-nav.is-hidden {
+  transform: translate(-50%, calc(100% + 16px));
+  opacity: 0;
+  pointer-events: none;
 }
 
 .m-bottom-nav-inner {
@@ -8084,6 +8213,63 @@ button.admin-list-card {
     font-size: 0.86rem;
   }
 
+  .app-shell.is-store.is-store-desktop .landing-footer-inner {
+    grid-template-columns: minmax(220px, 0.62fr) auto minmax(0, 2fr);
+    align-items: start;
+    column-gap: 34px;
+    row-gap: 0;
+    padding: 38px 42px 40px;
+  }
+
+  .app-shell.is-store.is-store-desktop .landing-footer-brand {
+    display: grid;
+  }
+
+  .app-shell.is-store.is-store-desktop .landing-footer-divider {
+    display: block;
+    grid-column: 2;
+    grid-row: 1;
+    align-self: stretch;
+    width: 1px;
+    height: auto;
+    background: linear-gradient(180deg,
+        rgb(var(--primary-rgb) / 0),
+        rgb(var(--primary-rgb) / 0.22) 18%,
+        rgb(var(--primary-deep-rgb) / 0.2) 50%,
+        rgb(var(--primary-rgb) / 0.22) 82%,
+        rgb(var(--primary-rgb) / 0));
+  }
+
+  .app-shell.is-store.is-store-desktop .landing-footer-grid {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .app-shell.is-store.is-store-desktop .landing-footer-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .app-shell.is-store.is-store-desktop .landing-footer-section {
+    grid-template-columns: 92px minmax(0, 1fr);
+    align-items: start;
+    gap: 24px;
+  }
+
+  .app-shell.is-store.is-store-desktop .landing-footer-section h3 {
+    display: block;
+    padding-top: 1px;
+  }
+
+  .app-shell.is-store.is-store-desktop .landing-footer-list {
+    gap: 6px;
+  }
+
+  .app-shell.is-store.is-store-desktop .landing-footer-list div {
+    grid-template-columns: 128px minmax(0, 1fr);
+    gap: 18px;
+  }
+
   .app-shell.is-store.is-store-desktop .home-page {
     grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 22px;
@@ -8091,6 +8277,7 @@ button.admin-list-card {
 
   .app-shell.is-store.is-store-desktop .home-page>.hero-stage,
   .app-shell.is-store.is-store-desktop .home-page>.landing-category-block,
+  .app-shell.is-store.is-store-desktop .home-page>.landing-footer,
   .app-shell.is-store.is-store-desktop .home-page>.home-section,
   .app-shell.is-store.is-store-desktop .home-page>.home-admin-entry {
     grid-column: 1 / -1;

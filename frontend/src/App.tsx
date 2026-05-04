@@ -326,6 +326,82 @@ function HomePage() {
         </div>
       </div>
 
+      <footer className="landing-footer" aria-labelledby="landing-footer-title">
+        <div className="landing-footer-inner">
+          <div className="landing-footer-brand">
+            <p className="landing-footer-kicker">DODOMII MARKET</p>
+            <h2 id="landing-footer-title">도도미마켓</h2>
+            <p>시들지 않는 마음을 전하는 핸드메이드 마켓</p>
+          </div>
+
+          <hr className="landing-footer-divider" />
+
+          <div className="landing-footer-grid">
+            <section className="landing-footer-section" aria-label="고객센터">
+              <h3>CS</h3>
+              <dl className="landing-footer-list">
+                <div>
+                  <dt>연락처</dt>
+                  <dd>
+                    <a href="tel:01085116605">010-8511-6605</a>
+                  </dd>
+                </div>
+                <div>
+                  <dt>이메일</dt>
+                  <dd>
+                    <a href="mailto:dodomiiiimarket@gmail.com">dodomiiiimarket@gmail.com</a>
+                    <a href="mailto:dhj0406@naver.com">dhj0406@naver.com</a>
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            <section className="landing-footer-section" aria-label="회사 정보">
+              <h3>COMPANY</h3>
+              <dl className="landing-footer-list">
+                <div>
+                  <dt>상호명</dt>
+                  <dd>도도미마켓</dd>
+                </div>
+                <div>
+                  <dt>대표자</dt>
+                  <dd>도현정</dd>
+                </div>
+                <div>
+                  <dt>사업자등록번호</dt>
+                  <dd>139-30-35084</dd>
+                </div>
+                <div>
+                  <dt>통신판매업신고번호</dt>
+                  <dd>확인 중</dd>
+                </div>
+                <div>
+                  <dt>호스팅서비스제공자</dt>
+                  <dd>확인 필요</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section className="landing-footer-section" aria-label="사업장 및 개인정보 안내">
+              <h3>INFO</h3>
+              <dl className="landing-footer-list">
+                <div>
+                  <dt>사업장주소</dt>
+                  <dd>울산광역시 남구 은월로2번길 23 (44644)</dd>
+                </div>
+                <div>
+                  <dt>개인정보처리방침</dt>
+                  <dd>
+                    주문 시 제공해주시는 개인정보는 배송 및 고객응대를 위해서만 사용되며, 관련 법령에 따라 안전하게
+                    사용됩니다.
+                  </dd>
+                </div>
+              </dl>
+            </section>
+          </div>
+        </div>
+      </footer>
+
       {/* <section className="promo-card section-rhythm-card">
         <p className="section-kicker">Signature</p>
         <h2 className="section-subtitle">선물용 패키지와 시즌 컬렉션을 한눈에</h2>
