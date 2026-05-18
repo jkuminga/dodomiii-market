@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import logoMain from './assets/images/Hero_image.png';
 import { LoadingScreen } from './components/common/LoadingScreen';
@@ -326,7 +326,7 @@ function HomePage() {
         </div>
       </div>
 
-      <footer className="landing-footer" aria-labelledby="landing-footer-title">
+      <footer className="landing-footer landing-footer-desktop" aria-labelledby="landing-footer-title">
         <div className="landing-footer-inner">
           <div className="landing-footer-brand">
             <p className="landing-footer-kicker">DODOMII MARKET</p>
@@ -399,6 +399,66 @@ function HomePage() {
               </dl>
             </section>
           </div>
+        </div>
+      </footer>
+
+      <footer className="landing-footer landing-footer-mobile" aria-label="도도미마켓 하단 정보">
+        <div className="landing-footer-inner">
+          <div className="landing-footer-mobile-contact">
+            <p className="landing-footer-mobile-name">도도미 마켓</p>
+            <p className="landing-footer-mobile-name-en">DODOMII MARKET</p>
+            <a href="mailto:dodomiiiimarket@gmail.com">dodomiiiimarket@gmail.com</a>
+            <a href="tel:01085116605">010-8511-6605</a>
+          </div>
+
+          <details className="landing-footer-mobile-details">
+            <summary>
+              <span>도도미마켓 정보</span>
+              <span className="landing-footer-mobile-chevron" aria-hidden="true" />
+            </summary>
+
+            <div className="landing-footer-mobile-panel">
+              <dl className="landing-footer-list">
+                <div>
+                  <dt>상호명</dt>
+                  <dd>도도미마켓</dd>
+                </div>
+                <div>
+                  <dt>대표자</dt>
+                  <dd>도현정</dd>
+                </div>
+                <div>
+                  <dt>사업자등록번호</dt>
+                  <dd>139-30-35084</dd>
+                </div>
+                <div>
+                  <dt>통신판매업신고번호</dt>
+                  <dd>확인 중</dd>
+                </div>
+                <div>
+                  <dt>호스팅서비스제공자</dt>
+                  <dd>확인 필요</dd>
+                </div>
+                <div>
+                  <dt>사업장주소</dt>
+                  <dd>울산광역시 남구 은월로2번길 23 (44644)</dd>
+                </div>
+                <div>
+                  <dt>개인정보처리방침</dt>
+                  <dd>
+                    주문 시 제공해주시는 개인정보는 배송 및 고객응대를 위해서만 사용되며, 관련 법령에 따라 안전하게
+                    사용됩니다.
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </details>
+
+          <nav className="landing-footer-mobile-links" aria-label="도도미마켓 정책 문서">
+            <Link to="/legal/terms">이용약관</Link>
+            <Link to="/legal/privacy">개인정보취급방침</Link>
+            <Link to="/legal/guide">이용안내</Link>
+          </nav>
         </div>
       </footer>
 
@@ -609,6 +669,55 @@ function SearchOverlay({ isOpen, keyword, onKeywordChange, onClose, onSubmit }: 
   );
 }
 
+const LEGAL_DOCUMENTS = {
+  terms: {
+    title: '이용약관',
+    description: '도도미마켓 이용약관 문서를 준비 중입니다.',
+  },
+  privacy: {
+    title: '개인정보취급방침',
+    description: '도도미마켓 개인정보취급방침 문서를 준비 중입니다.',
+  },
+  guide: {
+    title: '이용안내',
+    description: '도도미마켓 이용안내 문서를 준비 중입니다.',
+  },
+} as const;
+
+type LegalDocumentType = keyof typeof LEGAL_DOCUMENTS;
+
+function isLegalDocumentType(value: string | undefined): value is LegalDocumentType {
+  return value === 'terms' || value === 'privacy' || value === 'guide';
+}
+
+function LegalDocumentPage() {
+  const { documentType } = useParams();
+
+  if (!isLegalDocumentType(documentType)) {
+    return <Navigate to="/legal/terms" replace />;
+  }
+
+  const document = LEGAL_DOCUMENTS[documentType];
+
+  return (
+    <main className="m-page legal-document-page">
+      <section className="surface-card legal-document-shell" aria-labelledby="legal-document-title">
+        <div className="legal-document-head">
+          <p className="section-kicker">DODOMII MARKET</p>
+          <h1 id="legal-document-title" className="section-title legal-document-title">
+            {document.title}
+          </h1>
+        </div>
+
+        <article className="legal-document-body">
+          <p>{document.description}</p>
+          <p>추후 markdown 또는 텍스트 파일을 연결해 이 영역에 문서 본문을 렌더링할 예정입니다.</p>
+        </article>
+      </section>
+    </main>
+  );
+}
+
 function NotFoundPage() {
   return <Navigate to="/" replace />;
 }
@@ -731,6 +840,7 @@ function AppFrame() {
         <Route path="/notices" element={<NoticeListPage />} />
         <Route path="/notices/:noticeId" element={<NoticeDetailPage />} />
         <Route path="/inquery" element={<InqueryPage />} />
+        <Route path="/legal/:documentType" element={<LegalDocumentPage />} />
         <Route path="/orders" element={<OrderLookupPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/cart/order" element={<CartOrderPage />} />

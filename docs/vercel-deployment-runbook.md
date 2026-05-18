@@ -194,6 +194,7 @@ Vite 환경변수는 build 시점에 번들에 포함된다. 값을 바꾸면 fr
 2. `DATABASE_URL`은 session pooler 주소 사용
    - Vercel serverless에서는 Prisma connection pool 폭증을 피해야 한다.
    - 현재 `PrismaService`는 `DATABASE_URL`에 `connection_limit=1`이 없으면 런타임에 자동으로 추가한다.
+   - 단, `connection_limit=1`은 Vercel 함수 인스턴스 1개당 연결 수만 제한한다. 여러 함수 인스턴스가 동시에 뜨면 Supabase session pooler의 `pool_size`를 초과할 수 있다. 장애 대응과 transaction pooler 전환 전략은 `docs/backend-prisma-vercel-connection-strategy.md`를 참고한다.
 3. Storage/RLS 정책이 현재 운영 요구와 맞는지 확인
 4. `SUPABASE_SERVICE_ROLE_KEY`는 backend에만 설정
 5. `VITE_SUPABASE_ANON_KEY`는 frontend에만 공개값으로 설정
@@ -230,6 +231,10 @@ Value: https://api.dodomi.example.com/api/v1/warmup
 - 10분마다 `WARMUP_URL` 호출
 - 3초 뒤 한 번 더 호출
 - Actions 로그에 `http_code`, `time_starttransfer`, `time_total` 출력
+
+주의:
+- Supabase session pooler의 `pool_size`가 작을 때 warmer는 추가 Vercel 함수 인스턴스를 깨워 DB client slot을 점유할 수 있다.
+- `EMAXCONNSESSION` 또는 max clients 오류가 발생하면 warmer를 임시 중지하거나 빈도를 낮춘 뒤 `docs/backend-prisma-vercel-connection-strategy.md`의 절차를 따른다.
 
 수동 테스트:
 
