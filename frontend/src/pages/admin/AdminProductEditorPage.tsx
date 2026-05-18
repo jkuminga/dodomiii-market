@@ -12,6 +12,14 @@ import {
   AdminProductPayload,
 } from '../../lib/api';
 import { calculateDiscountedPrice, formatDiscountRate } from '../../lib/productPricing';
+import { ProductContentEditor } from './product-editor/ProductContentEditor';
+import {
+  buildProductContent,
+  createParagraphBlock,
+  productContentBlocksFromContent,
+  productContentPlainText,
+  ProductContentBlockDraft,
+} from './product-editor/productContentTypes';
 import {
   AdminLayoutContext,
   buildAdminCategoryOptions,
@@ -22,7 +30,6 @@ import {
 
 type ProductImageDraft = {
   key: string;
-  imageType: 'THUMBNAIL' | 'DETAIL';
   imageUrl: string;
   sortOrder: string;
 };
@@ -50,6 +57,7 @@ type ProductFormState = {
   isVisible: boolean;
   isSoldOut: boolean;
   consultationRequired: boolean;
+  contentBlocks: ProductContentBlockDraft[];
   images: ProductImageDraft[];
   options: ProductOptionDraft[];
 };
@@ -63,10 +71,9 @@ function nextDraftKey(prefix: string): string {
   return `${prefix}-${draftSequence}`;
 }
 
-function createImageDraft(imageType: 'THUMBNAIL' | 'DETAIL' = 'THUMBNAIL', sortOrder = '0'): ProductImageDraft {
+function createImageDraft(sortOrder = '0'): ProductImageDraft {
   return {
     key: nextDraftKey('image'),
-    imageType,
     imageUrl: '',
     sortOrder,
   };
@@ -98,6 +105,7 @@ function createEmptyForm(): ProductFormState {
     isVisible: true,
     isSoldOut: false,
     consultationRequired: false,
+    contentBlocks: [createParagraphBlock()],
     images: [],
     options: [],
   };
@@ -127,9 +135,18 @@ function formFromProduct(product: AdminProductDetail): ProductFormState {
     isVisible: product.isVisible,
     isSoldOut: product.isSoldOut,
     consultationRequired: product.consultationRequired,
+    contentBlocks: productContentBlocksFromContent(product.contentJson ?? null).map((block) => {
+      if (product.contentJson || block.type !== 'paragraph' || block.text.trim()) {
+        return block;
+      }
+
+      return {
+        ...block,
+        text: product.description ?? '',
+      };
+    }),
     images: product.images.map((image) => ({
       key: nextDraftKey('image'),
-      imageType: image.imageType,
       imageUrl: image.imageUrl,
       sortOrder: String(image.sortOrder),
     })),
@@ -161,8 +178,8 @@ function serializeFormState(form: ProductFormState): string {
     isVisible: form.isVisible,
     isSoldOut: form.isSoldOut,
     consultationRequired: form.consultationRequired,
-    images: form.images.map(({ imageType, imageUrl, sortOrder }) => ({
-      imageType,
+    contentJson: buildProductContent(form.contentBlocks),
+    images: form.images.map(({ imageUrl, sortOrder }) => ({
       imageUrl,
       sortOrder,
     })),
@@ -217,19 +234,14 @@ function buildImageInputsFromDrafts(images: ProductImageDraft[]): AdminProductIm
       }
 
       return {
-        imageType: image.imageType,
         imageUrl: image.imageUrl.trim(),
         sortOrder,
       };
     });
 }
 
-function sortImageDraftsByType(images: ProductImageDraft[]): ProductImageDraft[] {
+function sortImageDrafts(images: ProductImageDraft[]): ProductImageDraft[] {
   return [...images].sort((left, right) => {
-    if (left.imageType !== right.imageType) {
-      return left.imageType === 'THUMBNAIL' ? -1 : 1;
-    }
-
     const leftOrder = Number(left.sortOrder);
     const rightOrder = Number(right.sortOrder);
     const normalizedLeft = Number.isFinite(leftOrder) ? leftOrder : Number.MAX_SAFE_INTEGER;
@@ -369,15 +381,23 @@ function buildPayload(form: ProductFormState): AdminProductPayload {
     throw new Error('할인율은 0부터 100 사이의 숫자로 입력해주세요.');
   }
 
-  const images = buildImageInputsFromDrafts(sortImageDraftsByType(form.images));
+  const images = buildImageInputsFromDrafts(sortImageDrafts(form.images));
   const optionGroups = buildOptionGroupInputsFromDrafts(form.options);
+  const hasUploadingContentImage = form.contentBlocks.some((block) => block.type === 'image' && block.isUploading);
+  const contentJson = buildProductContent(form.contentBlocks);
+  const contentPlainText = productContentPlainText(form.contentBlocks);
+
+  if (hasUploadingContentImage) {
+    throw new Error('상품 상세 본문 이미지 업로드가 끝난 뒤 저장해주세요.');
+  }
 
   return {
     categoryId,
     name: trimmedName,
     slug: trimmedSlug,
     shortDescription: form.shortDescription.trim() || null,
-    description: form.description.trim() || null,
+    description: contentPlainText || form.description.trim() || null,
+    contentJson,
     basePrice,
     discountRate,
     isVisible: form.isVisible,
@@ -408,7 +428,7 @@ export function AdminProductEditorPage() {
   const [expandedOptionKey, setExpandedOptionKey] = useState<string | null>(null);
   const [isAddingImage, setIsAddingImage] = useState(false);
   const [isAddingOption, setIsAddingOption] = useState(false);
-  const [newImage, setNewImage] = useState<ProductImageDraft>(() => createImageDraft('THUMBNAIL'));
+  const [newImage, setNewImage] = useState<ProductImageDraft>(() => createImageDraft());
   const [newOption, setNewOption] = useState<ProductOptionDraft>(() => createOptionDraft());
   const [savedImageOrderSignature, setSavedImageOrderSignature] = useState('[]');
   const [savedOptionOrderSignature, setSavedOptionOrderSignature] = useState('[]');
@@ -430,7 +450,7 @@ export function AdminProductEditorPage() {
     setSelectedImageFiles({});
     setSelectedNewImageFile(null);
     setUploadingImageKey(null);
-    setNewImage(createImageDraft(nextForm.images.length > 0 ? 'DETAIL' : 'THUMBNAIL', getNextSortOrder(nextForm.images)));
+    setNewImage(createImageDraft(getNextSortOrder(nextForm.images)));
     setNewOption(createOptionDraft(getNextSortOrder(nextForm.options)));
   };
 
@@ -502,15 +522,10 @@ export function AdminProductEditorPage() {
     [form.options],
   );
   const activeOptionCount = useMemo(() => form.options.filter((option) => option.isActive).length, [form.options]);
-  const sortedImages = useMemo(() => sortImageDraftsByType(form.images), [form.images]);
-  const thumbnailImages = useMemo(() => sortedImages.filter((image) => image.imageType === 'THUMBNAIL'), [sortedImages]);
-  const detailImages = useMemo(() => sortedImages.filter((image) => image.imageType === 'DETAIL'), [sortedImages]);
+  const sortedImages = useMemo(() => sortImageDrafts(form.images), [form.images]);
   const imageGroups = useMemo(
-    () => [
-      { type: 'THUMBNAIL' as const, label: '썸네일', items: thumbnailImages },
-      { type: 'DETAIL' as const, label: '상세', items: detailImages },
-    ],
-    [thumbnailImages, detailImages],
+    () => [{ type: 'THUMBNAIL' as const, label: '썸네일', items: sortedImages }],
+    [sortedImages],
   );
   const optionGroupsForDisplay = useMemo(() => {
     const grouped = new Map<string, { label: string; items: ProductOptionDraft[] }>();
@@ -583,7 +598,7 @@ export function AdminProductEditorPage() {
     const sourceImage = form.images.find((image) => image.key === draggingImageKey);
     const targetImage = form.images.find((image) => image.key === key);
 
-    if (!sourceImage || !targetImage || sourceImage.imageType !== targetImage.imageType) {
+    if (!sourceImage || !targetImage) {
       return;
     }
 
@@ -603,7 +618,7 @@ export function AdminProductEditorPage() {
     const sourceImage = form.images.find((image) => image.key === sourceKey);
     const targetImage = form.images.find((image) => image.key === key);
 
-    if (!sourceImage || !targetImage || sourceImage.imageType !== targetImage.imageType) {
+    if (!sourceImage || !targetImage) {
       setDraggingImageKey(null);
       setDragOverImageKey(null);
       return;
@@ -659,7 +674,7 @@ export function AdminProductEditorPage() {
 
       if (nextOpen) {
         setExpandedImageKey(null);
-        setNewImage(createImageDraft(form.images.length > 0 ? 'DETAIL' : 'THUMBNAIL', getNextSortOrder(form.images)));
+        setNewImage(createImageDraft(getNextSortOrder(form.images)));
         setSelectedNewImageFile(null);
       }
 
@@ -694,7 +709,7 @@ export function AdminProductEditorPage() {
     setExpandedImageKey(newImage.key);
     setIsAddingImage(false);
     setSelectedNewImageFile(null);
-    setNewImage(createImageDraft('DETAIL', getNextSortOrder([...form.images, newImage])));
+    setNewImage(createImageDraft(getNextSortOrder([...form.images, newImage])));
   };
 
   const commitNewOption = () => {
@@ -733,9 +748,9 @@ export function AdminProductEditorPage() {
     return normalizedSlug || 'new-product';
   };
 
-  const uploadProductImageToCloudinary = async (file: File, imageType: 'THUMBNAIL' | 'DETAIL') => {
+  const uploadProductImageToCloudinary = async (file: File) => {
     const signed = await apiClient.signAdminUpload({
-      usage: imageType === 'THUMBNAIL' ? 'PRODUCT_THUMBNAIL' : 'PRODUCT_DETAIL',
+      usage: 'PRODUCT_THUMBNAIL',
       fileName: file.name,
       contentType: file.type,
       size: file.size,
@@ -789,6 +804,67 @@ export function AdminProductEditorPage() {
     return finalized.secureUrl;
   };
 
+  const uploadProductContentImageToCloudinary = async (file: File) => {
+    const signed = await apiClient.signAdminUpload({
+      usage: 'PRODUCT_DETAIL',
+      fileName: file.name,
+      contentType: file.type,
+      size: file.size,
+      folderSuffix: buildUploadFolderSuffix(),
+    });
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('api_key', signed.apiKey);
+    formData.append('timestamp', String(signed.timestamp));
+    formData.append('signature', signed.signature);
+    formData.append('folder', signed.folder);
+    formData.append('public_id', signed.publicId);
+
+    const uploadResponse = await fetch(signed.uploadUrl, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const uploadResult = (await uploadResponse.json().catch(() => ({}))) as {
+      public_id?: string;
+      version?: number;
+      secure_url?: string;
+      signature?: string;
+      resource_type?: 'image';
+      format?: string;
+      width?: number;
+      height?: number;
+      bytes?: number;
+      error?: {
+        message?: string;
+      };
+    };
+
+    if (!uploadResponse.ok || !uploadResult.public_id || !uploadResult.version || !uploadResult.secure_url) {
+      throw new Error(uploadResult.error?.message ?? 'Cloudinary 업로드에 실패했습니다.');
+    }
+
+    const finalized = await apiClient.finalizeAdminUpload({
+      publicId: uploadResult.public_id,
+      version: uploadResult.version,
+      secureUrl: uploadResult.secure_url,
+      signature: uploadResult.signature,
+      resourceType: uploadResult.resource_type,
+      format: uploadResult.format,
+      width: uploadResult.width,
+      height: uploadResult.height,
+      bytes: uploadResult.bytes,
+    });
+
+    return {
+      imageUrl: finalized.secureUrl,
+      publicId: finalized.publicId,
+      width: finalized.width,
+      height: finalized.height,
+    };
+  };
+
   const onSelectExistingImageFile = (imageKey: string, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
     setSelectedImageFiles((current) => ({ ...current, [imageKey]: file }));
@@ -812,10 +888,10 @@ export function AdminProductEditorPage() {
     setError('');
 
     try {
-      const secureUrl = await uploadProductImageToCloudinary(file, image.imageType);
+      const secureUrl = await uploadProductImageToCloudinary(file);
       replaceImage(image.key, { imageUrl: secureUrl });
       setSelectedImageFiles((current) => ({ ...current, [image.key]: null }));
-      showToast(`${image.imageType === 'THUMBNAIL' ? '썸네일' : '상세'} 이미지를 업로드했습니다.`);
+      showToast('썸네일 이미지를 업로드했습니다.');
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : '이미지 업로드에 실패했습니다.');
     } finally {
@@ -833,10 +909,10 @@ export function AdminProductEditorPage() {
     setError('');
 
     try {
-      const secureUrl = await uploadProductImageToCloudinary(selectedNewImageFile, newImage.imageType);
+      const secureUrl = await uploadProductImageToCloudinary(selectedNewImageFile);
       setNewImage((current) => ({ ...current, imageUrl: secureUrl }));
       setSelectedNewImageFile(null);
-      showToast(`${newImage.imageType === 'THUMBNAIL' ? '썸네일' : '상세'} 이미지 URL을 자동 입력했습니다.`);
+      showToast('썸네일 이미지 URL을 자동 입력했습니다.');
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : '이미지 업로드에 실패했습니다.');
     } finally {
@@ -895,7 +971,7 @@ export function AdminProductEditorPage() {
 
     try {
       await apiClient.updateAdminProduct(productId, {
-        images: buildImageInputsFromDrafts(sortImageDraftsByType(form.images)),
+        images: buildImageInputsFromDrafts(sortImageDrafts(form.images)),
       });
       setSavedImageOrderSignature(buildOrderSignature(form.images));
       showToast('이미지 순서를 적용했습니다.');
@@ -1166,10 +1242,15 @@ export function AdminProductEditorPage() {
                 />
               </label>
 
-              <label className="field admin-field-span-2">
-                <span>상세 설명</span>
-                <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
-              </label>
+              <section className="field admin-field-span-2">
+                <span>상세 본문</span>
+                <ProductContentEditor
+                  blocks={form.contentBlocks}
+                  formatFileSize={formatFileSize}
+                  onChange={(contentBlocks) => setForm((current) => ({ ...current, contentBlocks }))}
+                  onUploadImage={(file) => uploadProductContentImageToCloudinary(file)}
+                />
+              </section>
             </div>
 
 
@@ -1179,8 +1260,8 @@ export function AdminProductEditorPage() {
           <section className="admin-form-section">
             <div className="admin-section-head">
               <div>
-                <p className="section-kicker">Images</p>
-                <h3 className="section-subtitle">이미지</h3>
+                <p className="section-kicker">Thumbnail Images</p>
+                <h3 className="section-subtitle">썸네일 이미지</h3>
                 <span style={{ fontSize: "12px" }}>※ 드래그로 출력 순서 변경</span>
               </div>
               <div className="inline-actions">
@@ -1195,7 +1276,7 @@ export function AdminProductEditorPage() {
                   </button>
                 ) : null}
                 <button className="button button-secondary" type="button" onClick={toggleImageAddPanel}>
-                  {isAddingImage ? '추가 닫기' : '이미지 추가'}
+                  {isAddingImage ? '추가 닫기' : '+'}
                 </button>
               </div>
             </div>
@@ -1210,14 +1291,6 @@ export function AdminProductEditorPage() {
                 </div>
 
                 <div className="admin-field-grid">
-                  <label className="field">
-                    <span>이미지 타입</span>
-                    <select value={newImage.imageType} onChange={(event) => setNewImage((current) => ({ ...current, imageType: event.target.value as 'THUMBNAIL' | 'DETAIL' }))}>
-                      <option value="THUMBNAIL">썸네일</option>
-                      <option value="DETAIL">상세</option>
-                    </select>
-                  </label>
-
                   <label className="field">
                     <span>정렬 순서</span>
                     <input
@@ -1271,8 +1344,7 @@ export function AdminProductEditorPage() {
             {form.images.length === 0 ? (
               <section className="admin-empty-state admin-collection-empty">
                 <p className="section-kicker">Empty</p>
-                <h4 className="section-subtitle">등록된 이미지가 없습니다</h4>
-                <p className="section-copy">이미지는 필요한 시점에만 추가하고, 카드 하나씩 펼쳐 수정할 수 있습니다.</p>
+                <h4 className="section-subtitle" style={{fontSize : "15px"}}>등록된 이미지가 없습니다</h4>
               </section>
             ) : (
               <div className="admin-repeatable-grid">
@@ -1320,13 +1392,13 @@ export function AdminProductEditorPage() {
                                       {index + 1}. {group.label} 이미지
                                     </strong>
                                   </div>
-                                  <span className={`status-pill ${image.imageUrl.trim() ? '' : 'is-muted'}`}>
+                                  {/* <span className={`status-pill ${image.imageUrl.trim() ? '' : 'is-muted'}`}>
                                     {image.imageUrl.trim() ? '준비됨' : '미완료'}
-                                  </span>
+                                  </span> */}
                                 </div>
-                                <div className="admin-meta-row">
+                                {/* <div className="admin-meta-row">
                                   <span>정렬 {image.sortOrder || '-'}</span>
-                                </div>
+                                </div> */}
                               </div>
                             </button>
 
@@ -1350,17 +1422,6 @@ export function AdminProductEditorPage() {
                           {isExpanded ? (
                             <div className="admin-item-editor" id={`admin-image-panel-${image.key}`}>
                               <div className="admin-field-grid">
-                                <label className="field">
-                                  <span>이미지 타입</span>
-                                  <select
-                                    value={image.imageType}
-                                    onChange={(event) => replaceImage(image.key, { imageType: event.target.value as 'THUMBNAIL' | 'DETAIL' })}
-                                  >
-                                    <option value="THUMBNAIL">썸네일</option>
-                                    <option value="DETAIL">상세</option>
-                                  </select>
-                                </label>
-
                                 <label className="field">
                                   <span>정렬 순서</span>
                                   <input
@@ -1430,7 +1491,7 @@ export function AdminProductEditorPage() {
                   </button>
                 ) : null}
                 <button className="button button-secondary" type="button" onClick={toggleOptionAddPanel}>
-                  {isAddingOption ? '추가 닫기' : '옵션 추가'}
+                  {isAddingOption ? '추가 닫기' : '+'}
                 </button>
               </div>
             </div>
@@ -1542,8 +1603,7 @@ export function AdminProductEditorPage() {
             {form.options.length === 0 ? (
               <section className="admin-empty-state admin-collection-empty">
                 <p className="section-kicker">Empty</p>
-                <h4 className="section-subtitle">등록된 옵션이 없습니다</h4>
-                <p className="section-copy">옵션이 필요할 때만 추가하고, 기본은 모두 접힌 상태로 유지됩니다.</p>
+                <h4 className="section-subtitle" style={{fontSize:"15px"}}>등록된 옵션이 없습니다</h4>
               </section>
             ) : (
               <div className="admin-option-group-list">

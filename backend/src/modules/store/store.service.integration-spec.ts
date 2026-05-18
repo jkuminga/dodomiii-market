@@ -1,7 +1,6 @@
 import {
   DepositStatus,
   PrismaClient,
-  ProductImageType,
   ProductOptionSelectionType,
 } from '@prisma/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it, jest } from '@jest/globals';
@@ -213,11 +212,9 @@ describe('StoreService integration', () => {
     });
     createdProductIds.push(product.id);
 
-    await prisma.productImage.create({
+    await prisma.productThumbnail.create({
       data: {
-        productId: product.id,
-        imageType: ProductImageType.THUMBNAIL,
-        imageUrl: 'https://example.test/product-thumbnail.jpg',
+        productId: product.id,        imageUrl: 'https://example.test/product-thumbnail.jpg',
         sortOrder: 0,
       },
     });

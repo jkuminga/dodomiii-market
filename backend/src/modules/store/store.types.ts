@@ -121,6 +121,36 @@ export type StorefrontSettingsResponse = {
   updatedAt: string;
 };
 
+export type StoreProductContentBlock =
+  | {
+      type: 'paragraph';
+      text: string;
+    }
+  | {
+      type: 'quote';
+      text: string;
+    }
+  | {
+      type: 'divider';
+    }
+  | {
+      type: 'image';
+      imageUrl: string;
+      alt: string | null;
+      caption: string | null;
+      linkUrl: string | null;
+      align: 'left' | 'center' | 'right';
+      widthMode: 'small' | 'content' | 'wide';
+      width: number | null;
+      height: number | null;
+      isCover: boolean;
+    };
+
+export type StoreProductContent = {
+  version: number;
+  blocks: StoreProductContentBlock[];
+};
+
 export type StoreNoticeContentBlock =
   | {
       type: 'text';

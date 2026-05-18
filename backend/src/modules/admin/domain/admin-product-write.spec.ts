@@ -1,4 +1,4 @@
-import { ProductImageType, ProductOptionSelectionType } from '@prisma/client';
+import { ProductOptionSelectionType } from '@prisma/client';
 import { describe, expect, it } from '@jest/globals';
 
 import { normalizeProductImages, normalizeProductOptionGroups } from './admin-product-write';
@@ -8,24 +8,20 @@ describe('admin product write rules', () => {
     expect(
       normalizeProductImages([
         {
-          imageType: ProductImageType.THUMBNAIL,
-          imageUrl: 'https://cdn.example.test/thumb.jpg',
+        imageUrl: 'https://cdn.example.test/thumb-b.jpg',
         },
         {
-          imageType: ProductImageType.DETAIL,
-          imageUrl: 'https://cdn.example.test/detail.jpg',
+        imageUrl: 'https://cdn.example.test/thumb-a.jpg',
           sortOrder: 10,
         },
       ]),
     ).toEqual([
       {
-        imageType: ProductImageType.THUMBNAIL,
-        imageUrl: 'https://cdn.example.test/thumb.jpg',
+        imageUrl: 'https://cdn.example.test/thumb-b.jpg',
         sortOrder: 0,
       },
       {
-        imageType: ProductImageType.DETAIL,
-        imageUrl: 'https://cdn.example.test/detail.jpg',
+        imageUrl: 'https://cdn.example.test/thumb-a.jpg',
         sortOrder: 10,
       },
     ]);

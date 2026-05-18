@@ -1,13 +1,11 @@
-import type { ProductImageType, ProductOptionSelectionType } from '@prisma/client';
+import type { ProductOptionSelectionType } from '@prisma/client';
 
 export type AdminProductImageInput = {
-  imageType: ProductImageType;
   imageUrl: string;
   sortOrder?: number;
 };
 
 export type NormalizedAdminProductImage = {
-  imageType: ProductImageType;
   imageUrl: string;
   sortOrder: number;
 };
@@ -50,7 +48,6 @@ export function normalizeProductImages(
   images: AdminProductImageInput[],
 ): NormalizedAdminProductImage[] {
   return images.map((image, index) => ({
-    imageType: image.imageType,
     imageUrl: image.imageUrl,
     sortOrder: image.sortOrder ?? index,
   }));

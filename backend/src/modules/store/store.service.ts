@@ -27,6 +27,8 @@ import {
   StoreNoticeListItemResponse,
   StoreOrderContact,
   StoreOrderDetailResponse,
+  StoreProductContent,
+  StoreProductContentBlock,
   StoreOrderTrackingResponse,
 } from './store.types';
 import {
@@ -185,8 +187,7 @@ const storeOrderDetailArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
         productNameSnapshot: true,
         product: {
           select: {
-            images: {
-              where: { imageType: 'THUMBNAIL' },
+            thumbnails: {
               orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
               take: 1,
               select: {
@@ -565,8 +566,7 @@ export class StoreService {
                 name: true,
               },
             },
-            images: {
-              where: { imageType: 'THUMBNAIL' },
+            thumbnails: {
               orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
               take: 1,
               select: {
@@ -591,7 +591,7 @@ export class StoreService {
           discountRate: product.discountRate,
           isSoldOut: product.isSoldOut,
           consultationRequired: product.consultationRequired,
-          thumbnailImageUrl: product.images[0]?.imageUrl ?? null,
+          thumbnailImageUrl: product.thumbnails[0]?.imageUrl ?? null,
         })),
         meta: {
           page,
@@ -613,7 +613,7 @@ export class StoreService {
     }
 
     return this.storeCache.getOrSet(
-      `store:product-detail:v2:${parsedId}`,
+      `store:product-detail:v3:${parsedId}`,
       STORE_PRODUCT_DETAIL_CACHE_TTL_MS,
       async () => {
         const product = await this.prisma.product.findFirst({
@@ -629,11 +629,10 @@ export class StoreService {
                 name: true,
               },
             },
-            images: {
+            thumbnails: {
               orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
               select: {
                 id: true,
-                imageType: true,
                 imageUrl: true,
                 sortOrder: true,
               },
@@ -674,13 +673,13 @@ export class StoreService {
           slug: product.slug,
           shortDescription: product.shortDescription,
           description: product.description,
+          contentJson: this.normalizeProductContent(product.contentJson),
           basePrice: product.basePrice,
           discountRate: product.discountRate,
           isSoldOut: product.isSoldOut,
           consultationRequired: product.consultationRequired,
-          images: product.images.map((image) => ({
+          images: product.thumbnails.map((image) => ({
             id: Number(image.id),
-            imageType: image.imageType,
             imageUrl: image.imageUrl,
             sortOrder: image.sortOrder,
           })),
@@ -1679,7 +1678,7 @@ export class StoreService {
       customerRequest: order.customerRequest,
       items: order.items.map((item) => ({
         productNameSnapshot: item.productNameSnapshot,
-        thumbnailImageUrl: item.product.images[0]?.imageUrl ?? null,
+        thumbnailImageUrl: item.product.thumbnails[0]?.imageUrl ?? null,
         optionNameSnapshot: item.optionNameSnapshot,
         optionValueSnapshot: item.optionValueSnapshot,
         unitPrice: item.unitPrice,
@@ -1750,6 +1749,60 @@ export class StoreService {
             return accumulator;
           }, [])
         : [],
+    };
+  }
+
+  private normalizeProductContent(content: Prisma.JsonValue | null): StoreProductContent | null {
+    if (!content) {
+      return null;
+    }
+
+    const rawVersion =
+      typeof content === 'object' && 'version' in content ? (content as { version?: unknown }).version : 1;
+    const rawBlocks =
+      typeof content === 'object' && 'blocks' in content ? (content as { blocks?: unknown }).blocks : [];
+
+    const blocks = Array.isArray(rawBlocks)
+      ? rawBlocks.reduce<StoreProductContentBlock[]>((accumulator, block) => {
+          if (!block || typeof block !== 'object' || !('type' in block)) {
+            return accumulator;
+          }
+
+          if ((block.type === 'paragraph' || block.type === 'quote') && typeof block.text === 'string') {
+            accumulator.push({
+              type: block.type,
+              text: block.text,
+            });
+            return accumulator;
+          }
+
+          if (block.type === 'divider') {
+            accumulator.push({ type: 'divider' });
+            return accumulator;
+          }
+
+          if (block.type === 'image' && typeof block.imageUrl === 'string') {
+            accumulator.push({
+              type: 'image',
+              imageUrl: block.imageUrl,
+              alt: typeof block.alt === 'string' ? block.alt : null,
+              caption: typeof block.caption === 'string' ? block.caption : null,
+              linkUrl: typeof block.linkUrl === 'string' ? block.linkUrl : null,
+              align: block.align === 'left' || block.align === 'right' ? block.align : 'center',
+              widthMode: block.widthMode === 'small' || block.widthMode === 'wide' ? block.widthMode : 'content',
+              width: typeof block.width === 'number' && Number.isFinite(block.width) ? block.width : null,
+              height: typeof block.height === 'number' && Number.isFinite(block.height) ? block.height : null,
+              isCover: typeof block.isCover === 'boolean' ? block.isCover : false,
+            });
+          }
+
+          return accumulator;
+        }, [])
+      : [];
+
+    return {
+      version: typeof rawVersion === 'number' && Number.isFinite(rawVersion) ? rawVersion : 1,
+      blocks,
     };
   }
 

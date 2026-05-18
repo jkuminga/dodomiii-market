@@ -3,6 +3,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 
 import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { ProductArtwork } from '../../components/store/ProductArtwork';
+import { ProductContentRenderer } from '../../components/store/ProductContentRenderer';
 import { apiClient, ProductDetail } from '../../lib/api';
 import { addCartItem } from '../../lib/cart';
 import { calculateDiscountedPrice, formatDiscountRate } from '../../lib/productPricing';
@@ -167,17 +168,9 @@ export function ProductDetailPage() {
     );
   }
 
-  const orderedImages = [...product.images].sort((left, right) => {
-    if (left.imageType !== right.imageType) {
-      return left.imageType === 'THUMBNAIL' ? -1 : 1;
-    }
+  const thumbnailImages = [...product.images].sort((left, right) => left.sortOrder - right.sortOrder);
 
-    return left.sortOrder - right.sortOrder;
-  });
-  const thumbnailImages = orderedImages.filter((image) => image.imageType === 'THUMBNAIL');
-  const detailImages = orderedImages.filter((image) => image.imageType === 'DETAIL');
-
-  const activeImage = thumbnailImages[selectedImageIndex] ?? thumbnailImages[0] ?? orderedImages[0];
+  const activeImage = thumbnailImages[selectedImageIndex] ?? thumbnailImages[0];
   const selectedThumbnailIndex =
     thumbnailImages.length === 0 ? 0 : Math.min(selectedImageIndex, Math.max(thumbnailImages.length - 1, 0));
 
@@ -302,7 +295,7 @@ export function ProductDetailPage() {
       productId: product.id,
       productName: product.name,
       categoryName: product.categoryName,
-      thumbnailImageUrl: product.images.find((image) => image.imageType === 'THUMBNAIL')?.imageUrl ?? product.images[0]?.imageUrl ?? null,
+      thumbnailImageUrl: product.images[0]?.imageUrl ?? null,
       basePrice: discountedBasePrice,
       productQuantity: 1,
       selectedOptions: selectedOptions.map((entry) => ({
@@ -377,11 +370,6 @@ export function ProductDetailPage() {
                   <ProductArtwork src={image.imageUrl} name={product.name} category={product.categoryName} />
                 </div>
               ))}
-              {thumbnailImages.length === 0 && orderedImages.length > 0 && (
-                <div className="detail-carousel-slide">
-                  <ProductArtwork src={orderedImages[0].imageUrl} name={product.name} category={product.categoryName} />
-                </div>
-              )}
             </div>
 
             <div className="detail-media-overlay">
@@ -477,10 +465,11 @@ export function ProductDetailPage() {
             <span className="benefit-label">환불</span>
             <p>{product.policy.refundInfo}</p>
           </div>
-          <div className="benefit-item">
+          {product.consultationRequired ? 
+            (<div className="benefit-item">
             <span className="benefit-label">주문 방식</span>
-            <p>{product.consultationRequired ? '상담 후 주문이 필요한 상품입니다.' : '현재 화면에서는 상품 정보 확인에 집중했습니다.'}</p>
-          </div>
+            <p>상담 후 주문이 필요한 상품입니다.</p>
+          </div>): null }
         </section>
 
         <section className="surface-card detail-order-card">
@@ -753,20 +742,11 @@ export function ProductDetailPage() {
           <div className="tab-panel">
             {activeTab === 'story' ? (
               <div className="policy-copy">
-                {detailImages.length > 0 ? (
-                  <div className="detail-story-images" aria-label="상품 상세 이미지">
-                    {detailImages.map((image, index) => (
-                      <div className="detail-story-image-frame" key={image.id}>
-                        <img
-                          className="detail-story-original-image"
-                          src={image.imageUrl}
-                          alt={`${product.name} 상세 이미지 ${index + 1}`}
-                          loading="lazy"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
+                {product.contentJson?.blocks.length ? (
+                  <ProductContentRenderer content={product.contentJson} />
+                ) : (
+                  <p className="feedback-copy">{product.description ?? '등록된 상세 본문이 없습니다.'}</p>
+                )}
               </div>
             ) : null}
 
