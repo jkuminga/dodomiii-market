@@ -775,6 +775,7 @@ export class StoreService {
           },
           {
             isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+            timeout: 15000,
           },
         );
 
