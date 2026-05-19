@@ -1253,19 +1253,7 @@ export function AdminProductEditorPage() {
                 />
               </label>
 
-              <section className="field admin-field-span-2">
-                <span>상세 본문</span>
-                <ProductContentEditor
-                  blocks={form.contentBlocks}
-                  formatFileSize={formatFileSize}
-                  onChange={(contentBlocks) => setForm((current) => ({ ...current, contentBlocks }))}
-                  onDeleteImage={deleteProductContentImageFromCloudinary}
-                  onUploadImage={(file) => uploadProductContentImageToCloudinary(file)}
-                />
-              </section>
             </div>
-
-
           </section>
           <br />
 
@@ -1794,6 +1782,29 @@ export function AdminProductEditorPage() {
                 ))}
               </div>
             )}
+          </section>
+          <br />
+
+          <section className="admin-form-section">
+            <div className="admin-section-head">
+              <div>
+                <p className="section-kicker">Content Editor</p>
+                <h3 className="section-subtitle">상품 상세 정보</h3>
+              </div>
+            </div>
+
+            <div className="admin-field-grid">
+              <section className="field admin-field-span-2">
+                <span>상세 본문 캔버스</span>
+                <ProductContentEditor
+                  blocks={form.contentBlocks}
+                  formatFileSize={formatFileSize}
+                  onChange={(contentBlocks) => setForm((current) => ({ ...current, contentBlocks }))}
+                  onDeleteImage={deleteProductContentImageFromCloudinary}
+                  onUploadImage={(file) => uploadProductContentImageToCloudinary(file)}
+                />
+              </section>
+            </div>
           </section>
 
           {error ? (

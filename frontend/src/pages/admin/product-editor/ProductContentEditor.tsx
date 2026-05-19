@@ -27,6 +27,7 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const [openImageSettingsKey, setOpenImageSettingsKey] = useState<string | null>(null);
   const blocksRef = useRef(blocks);
 
   useEffect(() => {
@@ -56,6 +57,7 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
     blocksRef.current = nextBlocks;
     onChange(nextBlocks);
     setActiveKey((current) => (current === key ? null : current));
+    setOpenImageSettingsKey((current) => (current === key ? null : current));
 
     if (removedBlock?.type === 'image' && removedBlock.publicId.trim()) {
       onDeleteImage(removedBlock.publicId.trim());
@@ -193,9 +195,11 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
               index={index}
               onActivate={() => setActiveKey(block.key)}
               onChange={(patch) => updateBlock(block.key, patch)}
+              imageSettingsOpen={openImageSettingsKey === block.key}
               onMove={(direction) => moveBlock(block.key, direction)}
               onRemove={() => removeBlock(block.key)}
               onSelectFiles={(files) => insertFiles(files, index + 1)}
+              onToggleImageSettings={() => setOpenImageSettingsKey((current) => (current === block.key ? null : block.key))}
               onUploadFile={(file) => uploadIntoBlock(block.key, file)}
               onDragStart={(event) => {
                 setDraggingKey(block.key);
@@ -227,9 +231,11 @@ type ProductContentBlockEditorProps = {
   index: number;
   onActivate: () => void;
   onChange: (patch: Partial<ProductContentBlockDraft>) => void;
+  imageSettingsOpen: boolean;
   onMove: (direction: -1 | 1) => void;
   onRemove: () => void;
   onSelectFiles: (files: FileList) => void;
+  onToggleImageSettings: () => void;
   onUploadFile: (file: File) => void;
   onDragStart: (event: DragEvent<HTMLElement>) => void;
   onDragEnd: () => void;
@@ -242,9 +248,11 @@ function ProductContentBlockEditor({
   index,
   onActivate,
   onChange,
+  imageSettingsOpen,
   onMove,
   onRemove,
   onSelectFiles,
+  onToggleImageSettings,
   onUploadFile,
   onDragStart,
   onDragEnd,
@@ -300,7 +308,66 @@ function ProductContentBlockEditor({
       {block.type === 'image' ? (
         <div className="product-content-image-editor">
           {block.imageUrl ? (
-            <img className={`align-${block.align} width-${block.widthMode}`} src={block.imageUrl} alt={block.alt || block.caption || ''} />
+            <div className={`product-content-image-frame align-${block.align} width-${block.widthMode}`}>
+              <img src={block.imageUrl} alt={block.alt || block.caption || ''} />
+              <button
+                className="product-content-image-settings-button"
+                type="button"
+                aria-expanded={imageSettingsOpen}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onToggleImageSettings();
+                }}
+              >
+                설정
+              </button>
+              {imageSettingsOpen ? (
+                <div className="product-content-image-settings-popover" onClick={(event) => event.stopPropagation()}>
+                  <div className="product-content-image-settings-head">
+                    <strong>이미지 설정</strong>
+                    {block.width && block.height ? <span>{`${block.width}x${block.height}`}</span> : null}
+                  </div>
+                  <label className="button button-ghost product-content-image-replace">
+                    이미지 교체
+                    <input className="sr-only" type="file" accept="image/*" onChange={onFileChange} />
+                  </label>
+                  <label className="field">
+                    <span>크기</span>
+                    <select
+                      value={block.widthMode}
+                      onChange={(event) => onChange({ widthMode: event.target.value as 'small' | 'content' | 'wide' } as Partial<ProductContentBlockDraft>)}
+                    >
+                      <option value="small">작게</option>
+                      <option value="content">본문 너비</option>
+                      <option value="wide">넓게</option>
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>정렬</span>
+                    <select
+                      value={block.align}
+                      onChange={(event) => onChange({ align: event.target.value as 'left' | 'center' | 'right' } as Partial<ProductContentBlockDraft>)}
+                    >
+                      <option value="left">왼쪽</option>
+                      <option value="center">가운데</option>
+                      <option value="right">오른쪽</option>
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>대체 텍스트</span>
+                    <input value={block.alt} onChange={(event) => onChange({ alt: event.target.value } as Partial<ProductContentBlockDraft>)} />
+                  </label>
+                  <label className="field">
+                    <span>링크</span>
+                    <input
+                      value={block.linkUrl}
+                      onChange={(event) => onChange({ linkUrl: event.target.value } as Partial<ProductContentBlockDraft>)}
+                      placeholder="https://..."
+                    />
+                  </label>
+                </div>
+              ) : null}
+            </div>
           ) : (
             <label
               className="product-content-image-drop"
@@ -322,40 +389,12 @@ function ProductContentBlockEditor({
 
           {block.uploadError ? <p className="feedback-copy is-error">{block.uploadError}</p> : null}
 
-          <div className="product-content-image-toolbar">
-            <label className="button button-ghost">
-              이미지 교체
-              <input className="sr-only" type="file" accept="image/*" onChange={onFileChange} />
-            </label>
-            <select value={block.widthMode} onChange={(event) => onChange({ widthMode: event.target.value as 'small' | 'content' | 'wide' } as Partial<ProductContentBlockDraft>)}>
-              <option value="small">작게</option>
-              <option value="content">본문 너비</option>
-              <option value="wide">넓게</option>
-            </select>
-            <select value={block.align} onChange={(event) => onChange({ align: event.target.value as 'left' | 'center' | 'right' } as Partial<ProductContentBlockDraft>)}>
-              <option value="left">왼쪽</option>
-              <option value="center">가운데</option>
-              <option value="right">오른쪽</option>
-            </select>
-            {block.width && block.height ? <span>{`${block.width}x${block.height}`}</span> : null}
-          </div>
-
           <input
             className="product-content-caption-input"
             value={block.caption}
             onChange={(event) => onChange({ caption: event.target.value } as Partial<ProductContentBlockDraft>)}
             placeholder="이미지 설명 입력"
           />
-          <div className="admin-field-grid product-content-image-meta">
-            <label className="field">
-              <span>대체 텍스트</span>
-              <input value={block.alt} onChange={(event) => onChange({ alt: event.target.value } as Partial<ProductContentBlockDraft>)} />
-            </label>
-            <label className="field">
-              <span>링크</span>
-              <input value={block.linkUrl} onChange={(event) => onChange({ linkUrl: event.target.value } as Partial<ProductContentBlockDraft>)} placeholder="https://..." />
-            </label>
-          </div>
           {block.isUploading ? <p className="admin-inline-note">업로드 중인 파일은 저장 전에 완료되어야 합니다.</p> : null}
         </div>
       ) : null}
