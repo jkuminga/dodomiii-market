@@ -1321,7 +1321,7 @@ export class StoreService {
     },
   ): Promise<StoreCreatedOrderResponse> {
     const depositDeadlineAt = this.getDepositDeadlineAt(params.now);
-    const depositInfo = await this.getDepositAccountInfo();
+    const depositInfo = await this.getDepositAccountInfo(tx);
     const normalizedContactAddress = normalizeOrderContactAddress(params.contact);
 
     const order = await tx.order.create({
@@ -1443,8 +1443,8 @@ export class StoreService {
     return Number(this.configService.get<number>('ORDER_SHIPPING_FEE', 3000));
   }
 
-  private async getDepositAccountInfo(): Promise<DepositAccountInfo> {
-    const primaryAdminDepositAccount = await this.prisma.admin.findFirst({
+  private async getDepositAccountInfo(client: Prisma.TransactionClient = this.prisma): Promise<DepositAccountInfo> {
+    const primaryAdminDepositAccount = await client.admin.findFirst({
       where: {
         isActive: true,
         isPrimaryDepositAccount: true,
