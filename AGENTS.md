@@ -33,3 +33,6 @@
   - this path was tested successfully against `notices` using a temporary dummy row and immediate cleanup
 - After any manual migration, check `_prisma_migrations` explicitly and confirm the new migration row exists with an applied state.
 - Do not assume `_prisma_migrations` is clean. This database already has prior rolled-back entries mixed with finished entries, so inspect the current state before deciding whether a migration is "managed" by Prisma.
+
+## Git Commit/push
+- NEVER commit/push yourself without my request
