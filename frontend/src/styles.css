@@ -8763,6 +8763,64 @@ button.admin-list-card {
   color: #2563eb;
 }
 
+.product-content-toolbar-button {
+  position: relative;
+  display: inline-grid;
+  width: 38px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid rgba(31, 41, 55, 0.14);
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.product-content-toolbar-button:hover,
+.product-content-toolbar-button:focus-visible {
+  border-color: rgba(37, 99, 235, 0.3);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+  color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.product-content-toolbar-button::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  z-index: 10;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  white-space: nowrap;
+}
+
+.product-content-toolbar-button:hover::after,
+.product-content-toolbar-button:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.product-content-toolbar-button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
 .product-content-block-tools svg {
   width: 16px;
   height: 16px;

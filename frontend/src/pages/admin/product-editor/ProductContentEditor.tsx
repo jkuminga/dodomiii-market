@@ -167,17 +167,17 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
       onDrop={onCanvasDrop}
     >
       <div className="product-content-toolbar" aria-label="본문 블록 추가">
-        <button className="button button-secondary" type="button" onClick={() => appendBlock(createParagraphBlock())}>
-          텍스트
+        <button className="product-content-toolbar-button" type="button" onClick={() => appendBlock(createParagraphBlock())} aria-label="텍스트 블록 추가" data-tooltip="텍스트">
+          <TextBlockIcon />
         </button>
-        <button className="button button-secondary" type="button" onClick={() => appendBlock(createImageBlock())}>
-          이미지
+        <button className="product-content-toolbar-button" type="button" onClick={() => appendBlock(createImageBlock())} aria-label="이미지 블록 추가" data-tooltip="이미지">
+          <ImageBlockIcon />
         </button>
-        <button className="button button-secondary" type="button" onClick={() => appendBlock(createQuoteBlock())}>
-          인용구
+        <button className="product-content-toolbar-button" type="button" onClick={() => appendBlock(createQuoteBlock())} aria-label="인용구 블록 추가" data-tooltip="인용구">
+          <QuoteBlockIcon />
         </button>
-        <button className="button button-secondary" type="button" onClick={() => appendBlock(createDividerBlock())}>
-          구분선
+        <button className="product-content-toolbar-button" type="button" onClick={() => appendBlock(createDividerBlock())} aria-label="구분선 블록 추가" data-tooltip="구분선">
+          <DividerBlockIcon />
         </button>
       </div>
 
@@ -411,6 +411,45 @@ function GripIcon() {
       <circle cx="13" cy="10" r="1.3" />
       <circle cx="7" cy="15" r="1.3" />
       <circle cx="13" cy="15" r="1.3" />
+    </svg>
+  );
+}
+
+function TextBlockIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <path d="M5 5h10" />
+      <path d="M10 5v10" />
+      <path d="M7.8 15h4.4" />
+    </svg>
+  );
+}
+
+function ImageBlockIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <rect x="4" y="5" width="12" height="10" rx="1.8" />
+      <circle cx="8" cy="8.3" r="1.1" />
+      <path d="m5.8 13.6 3.5-3.4 2.2 2.1 1.2-1.1 1.8 2.4" />
+    </svg>
+  );
+}
+
+function QuoteBlockIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <path d="M7.7 8.2H5.4c-.2 0-.4.1-.4.4v2.8c0 .2.2.4.4.4h2.3c.2 0 .4-.2.4-.4V8.6c0-1.4-.6-2.4-1.9-3.1" />
+      <path d="M15 8.2h-2.3c-.2 0-.4.1-.4.4v2.8c0 .2.2.4.4.4H15c.2 0 .4-.2.4-.4V8.6c0-1.4-.6-2.4-1.9-3.1" />
+    </svg>
+  );
+}
+
+function DividerBlockIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <path d="M4 10h12" />
+      <path d="M6 6h8" />
+      <path d="M6 14h8" />
     </svg>
   );
 }
