@@ -1,7 +1,6 @@
 import {
   DepositStatus,
   PrismaClient,
-  ProductImageType,
   ShipmentStatus,
 } from '@prisma/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it, jest } from '@jest/globals';
@@ -175,11 +174,9 @@ describe('StoreService order lookup and tracking integration', () => {
     });
     createdProductIds.push(product.id);
 
-    await prisma.productImage.create({
+    await prisma.productThumbnail.create({
       data: {
-        productId: product.id,
-        imageType: ProductImageType.THUMBNAIL,
-        imageUrl: 'https://example.test/order-thumb.jpg',
+        productId: product.id,        imageUrl: 'https://example.test/order-thumb.jpg',
         sortOrder: 0,
       },
     });

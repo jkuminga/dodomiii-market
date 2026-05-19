@@ -1,4 +1,4 @@
-import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, DragEvent, FormEvent, type MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 
 import { AdminFloatingSubmitButton } from '../../components/admin/AdminFloatingSubmitButton';
@@ -12,6 +12,14 @@ import {
   AdminProductPayload,
 } from '../../lib/api';
 import { calculateDiscountedPrice, formatDiscountRate } from '../../lib/productPricing';
+import { ProductContentEditor } from './product-editor/ProductContentEditor';
+import {
+  buildProductContent,
+  createParagraphBlock,
+  productContentBlocksFromContent,
+  productContentPlainText,
+  ProductContentBlockDraft,
+} from './product-editor/productContentTypes';
 import {
   AdminLayoutContext,
   buildAdminCategoryOptions,
@@ -22,7 +30,6 @@ import {
 
 type ProductImageDraft = {
   key: string;
-  imageType: 'THUMBNAIL' | 'DETAIL';
   imageUrl: string;
   sortOrder: string;
 };
@@ -50,11 +57,13 @@ type ProductFormState = {
   isVisible: boolean;
   isSoldOut: boolean;
   consultationRequired: boolean;
+  contentBlocks: ProductContentBlockDraft[];
   images: ProductImageDraft[];
   options: ProductOptionDraft[];
 };
 
 const FLOATING_SUBMIT_SUCCESS_MS = 700;
+const UNSAVED_PRODUCT_FORM_MESSAGE = '저장하지 않은 상품 변경사항이 있습니다. 페이지를 나가시겠습니까?';
 
 let draftSequence = 0;
 
@@ -63,10 +72,9 @@ function nextDraftKey(prefix: string): string {
   return `${prefix}-${draftSequence}`;
 }
 
-function createImageDraft(imageType: 'THUMBNAIL' | 'DETAIL' = 'THUMBNAIL', sortOrder = '0'): ProductImageDraft {
+function createImageDraft(sortOrder = '0'): ProductImageDraft {
   return {
     key: nextDraftKey('image'),
-    imageType,
     imageUrl: '',
     sortOrder,
   };
@@ -98,6 +106,7 @@ function createEmptyForm(): ProductFormState {
     isVisible: true,
     isSoldOut: false,
     consultationRequired: false,
+    contentBlocks: [createParagraphBlock()],
     images: [],
     options: [],
   };
@@ -127,9 +136,18 @@ function formFromProduct(product: AdminProductDetail): ProductFormState {
     isVisible: product.isVisible,
     isSoldOut: product.isSoldOut,
     consultationRequired: product.consultationRequired,
+    contentBlocks: productContentBlocksFromContent(product.contentJson ?? null).map((block) => {
+      if (product.contentJson || block.type !== 'paragraph' || block.text.trim()) {
+        return block;
+      }
+
+      return {
+        ...block,
+        text: product.description ?? '',
+      };
+    }),
     images: product.images.map((image) => ({
       key: nextDraftKey('image'),
-      imageType: image.imageType,
       imageUrl: image.imageUrl,
       sortOrder: String(image.sortOrder),
     })),
@@ -161,8 +179,8 @@ function serializeFormState(form: ProductFormState): string {
     isVisible: form.isVisible,
     isSoldOut: form.isSoldOut,
     consultationRequired: form.consultationRequired,
-    images: form.images.map(({ imageType, imageUrl, sortOrder }) => ({
-      imageType,
+    contentJson: buildProductContent(form.contentBlocks),
+    images: form.images.map(({ imageUrl, sortOrder }) => ({
       imageUrl,
       sortOrder,
     })),
@@ -177,6 +195,141 @@ function serializeFormState(form: ProductFormState): string {
       sortOrder,
     })),
   });
+}
+
+function hasNewImageDraftInput(image: ProductImageDraft, selectedFile: File | null): boolean {
+  return image.imageUrl.trim() !== '' || selectedFile !== null;
+}
+
+function hasNewOptionDraftInput(option: ProductOptionDraft): boolean {
+  return (
+    option.optionGroupName.trim() !== '' ||
+    option.optionValue.trim() !== '' ||
+    option.selectionType !== 'SINGLE' ||
+    option.isRequired ||
+    option.extraPrice.trim() !== '0' ||
+    option.maxQuantity.trim() !== '' ||
+    !option.isActive
+  );
+}
+
+function usePrimitiveUnsavedChangesGuard(when: boolean, allowNavigationRef: MutableRefObject<boolean>) {
+  const whenRef = useRef(when);
+  const guardUrlRef = useRef('');
+  const historyTrapArmedRef = useRef(false);
+
+  useEffect(() => {
+    whenRef.current = when;
+  }, [when]);
+
+  useEffect(() => {
+    if (!when) {
+      return;
+    }
+
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!whenRef.current || allowNavigationRef.current) {
+        return;
+      }
+
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [allowNavigationRef, when]);
+
+  useEffect(() => {
+    const onDocumentClick = (event: MouseEvent) => {
+      if (!whenRef.current || allowNavigationRef.current || event.defaultPrevented || event.button !== 0) {
+        return;
+      }
+
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
+
+      const target = event.target instanceof Element ? event.target : null;
+      const anchor = target?.closest('a[href]');
+
+      if (!anchor) {
+        return;
+      }
+
+      const href = anchor.getAttribute('href');
+
+      if (!href || href.startsWith('#') || anchor.hasAttribute('download')) {
+        return;
+      }
+
+      const targetAttribute = anchor.getAttribute('target');
+
+      if (targetAttribute && targetAttribute !== '_self') {
+        return;
+      }
+
+      const nextUrl = new URL(href, window.location.href);
+
+      if (nextUrl.href === window.location.href) {
+        return;
+      }
+
+      const confirmed = window.confirm(UNSAVED_PRODUCT_FORM_MESSAGE);
+
+      if (!confirmed) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+
+      allowNavigationRef.current = true;
+      window.setTimeout(() => {
+        allowNavigationRef.current = false;
+      }, 1000);
+    };
+
+    document.addEventListener('click', onDocumentClick, true);
+    return () => document.removeEventListener('click', onDocumentClick, true);
+  }, [allowNavigationRef]);
+
+  useEffect(() => {
+    if (!when) {
+      historyTrapArmedRef.current = false;
+      return;
+    }
+
+    guardUrlRef.current = window.location.href;
+
+    if (!historyTrapArmedRef.current) {
+      window.history.pushState({ ...(window.history.state ?? {}), productEditorUnsavedGuard: true }, '', guardUrlRef.current);
+      historyTrapArmedRef.current = true;
+    }
+
+    const onPopState = () => {
+      if (!whenRef.current || allowNavigationRef.current || !historyTrapArmedRef.current) {
+        return;
+      }
+
+      const confirmed = window.confirm(UNSAVED_PRODUCT_FORM_MESSAGE);
+
+      if (confirmed) {
+        allowNavigationRef.current = true;
+        historyTrapArmedRef.current = false;
+        window.history.back();
+        window.setTimeout(() => {
+          allowNavigationRef.current = false;
+        }, 1000);
+        return;
+      }
+
+      window.history.pushState({ ...(window.history.state ?? {}), productEditorUnsavedGuard: true }, '', guardUrlRef.current);
+      historyTrapArmedRef.current = true;
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [allowNavigationRef, when]);
 }
 
 function getNextSortOrder(items: Array<{ sortOrder: string }>): string {
@@ -217,19 +370,14 @@ function buildImageInputsFromDrafts(images: ProductImageDraft[]): AdminProductIm
       }
 
       return {
-        imageType: image.imageType,
         imageUrl: image.imageUrl.trim(),
         sortOrder,
       };
     });
 }
 
-function sortImageDraftsByType(images: ProductImageDraft[]): ProductImageDraft[] {
+function sortImageDrafts(images: ProductImageDraft[]): ProductImageDraft[] {
   return [...images].sort((left, right) => {
-    if (left.imageType !== right.imageType) {
-      return left.imageType === 'THUMBNAIL' ? -1 : 1;
-    }
-
     const leftOrder = Number(left.sortOrder);
     const rightOrder = Number(right.sortOrder);
     const normalizedLeft = Number.isFinite(leftOrder) ? leftOrder : Number.MAX_SAFE_INTEGER;
@@ -369,15 +517,23 @@ function buildPayload(form: ProductFormState): AdminProductPayload {
     throw new Error('할인율은 0부터 100 사이의 숫자로 입력해주세요.');
   }
 
-  const images = buildImageInputsFromDrafts(sortImageDraftsByType(form.images));
+  const images = buildImageInputsFromDrafts(sortImageDrafts(form.images));
   const optionGroups = buildOptionGroupInputsFromDrafts(form.options);
+  const hasUploadingContentImage = form.contentBlocks.some((block) => block.type === 'image' && block.isUploading);
+  const contentJson = buildProductContent(form.contentBlocks);
+  const contentPlainText = productContentPlainText(form.contentBlocks);
+
+  if (hasUploadingContentImage) {
+    throw new Error('상품 상세 본문 이미지 업로드가 끝난 뒤 저장해주세요.');
+  }
 
   return {
     categoryId,
     name: trimmedName,
     slug: trimmedSlug,
     shortDescription: form.shortDescription.trim() || null,
-    description: form.description.trim() || null,
+    description: contentPlainText || form.description.trim() || null,
+    contentJson,
     basePrice,
     discountRate,
     isVisible: form.isVisible,
@@ -408,7 +564,7 @@ export function AdminProductEditorPage() {
   const [expandedOptionKey, setExpandedOptionKey] = useState<string | null>(null);
   const [isAddingImage, setIsAddingImage] = useState(false);
   const [isAddingOption, setIsAddingOption] = useState(false);
-  const [newImage, setNewImage] = useState<ProductImageDraft>(() => createImageDraft('THUMBNAIL'));
+  const [newImage, setNewImage] = useState<ProductImageDraft>(() => createImageDraft());
   const [newOption, setNewOption] = useState<ProductOptionDraft>(() => createOptionDraft());
   const [savedImageOrderSignature, setSavedImageOrderSignature] = useState('[]');
   const [savedOptionOrderSignature, setSavedOptionOrderSignature] = useState('[]');
@@ -421,6 +577,8 @@ export function AdminProductEditorPage() {
   const [selectedImageFiles, setSelectedImageFiles] = useState<Record<string, File | null>>({});
   const [selectedNewImageFile, setSelectedNewImageFile] = useState<File | null>(null);
   const [uploadingImageKey, setUploadingImageKey] = useState<string | null>(null);
+  const [isNewImageDragOver, setIsNewImageDragOver] = useState(false);
+  const allowNavigationRef = useRef(false);
 
   const resetEditorPanels = (nextForm: ProductFormState) => {
     setExpandedImageKey(null);
@@ -430,7 +588,8 @@ export function AdminProductEditorPage() {
     setSelectedImageFiles({});
     setSelectedNewImageFile(null);
     setUploadingImageKey(null);
-    setNewImage(createImageDraft(nextForm.images.length > 0 ? 'DETAIL' : 'THUMBNAIL', getNextSortOrder(nextForm.images)));
+    setIsNewImageDragOver(false);
+    setNewImage(createImageDraft(getNextSortOrder(nextForm.images)));
     setNewOption(createOptionDraft(getNextSortOrder(nextForm.options)));
   };
 
@@ -485,6 +644,26 @@ export function AdminProductEditorPage() {
       : 0;
   const hasDiscount = Number.isFinite(previewBasePrice) && previewDiscountRate > 0 && previewDiscountedPrice < previewBasePrice;
   const hasUnsavedChanges = useMemo(() => serializeFormState(form) !== initialSignature, [form, initialSignature]);
+  const hasPendingNewImageInput = useMemo(
+    () => isAddingImage && hasNewImageDraftInput(newImage, selectedNewImageFile),
+    [isAddingImage, newImage, selectedNewImageFile],
+  );
+  const hasPendingNewOptionInput = useMemo(
+    () => isAddingOption && hasNewOptionDraftInput(newOption),
+    [isAddingOption, newOption],
+  );
+  const hasPendingSelectedImageFiles = useMemo(
+    () => Object.values(selectedImageFiles).some((file) => file !== null),
+    [selectedImageFiles],
+  );
+  const hasUploadingContentImage = useMemo(
+    () => form.contentBlocks.some((block) => block.type === 'image' && block.isUploading),
+    [form.contentBlocks],
+  );
+  const shouldBlockLeaving =
+    !loading &&
+    !deleting &&
+    (hasUnsavedChanges || hasPendingNewImageInput || hasPendingNewOptionInput || hasPendingSelectedImageFiles || hasUploadingContentImage);
   const hasPendingImageOrderChanges = useMemo(
     () => buildOrderSignature(form.images) !== savedImageOrderSignature,
     [form.images, savedImageOrderSignature],
@@ -502,15 +681,10 @@ export function AdminProductEditorPage() {
     [form.options],
   );
   const activeOptionCount = useMemo(() => form.options.filter((option) => option.isActive).length, [form.options]);
-  const sortedImages = useMemo(() => sortImageDraftsByType(form.images), [form.images]);
-  const thumbnailImages = useMemo(() => sortedImages.filter((image) => image.imageType === 'THUMBNAIL'), [sortedImages]);
-  const detailImages = useMemo(() => sortedImages.filter((image) => image.imageType === 'DETAIL'), [sortedImages]);
+  const sortedImages = useMemo(() => sortImageDrafts(form.images), [form.images]);
   const imageGroups = useMemo(
-    () => [
-      { type: 'THUMBNAIL' as const, label: '썸네일', items: thumbnailImages },
-      { type: 'DETAIL' as const, label: '상세', items: detailImages },
-    ],
-    [thumbnailImages, detailImages],
+    () => [{ type: 'THUMBNAIL' as const, label: '썸네일', items: sortedImages }],
+    [sortedImages],
   );
   const optionGroupsForDisplay = useMemo(() => {
     const grouped = new Map<string, { label: string; items: ProductOptionDraft[] }>();
@@ -527,6 +701,8 @@ export function AdminProductEditorPage() {
 
     return [...grouped.values()];
   }, [form.options]);
+
+  usePrimitiveUnsavedChangesGuard(shouldBlockLeaving, allowNavigationRef);
 
   const replaceImage = (key: string, patch: Partial<ProductImageDraft>) => {
     setForm((current) => ({
@@ -583,7 +759,7 @@ export function AdminProductEditorPage() {
     const sourceImage = form.images.find((image) => image.key === draggingImageKey);
     const targetImage = form.images.find((image) => image.key === key);
 
-    if (!sourceImage || !targetImage || sourceImage.imageType !== targetImage.imageType) {
+    if (!sourceImage || !targetImage) {
       return;
     }
 
@@ -603,7 +779,7 @@ export function AdminProductEditorPage() {
     const sourceImage = form.images.find((image) => image.key === sourceKey);
     const targetImage = form.images.find((image) => image.key === key);
 
-    if (!sourceImage || !targetImage || sourceImage.imageType !== targetImage.imageType) {
+    if (!sourceImage || !targetImage) {
       setDraggingImageKey(null);
       setDragOverImageKey(null);
       return;
@@ -659,7 +835,7 @@ export function AdminProductEditorPage() {
 
       if (nextOpen) {
         setExpandedImageKey(null);
-        setNewImage(createImageDraft(form.images.length > 0 ? 'DETAIL' : 'THUMBNAIL', getNextSortOrder(form.images)));
+        setNewImage(createImageDraft(getNextSortOrder(form.images)));
         setSelectedNewImageFile(null);
       }
 
@@ -694,7 +870,7 @@ export function AdminProductEditorPage() {
     setExpandedImageKey(newImage.key);
     setIsAddingImage(false);
     setSelectedNewImageFile(null);
-    setNewImage(createImageDraft('DETAIL', getNextSortOrder([...form.images, newImage])));
+    setNewImage(createImageDraft(getNextSortOrder([...form.images, newImage])));
   };
 
   const commitNewOption = () => {
@@ -733,9 +909,9 @@ export function AdminProductEditorPage() {
     return normalizedSlug || 'new-product';
   };
 
-  const uploadProductImageToCloudinary = async (file: File, imageType: 'THUMBNAIL' | 'DETAIL') => {
+  const uploadProductImageToCloudinary = async (file: File) => {
     const signed = await apiClient.signAdminUpload({
-      usage: imageType === 'THUMBNAIL' ? 'PRODUCT_THUMBNAIL' : 'PRODUCT_DETAIL',
+      usage: 'PRODUCT_THUMBNAIL',
       fileName: file.name,
       contentType: file.type,
       size: file.size,
@@ -789,6 +965,78 @@ export function AdminProductEditorPage() {
     return finalized.secureUrl;
   };
 
+  const uploadProductContentImageToCloudinary = async (file: File) => {
+    const signed = await apiClient.signAdminUpload({
+      usage: 'PRODUCT_DETAIL',
+      fileName: file.name,
+      contentType: file.type,
+      size: file.size,
+      folderSuffix: buildUploadFolderSuffix(),
+    });
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('api_key', signed.apiKey);
+    formData.append('timestamp', String(signed.timestamp));
+    formData.append('signature', signed.signature);
+    formData.append('folder', signed.folder);
+    formData.append('public_id', signed.publicId);
+
+    const uploadResponse = await fetch(signed.uploadUrl, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const uploadResult = (await uploadResponse.json().catch(() => ({}))) as {
+      public_id?: string;
+      version?: number;
+      secure_url?: string;
+      signature?: string;
+      resource_type?: 'image';
+      format?: string;
+      width?: number;
+      height?: number;
+      bytes?: number;
+      error?: {
+        message?: string;
+      };
+    };
+
+    if (!uploadResponse.ok || !uploadResult.public_id || !uploadResult.version || !uploadResult.secure_url) {
+      throw new Error(uploadResult.error?.message ?? 'Cloudinary 업로드에 실패했습니다.');
+    }
+
+    const finalized = await apiClient.finalizeAdminUpload({
+      publicId: uploadResult.public_id,
+      version: uploadResult.version,
+      secureUrl: uploadResult.secure_url,
+      signature: uploadResult.signature,
+      resourceType: uploadResult.resource_type,
+      format: uploadResult.format,
+      width: uploadResult.width,
+      height: uploadResult.height,
+      bytes: uploadResult.bytes,
+    });
+
+    return {
+      imageUrl: finalized.secureUrl,
+      publicId: finalized.publicId,
+      width: finalized.width,
+      height: finalized.height,
+    };
+  };
+
+  const deleteProductContentImageFromCloudinary = (publicId: string) => {
+    if (!publicId.trim()) {
+      return;
+    }
+
+    void apiClient.deleteAdminUpload({ publicId: publicId.trim() }).catch((caught) => {
+      console.error('Failed to delete removed product content image', caught);
+      showToast('본문 이미지 파일 삭제에 실패했습니다. 저장은 계속할 수 있습니다.', 'error');
+    });
+  };
+
   const onSelectExistingImageFile = (imageKey: string, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
     setSelectedImageFiles((current) => ({ ...current, [imageKey]: file }));
@@ -812,10 +1060,27 @@ export function AdminProductEditorPage() {
     setError('');
 
     try {
-      const secureUrl = await uploadProductImageToCloudinary(file, image.imageType);
+      const secureUrl = await uploadProductImageToCloudinary(file);
       replaceImage(image.key, { imageUrl: secureUrl });
       setSelectedImageFiles((current) => ({ ...current, [image.key]: null }));
-      showToast(`${image.imageType === 'THUMBNAIL' ? '썸네일' : '상세'} 이미지를 업로드했습니다.`);
+      showToast('썸네일 이미지를 업로드했습니다.');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : '이미지 업로드에 실패했습니다.');
+    } finally {
+      setUploadingImageKey(null);
+    }
+  };
+
+  const uploadNewImageFile = async (file: File) => {
+    setUploadingImageKey('new-image');
+    setSelectedNewImageFile(file);
+    setError('');
+
+    try {
+      const secureUrl = await uploadProductImageToCloudinary(file);
+      setNewImage((current) => ({ ...current, imageUrl: secureUrl }));
+      setSelectedNewImageFile(null);
+      showToast('썸네일 이미지 URL을 자동 입력했습니다.');
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : '이미지 업로드에 실패했습니다.');
     } finally {
@@ -829,19 +1094,25 @@ export function AdminProductEditorPage() {
       return;
     }
 
-    setUploadingImageKey('new-image');
-    setError('');
+    await uploadNewImageFile(selectedNewImageFile);
+  };
 
-    try {
-      const secureUrl = await uploadProductImageToCloudinary(selectedNewImageFile, newImage.imageType);
-      setNewImage((current) => ({ ...current, imageUrl: secureUrl }));
-      setSelectedNewImageFile(null);
-      showToast(`${newImage.imageType === 'THUMBNAIL' ? '썸네일' : '상세'} 이미지 URL을 자동 입력했습니다.`);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : '이미지 업로드에 실패했습니다.');
-    } finally {
-      setUploadingImageKey(null);
+  const onDropNewImageFile = (event: DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    setIsNewImageDragOver(false);
+
+    if (uploadingImageKey !== null) {
+      return;
     }
+
+    const file = Array.from(event.dataTransfer.files).find((candidate) => candidate.type.startsWith('image/'));
+
+    if (!file) {
+      setError('드롭한 파일 중 이미지 파일을 찾지 못했습니다.');
+      return;
+    }
+
+    void uploadNewImageFile(file);
   };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -863,6 +1134,7 @@ export function AdminProductEditorPage() {
         showToast('상품을 생성했습니다.');
         setSubmitSuccess(true);
         await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
+        allowNavigationRef.current = true;
         navigate(`/admin/products/${created.id}`, { replace: true });
         return;
       }
@@ -895,7 +1167,7 @@ export function AdminProductEditorPage() {
 
     try {
       await apiClient.updateAdminProduct(productId, {
-        images: buildImageInputsFromDrafts(sortImageDraftsByType(form.images)),
+        images: buildImageInputsFromDrafts(sortImageDrafts(form.images)),
       });
       setSavedImageOrderSignature(buildOrderSignature(form.images));
       showToast('이미지 순서를 적용했습니다.');
@@ -946,6 +1218,7 @@ export function AdminProductEditorPage() {
     try {
       await apiClient.deleteAdminProduct(productId);
       showToast('상품을 삭제했습니다.');
+      allowNavigationRef.current = true;
       navigate('/admin/products', { replace: true });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : '상품 삭제에 실패했습니다.');
@@ -1002,9 +1275,6 @@ export function AdminProductEditorPage() {
         <div className="admin-hero-copy">
           <p className="section-kicker">{isCreateMode ? 'Create Product' : 'Edit Product'}</p>
           <h2 className="section-title admin-section-title">{isCreateMode ? '상품 등록' : '상품 상세 / 수정'}</h2>
-          {/* <p className="section-copy">
-            긴 입력 행 나열 대신 구성 요소를 카드 리스트로 먼저 확인하고, 필요한 항목만 펼쳐서 수정할 수 있게 편집 흐름을 정리했습니다.
-          </p> */}
         </div>
         <section className="admin-editor-overview-bar" aria-label="편집 요약">
           <div className="admin-overview-chip">
@@ -1022,7 +1292,7 @@ export function AdminProductEditorPage() {
         </section>
       </section>
 
-      <div className="admin-two-column admin-product-editor-grid">
+      <div>
         <form className="surface-card admin-card-stack admin-editor-card" onSubmit={onSubmit}>
           <AdminFloatingSubmitButton
             busy={submitting}
@@ -1050,26 +1320,29 @@ export function AdminProductEditorPage() {
 
 
 
-          <div className="admin-check-grid">
-            <label className="admin-check-field">
+          <div className="admin-product-status-actions">
+            <label className={`admin-pill-checkbox ${form.isVisible ? 'is-active' : ''}`}>
               <input
                 type="checkbox"
+                className="sr-only"
                 checked={form.isVisible}
                 onChange={(event) => setForm((current) => ({ ...current, isVisible: event.target.checked }))}
               />
               <span>스토어 노출 여부</span>
             </label>
-            <label className="admin-check-field">
+            <label className={`admin-pill-checkbox ${form.isSoldOut ? 'is-active' : ''}`}>
               <input
                 type="checkbox"
+                className="sr-only"
                 checked={form.isSoldOut}
                 onChange={(event) => setForm((current) => ({ ...current, isSoldOut: event.target.checked }))}
               />
               <span>품절 처리 여부</span>
             </label>
-            <label className="admin-check-field">
+            <label className={`admin-pill-checkbox ${form.consultationRequired ? 'is-active' : ''}`}>
               <input
                 type="checkbox"
+                className="sr-only"
                 checked={form.consultationRequired}
                 onChange={(event) => setForm((current) => ({ ...current, consultationRequired: event.target.checked }))}
               />
@@ -1105,7 +1378,18 @@ export function AdminProductEditorPage() {
                 />
               </label>
 
+              <label className="field admin-field-span-2">
+                <span>짧은 소개</span>
+                <input
+                  value={form.shortDescription}
+                  onChange={(event) => setForm((current) => ({ ...current, shortDescription: event.target.value }))}
+                  placeholder="목록 카드에 노출할 설명"
+                />
+              </label>
+
               <hr className="admin-field-divider" />
+
+
 
               <label className="field">
                 <span>기본 가격</span>
@@ -1156,32 +1440,15 @@ export function AdminProductEditorPage() {
               </section>
 
               <hr className="admin-field-divider" />
-
-              <label className="field admin-field-span-2">
-                <span>짧은 소개</span>
-                <input
-                  value={form.shortDescription}
-                  onChange={(event) => setForm((current) => ({ ...current, shortDescription: event.target.value }))}
-                  placeholder="목록 카드에 노출할 설명"
-                />
-              </label>
-
-              <label className="field admin-field-span-2">
-                <span>상세 설명</span>
-                <textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
-              </label>
             </div>
-
-
           </section>
-          <br />
 
           <section className="admin-form-section">
             <div className="admin-section-head">
               <div>
-                <p className="section-kicker">Images</p>
-                <h3 className="section-subtitle">이미지</h3>
-                <span style={{ fontSize: "12px" }}>※ 드래그로 출력 순서 변경</span>
+                <p className="section-kicker">Thumbnail Images</p>
+                <h3 className="section-subtitle">썸네일 이미지</h3>
+                <span style={{ fontSize: "12px" }}>※ 드래그로 출력 순서 변경 / 클릭 시 수정가능</span>
               </div>
               <div className="inline-actions">
                 {!isCreateMode ? (
@@ -1195,38 +1462,36 @@ export function AdminProductEditorPage() {
                   </button>
                 ) : null}
                 <button className="button button-secondary" type="button" onClick={toggleImageAddPanel}>
-                  {isAddingImage ? '추가 닫기' : '이미지 추가'}
+                  {isAddingImage ? 'x' : '+'}
                 </button>
               </div>
             </div>
 
             {isAddingImage ? (
-              <section className="admin-subcard admin-creator-panel">
+              <section
+                className={`admin-subcard admin-creator-panel admin-new-image-dropzone ${isNewImageDragOver ? 'is-drag-over' : ''}`}
+                onDragLeave={(event) => {
+                  if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                    return;
+                  }
+
+                  setIsNewImageDragOver(false);
+                }}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = 'copy';
+                  setIsNewImageDragOver(true);
+                }}
+                onDrop={onDropNewImageFile}
+              >
                 <div className="admin-panel-head">
                   <div>
                     <strong>새 이미지 추가</strong>
-                    <p>미니 패널에서 값을 먼저 입력한 뒤 리스트에 반영합니다.</p>
+                    <p>파일을 직접 선택하거나 이 영역에 드롭하거나 이미지 주소를 직접 입력하세요.</p>
                   </div>
                 </div>
 
                 <div className="admin-field-grid">
-                  <label className="field">
-                    <span>이미지 타입</span>
-                    <select value={newImage.imageType} onChange={(event) => setNewImage((current) => ({ ...current, imageType: event.target.value as 'THUMBNAIL' | 'DETAIL' }))}>
-                      <option value="THUMBNAIL">썸네일</option>
-                      <option value="DETAIL">상세</option>
-                    </select>
-                  </label>
-
-                  <label className="field">
-                    <span>정렬 순서</span>
-                    <input
-                      type="number"
-                      value={newImage.sortOrder}
-                      onChange={(event) => setNewImage((current) => ({ ...current, sortOrder: event.target.value }))}
-                    />
-                  </label>
-
                   <label className="field admin-field-span-2">
                     <span>이미지 URL</span>
                     <input
@@ -1242,11 +1507,6 @@ export function AdminProductEditorPage() {
                     파일 선택
                   </label>
                   <input id="admin-new-image-file" className="sr-only" type="file" accept="image/*" onChange={onSelectNewImageFile} />
-                  <span className="admin-inline-note">
-                    {selectedNewImageFile
-                      ? `${selectedNewImageFile.name} · ${formatFileSize(selectedNewImageFile.size)}`
-                      : 'Cloudinary로 업로드하면 URL이 자동 입력됩니다.'}
-                  </span>
                   <button
                     className="button"
                     type="button"
@@ -1255,6 +1515,11 @@ export function AdminProductEditorPage() {
                   >
                     {uploadingImageKey === 'new-image' ? '업로드 중...' : 'Cloudinary 업로드'}
                   </button>
+                  <span className="admin-inline-note">
+                    {selectedNewImageFile
+                      ? `${selectedNewImageFile.name} · ${formatFileSize(selectedNewImageFile.size)}`
+                      : 'Cloudinary로 업로드하면 URL이 자동 입력됩니다.'}
+                  </span>
                 </div>
 
                 <div className="inline-actions">
@@ -1271,11 +1536,10 @@ export function AdminProductEditorPage() {
             {form.images.length === 0 ? (
               <section className="admin-empty-state admin-collection-empty">
                 <p className="section-kicker">Empty</p>
-                <h4 className="section-subtitle">등록된 이미지가 없습니다</h4>
-                <p className="section-copy">이미지는 필요한 시점에만 추가하고, 카드 하나씩 펼쳐 수정할 수 있습니다.</p>
+                <h4 className="section-subtitle" style={{ fontSize: "15px" }}>등록된 이미지가 없습니다</h4>
               </section>
             ) : (
-              <div className="admin-repeatable-grid">
+              <div className="admin-image-gallery">
                 {imageGroups.map((group) => (
                   <div className="admin-image-type-group" key={group.type}>
                     <div className="admin-image-type-group-head">
@@ -1283,133 +1547,147 @@ export function AdminProductEditorPage() {
                       <strong>{group.items.length}개</strong>
                     </div>
                     {group.items.length === 0 ? <p className="admin-inline-note">등록된 {group.label} 이미지가 없습니다.</p> : null}
-                    {group.items.map((image, index) => {
-                      const isExpanded = expandedImageKey === image.key;
-                      const selectedFile = selectedImageFiles[image.key] ?? null;
-                      const isUploading = uploadingImageKey === image.key;
 
-                      return (
-                        <article
-                          className={`admin-list-card admin-editor-list-card ${isExpanded ? 'is-active' : ''} ${draggingImageKey === image.key ? 'is-dragging' : ''
-                            } ${dragOverImageKey === image.key ? 'is-drag-over' : ''}`}
-                          key={image.key}
-                          draggable
-                          onDragStart={(event) => onImageDragStart(event, image.key)}
-                          onDragEnd={onImageDragEnd}
-                          onDragOver={(event) => onImageDragOver(event, image.key)}
-                          onDrop={(event) => onImageDrop(event, image.key)}
-                        >
-                          <div className="admin-item-card-shell">
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px', marginTop: '12px' }}>
+                      {group.items.map((image, index) => {
+                        const isExpanded = expandedImageKey === image.key;
+                        const selectedFile = selectedImageFiles[image.key] ?? null;
+                        const isUploading = uploadingImageKey === image.key;
+                        const isDragging = draggingImageKey === image.key;
+                        const isDragOver = dragOverImageKey === image.key;
+
+                        return (
+                          <article
+                            className={`admin-image-gallery-card ${isDragging ? 'is-dragging' : ''} ${isDragOver ? 'is-drag-over' : ''}`}
+                            key={image.key}
+                            draggable
+                            onDragStart={(event) => onImageDragStart(event, image.key)}
+                            onDragEnd={onImageDragEnd}
+                            onDragOver={(event) => onImageDragOver(event, image.key)}
+                            onDrop={(event) => onImageDrop(event, image.key)}
+                            style={{
+                              gridColumn: isExpanded ? '1 / -1' : 'auto',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              background: isDragOver ? '#fff9f5' : '#fff',
+                              borderRadius: '12px',
+                              border: `2px solid ${isExpanded || isDragOver ? '#ac543f' : 'rgba(0,0,0,0.08)'}`,
+                              boxShadow: isDragOver ? '0 0 0 4px rgba(172,84,63,0.15)' : 'none',
+                              opacity: isDragging ? 0.5 : 1,
+                              transform: isDragging ? 'scale(0.95)' : (isDragOver && !isExpanded) ? 'scale(1.02)' : 'none',
+                              overflow: 'hidden',
+                              position: 'relative',
+                              transition: 'all 0.2s ease',
+                              cursor: isExpanded ? 'default' : 'grab'
+                            }}
+                          >
                             <button
-                              className="admin-item-toggle"
                               type="button"
-                              aria-expanded={isExpanded}
-                              aria-controls={`admin-image-panel-${image.key}`}
+                              style={{
+                                width: '100%',
+                                aspectRatio: isExpanded ? 'auto' : '1 / 1',
+                                height: isExpanded ? '180px' : 'auto',
+                                background: '#f8fafc',
+                                border: 'none',
+                                padding: 0,
+                                cursor: 'pointer',
+                                position: 'relative',
+                                display: 'block'
+                              }}
                               onClick={() => {
                                 setIsAddingImage(false);
                                 setExpandedImageKey((current) => (current === image.key ? null : image.key));
                               }}
                             >
-                              <div className="admin-item-preview media-preview">
-                                {image.imageUrl.trim() ? <img src={image.imageUrl} alt="" /> : <span>No Image</span>}
-                              </div>
-                              <div className="admin-item-copy">
-                                <div className="admin-list-card-head">
-                                  <div>
-                                    <strong>
-                                      {index + 1}. {group.label} 이미지
-                                    </strong>
-                                  </div>
-                                  <span className={`status-pill ${image.imageUrl.trim() ? '' : 'is-muted'}`}>
-                                    {image.imageUrl.trim() ? '준비됨' : '미완료'}
-                                  </span>
+                              {image.imageUrl.trim() ? (
+                                <img src={image.imageUrl} alt="" draggable={false} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                              ) : (
+                                <span style={{ position: 'absolute', top: 0, left: 0, color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>No Image</span>
+                              )}
+
+                              {!isExpanded && (
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '8px',
+                                  right: '8px',
+                                  background: 'rgba(255,255,255,0.95)',
+                                  borderRadius: '50%',
+                                  width: '26px',
+                                  height: '26px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                                  fontSize: '13px',
+                                  fontWeight: '800',
+                                  color: '#334155'
+                                }}>
+                                  {index + 1}
                                 </div>
-                                <div className="admin-meta-row">
-                                  <span>정렬 {image.sortOrder || '-'}</span>
-                                </div>
-                              </div>
+                              )}
                             </button>
 
-                            <div className="admin-item-actions">
-                              <button
-                                className="button button-secondary"
-                                type="button"
-                                onClick={() => {
-                                  setIsAddingImage(false);
-                                  setExpandedImageKey((current) => (current === image.key ? null : image.key));
-                                }}
-                              >
-                                {isExpanded ? '접기' : '편집'}
-                              </button>
-                              <button className="button button-ghost" type="button" onClick={() => removeImage(image.key)}>
-                                삭제
-                              </button>
-                            </div>
-                          </div>
+                            {isExpanded && (
+                              <div style={{ padding: '16px', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                  <strong>{index + 1}. {group.label} 이미지</strong>
+                                  <button className="button button-ghost" type="button" onClick={() => removeImage(image.key)} style={{ color: '#ef4444', padding: '4px 8px' }}>
+                                    삭제
+                                  </button>
+                                </div>
+                                <div className="admin-item-editor" id={`admin-image-panel-${image.key}`} style={{ marginTop: 0 }}>
+                                  <div className="admin-field-grid">
+                                    <label className="field">
+                                      <span>정렬 순서</span>
+                                      <input
+                                        type="number"
+                                        value={image.sortOrder}
+                                        onChange={(event) => replaceImage(image.key, { sortOrder: event.target.value })}
+                                      />
+                                    </label>
 
-                          {isExpanded ? (
-                            <div className="admin-item-editor" id={`admin-image-panel-${image.key}`}>
-                              <div className="admin-field-grid">
-                                <label className="field">
-                                  <span>이미지 타입</span>
-                                  <select
-                                    value={image.imageType}
-                                    onChange={(event) => replaceImage(image.key, { imageType: event.target.value as 'THUMBNAIL' | 'DETAIL' })}
-                                  >
-                                    <option value="THUMBNAIL">썸네일</option>
-                                    <option value="DETAIL">상세</option>
-                                  </select>
-                                </label>
+                                    <label className="field admin-field-span-2">
+                                      <span>이미지 URL</span>
+                                      <input value={image.imageUrl} onChange={(event) => replaceImage(image.key, { imageUrl: event.target.value })} />
+                                    </label>
+                                  </div>
 
-                                <label className="field">
-                                  <span>정렬 순서</span>
-                                  <input
-                                    type="number"
-                                    value={image.sortOrder}
-                                    onChange={(event) => replaceImage(image.key, { sortOrder: event.target.value })}
-                                  />
-                                </label>
-
-                                <label className="field admin-field-span-2">
-                                  <span>이미지 URL</span>
-                                  <input value={image.imageUrl} onChange={(event) => replaceImage(image.key, { imageUrl: event.target.value })} />
-                                </label>
+                                  <div className="admin-image-upload-row" aria-live="polite" style={{ marginTop: '16px' }}>
+                                    <label className="button button-ghost" htmlFor={`admin-image-file-${image.key}`}>
+                                      파일 선택
+                                    </label>
+                                    <input
+                                      id={`admin-image-file-${image.key}`}
+                                      className="sr-only"
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(event) => onSelectExistingImageFile(image.key, event)}
+                                    />
+                                    <span className="admin-inline-note">
+                                      {selectedFile ? `${selectedFile.name} · ${formatFileSize(selectedFile.size)}` : '파일 선택 후 업로드하면 URL이 자동 입력됩니다.'}
+                                    </span>
+                                    <button
+                                      className="button"
+                                      type="button"
+                                      onClick={() => void onUploadExistingImage(image)}
+                                      disabled={!selectedFile || uploadingImageKey !== null}
+                                    >
+                                      {isUploading ? '업로드 중...' : 'Cloudinary 업로드'}
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
-
-                              <div className="admin-image-upload-row" aria-live="polite">
-                                <label className="button button-ghost" htmlFor={`admin-image-file-${image.key}`}>
-                                  파일 선택
-                                </label>
-                                <input
-                                  id={`admin-image-file-${image.key}`}
-                                  className="sr-only"
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={(event) => onSelectExistingImageFile(image.key, event)}
-                                />
-                                <span className="admin-inline-note">
-                                  {selectedFile ? `${selectedFile.name} · ${formatFileSize(selectedFile.size)}` : '파일 선택 후 업로드하면 URL이 자동 입력됩니다.'}
-                                </span>
-                                <button
-                                  className="button"
-                                  type="button"
-                                  onClick={() => void onUploadExistingImage(image)}
-                                  disabled={!selectedFile || uploadingImageKey !== null}
-                                >
-                                  {isUploading ? '업로드 중...' : 'Cloudinary 업로드'}
-                                </button>
-                              </div>
-                            </div>
-                          ) : null}
-                        </article>
-                      );
-                    })}
+                            )}
+                          </article>
+                        );
+                      })}
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </section>
-          <br />
+          <hr style={{ margin: '24px 0', border: 0, borderTop: '1px solid rgb(var(--primary-rgb) / 0.12)' }} />
 
           <section className="admin-form-section">
             <div className="admin-section-head">
@@ -1430,7 +1708,7 @@ export function AdminProductEditorPage() {
                   </button>
                 ) : null}
                 <button className="button button-secondary" type="button" onClick={toggleOptionAddPanel}>
-                  {isAddingOption ? '추가 닫기' : '옵션 추가'}
+                  {isAddingOption ? 'x' : '+'}
                 </button>
               </div>
             </div>
@@ -1542,8 +1820,7 @@ export function AdminProductEditorPage() {
             {form.options.length === 0 ? (
               <section className="admin-empty-state admin-collection-empty">
                 <p className="section-kicker">Empty</p>
-                <h4 className="section-subtitle">등록된 옵션이 없습니다</h4>
-                <p className="section-copy">옵션이 필요할 때만 추가하고, 기본은 모두 접힌 상태로 유지됩니다.</p>
+                <h4 className="section-subtitle" style={{ fontSize: "15px" }}>등록된 옵션이 없습니다</h4>
               </section>
             ) : (
               <div className="admin-option-group-list">
@@ -1724,6 +2001,29 @@ export function AdminProductEditorPage() {
             )}
           </section>
 
+          <hr style={{ margin: '24px 0', border: 0, borderTop: '1px solid rgb(var(--primary-rgb) / 0.12)' }} />
+
+          <section className="admin-form-section">
+            <div className="admin-section-head">
+              <div>
+                <p className="section-kicker">Content Editor</p>
+                <h3 className="section-subtitle">상품 상세 정보</h3>
+              </div>
+            </div>
+
+            <div className="admin-field-grid">
+              <section className="field admin-field-span-2">
+                <ProductContentEditor
+                  blocks={form.contentBlocks}
+                  formatFileSize={formatFileSize}
+                  onChange={(contentBlocks) => setForm((current) => ({ ...current, contentBlocks }))}
+                  onDeleteImage={deleteProductContentImageFromCloudinary}
+                  onUploadImage={(file) => uploadProductContentImageToCloudinary(file)}
+                />
+              </section>
+            </div>
+          </section>
+
           {error ? (
             <p className="feedback-copy is-error" role="alert">
               {error}
@@ -1741,104 +2041,6 @@ export function AdminProductEditorPage() {
             ) : null}
           </div>
         </form>
-
-        <section className="surface-card admin-card-stack admin-editor-summary-panel">
-          <div className="admin-section-head">
-            <div>
-              <p className="section-kicker">Summary</p>
-              <h3 className="section-subtitle">상품 요약</h3>
-            </div>
-            {!isCreateMode && product ? <span className="status-pill">ID {product.id}</span> : null}
-          </div>
-
-          <div className="admin-pill-row">
-            <span className={`status-pill ${form.isVisible ? '' : 'is-muted'}`}>{form.isVisible ? '노출' : '숨김'}</span>
-            <span className={`status-pill ${form.isSoldOut ? 'is-muted' : ''}`}>{form.isSoldOut ? '품절' : '판매중'}</span>
-            <span className={`status-pill ${form.consultationRequired ? '' : 'is-muted'}`}>{form.consultationRequired ? '상담 필요' : '일반 주문'}</span>
-            {product?.deletedAt ? <span className="status-pill is-muted">삭제됨</span> : null}
-          </div>
-
-          <div className="admin-summary-grid">
-            <div className="admin-summary-item">
-              <span>카테고리</span>
-              <strong>{previewCategoryLabel}</strong>
-            </div>
-            <div className="admin-summary-item">
-              <span>기본 가격</span>
-              <strong>{form.basePrice ? formatCurrency(Number(form.basePrice)) : '-'}</strong>
-            </div>
-            <div className="admin-summary-item">
-              <span>할인율</span>
-              <strong>{form.discountRate ? formatDiscountRate(Number(form.discountRate)) : '0%'}</strong>
-            </div>
-            <div className="admin-summary-item">
-              <span>할인가</span>
-              <strong>{form.basePrice ? formatCurrency(previewDiscountedPrice) : '-'}</strong>
-            </div>
-            {/* <div className="admin-summary-item">
-              <span>변경 상태</span>
-              <strong>{hasUnsavedChanges ? '저장 필요' : '최신 상태'}</strong>
-            </div> */}
-          </div>
-
-
-          {product ? (
-            <>
-              <div className="admin-summary-grid">
-                <div className="admin-summary-item">
-                  <span>최초 생성</span>
-                  <strong>{formatAdminDateTime(product.createdAt)}</strong>
-                </div>
-                <div className="admin-summary-item">
-                  <span>마지막 수정</span>
-                  <strong>{formatAdminDateTime(product.updatedAt)}</strong>
-                </div>
-              </div>
-
-              <section className="admin-subcard">
-                <p className="section-kicker">운영 지표</p>
-                <div className="admin-summary-grid">
-                  <div className="admin-summary-item">
-                    <span>카테고리 영문명</span>
-                    <strong>{product.category.slug}</strong>
-                  </div>
-                  <div className="admin-summary-item">
-                    <span>주문된 횟수</span>
-                    <strong>{product.orderItemCount}건</strong>
-                  </div>
-                  <div className="admin-summary-item">
-                    <span>카테고리 노출 여부</span>
-                    <strong>{product.category.isVisible ? '노출' : '숨김'}</strong>
-                  </div>
-                </div>
-              </section>
-            </>
-          ) : (
-            <p className="feedback-copy">생성 후에는 정책 정보와 실제 반영 결과를 이 영역에서 함께 확인할 수 있습니다.</p>
-          )}
-
-          <section className="admin-subcard">
-            <p className="section-kicker">저장 전 미리보기</p>
-            <div className="admin-summary-grid">
-              <div className="admin-summary-item">
-                <span>이미지</span>
-                <strong>{configuredImageCount}개 </strong>
-              </div>
-              <div className="admin-summary-item">
-                <span>옵션</span>
-                <strong>{configuredOptionCount}개</strong>
-              </div>
-              <div className="admin-summary-item">
-                <span>활성화 된 옵션</span>
-                <strong>{activeOptionCount}개</strong>
-              </div>
-              <div className="admin-summary-item">
-                <span>기준 시점</span>
-                <strong>{product ? formatAdminDateTime(product.updatedAt) : '새 초안'}</strong>
-              </div>
-            </div>
-          </section>
-        </section>
       </div>
     </section>
   );

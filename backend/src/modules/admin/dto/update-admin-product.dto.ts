@@ -13,6 +13,7 @@ import {
 
 import { AdminProductImageDto } from './admin-product-image.dto';
 import { AdminProductOptionGroupDto } from './admin-product-option.dto';
+import { AdminProductContentDto } from './admin-product-content.dto';
 
 export class UpdateAdminProductDto {
   @IsOptional()
@@ -38,6 +39,11 @@ export class UpdateAdminProductDto {
   @IsOptional()
   @IsString()
   description?: string | null;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AdminProductContentDto)
+  contentJson?: AdminProductContentDto | null;
 
   @IsOptional()
   @IsInt()

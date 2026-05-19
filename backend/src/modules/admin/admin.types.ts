@@ -3,7 +3,6 @@ import type {
   DepositStatus,
   OrderStatus,
   ProductOptionSelectionType,
-  ProductImageType,
   ShipmentStatus,
   UserWebFontSize,
 } from '@prisma/client';
@@ -30,7 +29,6 @@ export type AdminCategoryResponse = {
 
 export type AdminProductImageResponse = {
   id: number;
-  imageType: ProductImageType;
   imageUrl: string;
   sortOrder: number;
   createdAt: string;
@@ -57,6 +55,41 @@ export type AdminProductOptionGroupResponse = {
   createdAt: string;
   updatedAt: string;
   options: AdminProductOptionResponse[];
+};
+
+export type ProductContentBlockResponse =
+  | {
+      type: 'paragraph';
+      text: string;
+      textAlign: 'left' | 'center' | 'right';
+      textSize: 'sm' | 'base' | 'lg' | 'xl';
+    }
+  | {
+      type: 'quote';
+      text: string;
+      textAlign: 'left' | 'center' | 'right';
+      textSize: 'sm' | 'base' | 'lg' | 'xl';
+    }
+  | {
+      type: 'divider';
+    }
+  | {
+      type: 'image';
+      imageUrl: string;
+      publicId: string | null;
+      alt: string | null;
+      caption: string | null;
+      linkUrl: string | null;
+      align: 'left' | 'center' | 'right';
+      widthMode: 'small' | 'content' | 'wide';
+      width: number | null;
+      height: number | null;
+      isCover: boolean;
+    };
+
+export type ProductContentResponse = {
+  version: number;
+  blocks: ProductContentBlockResponse[];
 };
 
 export type AdminProductListItemResponse = {
@@ -94,6 +127,7 @@ export type AdminProductDetailResponse = {
   slug: string;
   shortDescription: string | null;
   description: string | null;
+  contentJson: ProductContentResponse | null;
   basePrice: number;
   discountRate: number;
   isVisible: boolean;

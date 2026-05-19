@@ -1,6 +1,5 @@
 import {
   PrismaClient,
-  ProductImageType,
   ProductOptionSelectionType,
 } from '@prisma/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it, jest } from '@jest/globals';
@@ -55,12 +54,10 @@ describe('AdminService product integration', () => {
       consultationRequired: false,
       images: [
         {
-          imageType: ProductImageType.DETAIL,
-          imageUrl: 'https://example.test/detail.jpg',
+        imageUrl: 'https://example.test/thumb-a.jpg',
         },
         {
-          imageType: ProductImageType.THUMBNAIL,
-          imageUrl: 'https://example.test/thumb.jpg',
+        imageUrl: 'https://example.test/thumb-b.jpg',
           sortOrder: 10,
         },
       ],
@@ -119,13 +116,11 @@ describe('AdminService product integration', () => {
     });
     expect(result.images).toMatchObject([
       {
-        imageType: ProductImageType.DETAIL,
-        imageUrl: 'https://example.test/detail.jpg',
+        imageUrl: 'https://example.test/thumb-a.jpg',
         sortOrder: 0,
       },
       {
-        imageType: ProductImageType.THUMBNAIL,
-        imageUrl: 'https://example.test/thumb.jpg',
+        imageUrl: 'https://example.test/thumb-b.jpg',
         sortOrder: 10,
       },
     ]);
@@ -176,7 +171,7 @@ describe('AdminService product integration', () => {
     const product = await prisma.product.findUnique({
       where: { id: BigInt(result.id) },
       include: {
-        images: {
+        thumbnails: {
           orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
         },
         optionGroups: {
@@ -200,15 +195,13 @@ describe('AdminService product integration', () => {
       isSoldOut: false,
       consultationRequired: false,
     });
-    expect(product?.images).toMatchObject([
+    expect(product?.thumbnails).toMatchObject([
       {
-        imageType: ProductImageType.DETAIL,
-        imageUrl: 'https://example.test/detail.jpg',
+        imageUrl: 'https://example.test/thumb-a.jpg',
         sortOrder: 0,
       },
       {
-        imageType: ProductImageType.THUMBNAIL,
-        imageUrl: 'https://example.test/thumb.jpg',
+        imageUrl: 'https://example.test/thumb-b.jpg',
         sortOrder: 10,
       },
     ]);

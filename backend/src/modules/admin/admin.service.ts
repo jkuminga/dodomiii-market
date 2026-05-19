@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, ProductImageType, UserWebFontSize } from '@prisma/client';
+import { Prisma, UserWebFontSize } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StoreCacheService } from '../store/store-cache.service';
@@ -23,8 +23,11 @@ import type {
   AdminProductListItemResponse,
   NoticeContentBlockResponse,
   NoticeContentResponse,
+  ProductContentBlockResponse,
+  ProductContentResponse,
 } from './admin.types';
 import { AdminNoticeContentDto } from './dto/admin-notice-content.dto';
+import { AdminProductContentDto } from './dto/admin-product-content.dto';
 import { CreateAdminNoticeDto } from './dto/create-admin-notice.dto';
 import { UpdateAdminHomeHeroDto } from './dto/update-admin-home-hero.dto';
 import { CreateAdminCategoryDto } from './dto/create-admin-category.dto';
@@ -48,11 +51,10 @@ const adminProductDetailArgs = Prisma.validator<Prisma.ProductDefaultArgs>()({
         isVisible: true,
       },
     },
-    images: {
+    thumbnails: {
       orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
       select: {
         id: true,
-        imageType: true,
         imageUrl: true,
         sortOrder: true,
         createdAt: true,
@@ -108,6 +110,41 @@ type NoticeContentBlock =
 type NoticeContent = {
   version: number;
   blocks: NoticeContentBlock[];
+};
+
+type ProductContentBlock =
+  | {
+      type: 'paragraph';
+      text: string;
+      textAlign: 'left' | 'center' | 'right';
+      textSize: 'sm' | 'base' | 'lg' | 'xl';
+    }
+  | {
+      type: 'quote';
+      text: string;
+      textAlign: 'left' | 'center' | 'right';
+      textSize: 'sm' | 'base' | 'lg' | 'xl';
+    }
+  | {
+      type: 'divider';
+    }
+  | {
+      type: 'image';
+      imageUrl: string;
+      publicId: string | null;
+      alt: string | null;
+      caption: string | null;
+      linkUrl: string | null;
+      align: 'left' | 'center' | 'right';
+      widthMode: 'small' | 'content' | 'wide';
+      width: number | null;
+      height: number | null;
+      isCover: boolean;
+    };
+
+type ProductContent = {
+  version: number;
+  blocks: ProductContentBlock[];
 };
 
 const CATEGORY_LANDING_SELECTION_LIMIT = 3;
@@ -680,6 +717,7 @@ export class AdminService {
             slug: dto.slug,
             shortDescription: dto.shortDescription ?? null,
             description: dto.description ?? null,
+            contentJson: dto.contentJson ? (this.normalizeProductContent(dto.contentJson) as Prisma.InputJsonValue) : Prisma.DbNull,
             basePrice: dto.basePrice,
             discountRate: dto.discountRate ?? 0,
             isVisible: dto.isVisible ?? true,
@@ -692,10 +730,9 @@ export class AdminService {
         });
 
         if (dto.images?.length) {
-          await tx.productImage.createMany({
+          await tx.productThumbnail.createMany({
             data: normalizeProductImages(dto.images).map((image) => ({
               productId: product.id,
-              imageType: image.imageType,
               imageUrl: image.imageUrl,
               sortOrder: image.sortOrder,
             })),
@@ -789,8 +826,7 @@ export class AdminService {
               slug: true,
             },
           },
-          images: {
-            where: { imageType: ProductImageType.THUMBNAIL },
+          thumbnails: {
             orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
             take: 1,
             select: {
@@ -806,9 +842,7 @@ export class AdminService {
               },
             },
           },
-          _count: {
-            select: {
-              images: true,
+          _count: { select: { thumbnails: true,
               orderItems: true,
             },
           },
@@ -830,8 +864,8 @@ export class AdminService {
         isVisible: product.isVisible,
         isSoldOut: product.isSoldOut,
         consultationRequired: product.consultationRequired,
-        thumbnailImageUrl: product.images[0]?.imageUrl ?? null,
-        imageCount: product._count.images,
+        thumbnailImageUrl: product.thumbnails[0]?.imageUrl ?? null,
+        imageCount: product._count.thumbnails,
         optionCount: product.optionGroups.reduce((sum, group) => sum + group.options.length, 0),
         orderItemCount: product._count.orderItems,
         createdAt: product.createdAt.toISOString(),
@@ -884,6 +918,12 @@ export class AdminService {
             shortDescription:
               dto.shortDescription !== undefined ? (dto.shortDescription ?? null) : undefined,
             description: dto.description !== undefined ? (dto.description ?? null) : undefined,
+            contentJson:
+              dto.contentJson !== undefined
+                ? dto.contentJson
+                  ? (this.normalizeProductContent(dto.contentJson) as Prisma.InputJsonValue)
+                  : Prisma.DbNull
+                : undefined,
             basePrice: dto.basePrice,
             discountRate: dto.discountRate,
             isVisible: dto.isVisible,
@@ -893,17 +933,16 @@ export class AdminService {
         });
 
         if (dto.images !== undefined) {
-          await tx.productImage.deleteMany({
+          await tx.productThumbnail.deleteMany({
             where: {
               productId: existingProduct.id,
             },
           });
 
           if (dto.images.length > 0) {
-            await tx.productImage.createMany({
+            await tx.productThumbnail.createMany({
               data: normalizeProductImages(dto.images).map((image) => ({
                 productId: existingProduct.id,
-                imageType: image.imageType,
                 imageUrl: image.imageUrl,
                 sortOrder: image.sortOrder,
               })),
@@ -1135,14 +1174,14 @@ export class AdminService {
       slug: product.slug,
       shortDescription: product.shortDescription,
       description: product.description,
+      contentJson: this.mapProductContent(this.normalizeProductContent(product.contentJson)),
       basePrice: product.basePrice,
       discountRate: product.discountRate,
       isVisible: product.isVisible,
       isSoldOut: product.isSoldOut,
       consultationRequired: product.consultationRequired,
-      images: product.images.map((image) => ({
+      images: product.thumbnails.map((image) => ({
         id: Number(image.id),
-        imageType: image.imageType,
         imageUrl: image.imageUrl,
         sortOrder: image.sortOrder,
         createdAt: image.createdAt.toISOString(),
@@ -1379,6 +1418,102 @@ export class AdminService {
       version,
       blocks: blocks.map((block) => this.normalizeNoticeBlock(block)),
     };
+  }
+
+  private normalizeProductContent(content: AdminProductContentDto | Prisma.JsonValue | null | undefined): ProductContent | null {
+    if (!content) {
+      return null;
+    }
+
+    const rawVersion =
+      typeof content === 'object' && 'version' in content ? (content as { version?: unknown }).version : 1;
+    const rawBlocks =
+      typeof content === 'object' && 'blocks' in content ? (content as { blocks?: unknown }).blocks : [];
+
+    const version = typeof rawVersion === 'number' && Number.isFinite(rawVersion) ? rawVersion : 1;
+    const blocks = Array.isArray(rawBlocks) ? rawBlocks : [];
+    const normalizedBlocks = blocks.map((block) => this.normalizeProductBlock(block));
+
+    return {
+      version,
+      blocks: normalizedBlocks,
+    };
+  }
+
+  private normalizeProductBlock(block: unknown): ProductContentBlock {
+    if (!block || typeof block !== 'object') {
+      throw new BadRequestException({
+        code: 'PRODUCT_CONTENT_INVALID',
+        message: '상품 상세 본문 형식이 올바르지 않습니다.',
+      });
+    }
+
+    const rawType = 'type' in block ? block.type : undefined;
+
+    if (rawType === 'paragraph' || rawType === 'quote') {
+      const text = 'text' in block && typeof block.text === 'string' ? block.text.trim() : '';
+
+      if (text === '') {
+        throw new BadRequestException({
+          code: 'PRODUCT_TEXT_REQUIRED',
+          message: '텍스트 블록에는 내용을 입력해주세요.',
+        });
+      }
+
+      const textAlign =
+        'textAlign' in block && (block.textAlign === 'center' || block.textAlign === 'right') ? block.textAlign : 'left';
+      const textSize =
+        'textSize' in block && (block.textSize === 'sm' || block.textSize === 'lg' || block.textSize === 'xl')
+          ? block.textSize
+          : 'base';
+
+      return {
+        type: rawType,
+        text,
+        textAlign,
+        textSize,
+      };
+    }
+
+    if (rawType === 'divider') {
+      return {
+        type: 'divider',
+      };
+    }
+
+    if (rawType === 'image') {
+      const imageUrl = 'imageUrl' in block && typeof block.imageUrl === 'string' ? block.imageUrl.trim() : '';
+
+      if (imageUrl === '') {
+        throw new BadRequestException({
+          code: 'PRODUCT_IMAGE_REQUIRED',
+          message: '이미지 블록에는 업로드된 이미지를 선택해주세요.',
+        });
+      }
+
+      const align = 'align' in block && (block.align === 'left' || block.align === 'right') ? block.align : 'center';
+      const widthMode =
+        'widthMode' in block && (block.widthMode === 'small' || block.widthMode === 'wide') ? block.widthMode : 'content';
+
+      return {
+        type: 'image',
+        imageUrl,
+        publicId: 'publicId' in block && typeof block.publicId === 'string' ? block.publicId.trim() || null : null,
+        alt: 'alt' in block && typeof block.alt === 'string' ? block.alt.trim() || null : null,
+        caption: 'caption' in block && typeof block.caption === 'string' ? block.caption.trim() || null : null,
+        linkUrl: 'linkUrl' in block && typeof block.linkUrl === 'string' ? block.linkUrl.trim() || null : null,
+        align,
+        widthMode,
+        width: 'width' in block && typeof block.width === 'number' && Number.isFinite(block.width) ? block.width : null,
+        height: 'height' in block && typeof block.height === 'number' && Number.isFinite(block.height) ? block.height : null,
+        isCover: 'isCover' in block && typeof block.isCover === 'boolean' ? block.isCover : false,
+      };
+    }
+
+    throw new BadRequestException({
+      code: 'PRODUCT_BLOCK_TYPE_INVALID',
+      message: '지원하지 않는 상품 상세 블록 형식입니다.',
+    });
   }
 
   private normalizeNoticeBlock(block: unknown): NoticeContentBlock {
@@ -1668,6 +1803,48 @@ export class AdminService {
     return {
       version: content.version,
       blocks: content.blocks.map((block) => this.mapNoticeBlock(block)),
+    };
+  }
+
+  private mapProductContent(content: ProductContent | null): ProductContentResponse | null {
+    if (!content) {
+      return null;
+    }
+
+    return {
+      version: content.version,
+      blocks: content.blocks.map((block) => this.mapProductBlock(block)),
+    };
+  }
+
+  private mapProductBlock(block: ProductContentBlock): ProductContentBlockResponse {
+    if (block.type === 'paragraph' || block.type === 'quote') {
+      return {
+        type: block.type,
+        text: block.text,
+        textAlign: block.textAlign,
+        textSize: block.textSize,
+      };
+    }
+
+    if (block.type === 'divider') {
+      return {
+        type: 'divider',
+      };
+    }
+
+    return {
+      type: 'image',
+      imageUrl: block.imageUrl,
+      publicId: block.publicId,
+      alt: block.alt,
+      caption: block.caption,
+      linkUrl: block.linkUrl,
+      align: block.align,
+      widthMode: block.widthMode,
+      width: block.width,
+      height: block.height,
+      isCover: block.isCover,
     };
   }
 

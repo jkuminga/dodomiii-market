@@ -303,7 +303,7 @@ function createOrderDetailRecord() {
       {
         productNameSnapshot: '테스트 상품',
         product: {
-          images: [
+          thumbnails: [
             {
               imageUrl: 'https://example.com/thumb.jpg',
             },

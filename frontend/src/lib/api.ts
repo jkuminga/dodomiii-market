@@ -197,13 +197,13 @@ export type ProductDetail = {
   slug: string;
   shortDescription: string | null;
   description: string | null;
+  contentJson: ProductContent | null;
   basePrice: number;
   discountRate: number;
   isSoldOut: boolean;
   consultationRequired: boolean;
   images: Array<{
     id: number;
-    imageType: 'THUMBNAIL' | 'DETAIL';
     imageUrl: string;
     sortOrder: number;
   }>;
@@ -245,9 +245,43 @@ export type AdminProductListItem = {
 };
 
 export type AdminProductImageInput = {
-  imageType: 'THUMBNAIL' | 'DETAIL';
   imageUrl: string;
   sortOrder: number;
+};
+
+export type ProductContentBlock =
+  | {
+      type: 'paragraph';
+      text: string;
+      textAlign?: 'left' | 'center' | 'right';
+      textSize?: 'sm' | 'base' | 'lg' | 'xl';
+    }
+  | {
+      type: 'quote';
+      text: string;
+      textAlign?: 'left' | 'center' | 'right';
+      textSize?: 'sm' | 'base' | 'lg' | 'xl';
+    }
+  | {
+      type: 'divider';
+    }
+  | {
+      type: 'image';
+      imageUrl: string;
+      publicId?: string | null;
+      alt?: string | null;
+      caption?: string | null;
+      linkUrl?: string | null;
+      align: 'left' | 'center' | 'right';
+      widthMode: 'small' | 'content' | 'wide';
+      width?: number | null;
+      height?: number | null;
+      isCover?: boolean;
+    };
+
+export type ProductContent = {
+  version: number;
+  blocks: ProductContentBlock[];
 };
 
 export type AdminProductOptionInput = {
@@ -273,6 +307,7 @@ export type AdminProductPayload = {
   slug: string;
   shortDescription: string | null;
   description: string | null;
+  contentJson?: ProductContent | null;
   basePrice: number;
   discountRate: number;
   isVisible: boolean;
@@ -485,6 +520,7 @@ export type AdminProductDetail = {
   slug: string;
   shortDescription: string | null;
   description: string | null;
+  contentJson: ProductContent | null;
   basePrice: number;
   discountRate: number;
   isVisible: boolean;
@@ -492,7 +528,6 @@ export type AdminProductDetail = {
   consultationRequired: boolean;
   images: Array<{
     id: number;
-    imageType: 'THUMBNAIL' | 'DETAIL';
     imageUrl: string;
     sortOrder: number;
     createdAt: string;
