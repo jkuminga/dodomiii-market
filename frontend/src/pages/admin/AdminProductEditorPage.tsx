@@ -865,6 +865,17 @@ export function AdminProductEditorPage() {
     };
   };
 
+  const deleteProductContentImageFromCloudinary = (publicId: string) => {
+    if (!publicId.trim()) {
+      return;
+    }
+
+    void apiClient.deleteAdminUpload({ publicId: publicId.trim() }).catch((caught) => {
+      console.error('Failed to delete removed product content image', caught);
+      showToast('본문 이미지 파일 삭제에 실패했습니다. 저장은 계속할 수 있습니다.', 'error');
+    });
+  };
+
   const onSelectExistingImageFile = (imageKey: string, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
     setSelectedImageFiles((current) => ({ ...current, [imageKey]: file }));
@@ -1248,6 +1259,7 @@ export function AdminProductEditorPage() {
                   blocks={form.contentBlocks}
                   formatFileSize={formatFileSize}
                   onChange={(contentBlocks) => setForm((current) => ({ ...current, contentBlocks }))}
+                  onDeleteImage={deleteProductContentImageFromCloudinary}
                   onUploadImage={(file) => uploadProductContentImageToCloudinary(file)}
                 />
               </section>

@@ -19,10 +19,11 @@ type ProductContentEditorProps = {
   blocks: ProductContentBlockDraft[];
   onChange: (blocks: ProductContentBlockDraft[]) => void;
   onUploadImage: (file: File) => Promise<UploadedProductImage>;
+  onDeleteImage: (publicId: string) => void;
   formatFileSize: (bytes: number) => string;
 };
 
-export function ProductContentEditor({ blocks, onChange, onUploadImage, formatFileSize }: ProductContentEditorProps) {
+export function ProductContentEditor({ blocks, onChange, onUploadImage, onDeleteImage, formatFileSize }: ProductContentEditorProps) {
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
@@ -49,11 +50,16 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, formatFi
   const appendBlock = (block: ProductContentBlockDraft) => insertBlock(blocksRef.current.length, block);
 
   const removeBlock = (key: string) => {
+    const removedBlock = blocksRef.current.find((block) => block.key === key);
     const next = blocksRef.current.filter((block) => block.key !== key);
     const nextBlocks = next.length > 0 ? next : [createParagraphBlock()];
     blocksRef.current = nextBlocks;
     onChange(nextBlocks);
     setActiveKey((current) => (current === key ? null : current));
+
+    if (removedBlock?.type === 'image' && removedBlock.publicId.trim()) {
+      onDeleteImage(removedBlock.publicId.trim());
+    }
   };
 
   const moveBlock = (key: string, direction: -1 | 1) => {
@@ -72,6 +78,9 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, formatFi
   };
 
   const uploadIntoBlock = async (key: string, file: File) => {
+    const previousBlock = blocksRef.current.find((block) => block.key === key);
+    const previousPublicId = previousBlock?.type === 'image' ? previousBlock.publicId.trim() : '';
+
     updateBlock(key, { isUploading: true, uploadError: '' } as Partial<ProductContentBlockDraft>);
 
     try {
@@ -84,6 +93,10 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, formatFi
         isUploading: false,
         uploadError: '',
       } as Partial<ProductContentBlockDraft>);
+
+      if (previousPublicId && previousPublicId !== uploaded.publicId) {
+        onDeleteImage(previousPublicId);
+      }
     } catch (caught) {
       updateBlock(key, {
         isUploading: false,
