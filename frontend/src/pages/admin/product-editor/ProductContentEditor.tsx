@@ -1,4 +1,4 @@
-import { ChangeEvent, DragEvent, useEffect, useRef, useState } from 'react';
+import { ChangeEvent, ClipboardEvent, DragEvent, useEffect, useRef, useState } from 'react';
 
 import {
   createDividerBlock,
@@ -6,6 +6,8 @@ import {
   createParagraphBlock,
   createQuoteBlock,
   ProductContentBlockDraft,
+  ProductContentTextAlign,
+  ProductContentTextSize,
 } from './productContentTypes';
 
 type UploadedProductImage = {
@@ -28,6 +30,8 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [openImageSettingsKey, setOpenImageSettingsKey] = useState<string | null>(null);
+  const [defaultTextAlign, setDefaultTextAlign] = useState<ProductContentTextAlign>('left');
+  const [defaultTextSize, setDefaultTextSize] = useState<ProductContentTextSize>('base');
   const blocksRef = useRef(blocks);
 
   useEffect(() => {
@@ -50,10 +54,13 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
 
   const appendBlock = (block: ProductContentBlockDraft) => insertBlock(blocksRef.current.length, block);
 
+  const createDefaultParagraphBlock = (text = '') => createParagraphBlock(text, { textAlign: defaultTextAlign, textSize: defaultTextSize });
+  const createDefaultQuoteBlock = (text = '') => createQuoteBlock(text, { textAlign: defaultTextAlign, textSize: defaultTextSize });
+
   const removeBlock = (key: string) => {
     const removedBlock = blocksRef.current.find((block) => block.key === key);
     const next = blocksRef.current.filter((block) => block.key !== key);
-    const nextBlocks = next.length > 0 ? next : [createParagraphBlock()];
+    const nextBlocks = next.length > 0 ? next : [createDefaultParagraphBlock()];
     blocksRef.current = nextBlocks;
     onChange(nextBlocks);
     setActiveKey((current) => (current === key ? null : current));
@@ -129,6 +136,18 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
     });
   };
 
+  const onCanvasPaste = (event: ClipboardEvent<HTMLElement>) => {
+    const imageFiles = Array.from(event.clipboardData.files).filter((file) => file.type.startsWith('image/'));
+
+    if (imageFiles.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    const activeIndex = activeKey ? blocksRef.current.findIndex((block) => block.key === activeKey) : -1;
+    insertFiles(imageFiles, activeIndex >= 0 ? activeIndex + 1 : blocksRef.current.length);
+  };
+
   const onCanvasDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setDropIndex(null);
@@ -165,20 +184,42 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
         event.dataTransfer.dropEffect = event.dataTransfer.files.length > 0 ? 'copy' : 'move';
       }}
       onDrop={onCanvasDrop}
+      onPaste={onCanvasPaste}
+      tabIndex={0}
     >
       <div className="product-content-toolbar" aria-label="본문 블록 추가">
-        <button className="product-content-toolbar-button" type="button" onClick={() => appendBlock(createParagraphBlock())} aria-label="텍스트 블록 추가" data-tooltip="텍스트">
+        <button className="product-content-toolbar-button" type="button" onClick={() => appendBlock(createDefaultParagraphBlock())} aria-label="텍스트 블록 추가" data-tooltip="텍스트">
           <TextBlockIcon />
         </button>
         <button className="product-content-toolbar-button" type="button" onClick={() => appendBlock(createImageBlock())} aria-label="이미지 블록 추가" data-tooltip="이미지">
           <ImageBlockIcon />
         </button>
-        <button className="product-content-toolbar-button" type="button" onClick={() => appendBlock(createQuoteBlock())} aria-label="인용구 블록 추가" data-tooltip="인용구">
+        <button className="product-content-toolbar-button" type="button" onClick={() => appendBlock(createDefaultQuoteBlock())} aria-label="인용구 블록 추가" data-tooltip="인용구">
           <QuoteBlockIcon />
         </button>
         <button className="product-content-toolbar-button" type="button" onClick={() => appendBlock(createDividerBlock())} aria-label="구분선 블록 추가" data-tooltip="구분선">
           <DividerBlockIcon />
         </button>
+        <div className="product-content-default-text-controls" aria-label="새 텍스트 블록 기본값">
+          <span className="product-content-default-text-label">새 텍스트 기본값 ㅣ </span>
+          <label>
+            <span>크기</span>
+            <select value={defaultTextSize} onChange={(event) => setDefaultTextSize(event.target.value as ProductContentTextSize)}>
+              <option value="sm">작게</option>
+              <option value="base">기본</option>
+              <option value="lg">크게</option>
+              <option value="xl">아주 크게</option>
+            </select>
+          </label>
+          <label>
+            <span>정렬</span>
+            <select value={defaultTextAlign} onChange={(event) => setDefaultTextAlign(event.target.value as ProductContentTextAlign)}>
+              <option value="left">왼쪽</option>
+              <option value="center">가운데</option>
+              <option value="right">오른쪽</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       <div className="product-content-canvas">
@@ -215,7 +256,7 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
         ))}
 
         <div className={`product-content-final-drop ${dropIndex === blocks.length ? 'is-target' : ''}`} onDragEnter={() => setDropIndex(blocks.length)}>
-          <button className="product-content-inline-add" type="button" onClick={() => appendBlock(createParagraphBlock())}>
+          <button className="product-content-inline-add" type="button" onClick={() => appendBlock(createDefaultParagraphBlock())}>
             + 계속 작성
           </button>
         </div>
@@ -284,23 +325,29 @@ function ProductContentBlockEditor({
       </div>
 
       {block.type === 'paragraph' ? (
-        <textarea
-          className="product-content-textarea"
-          value={block.text}
-          onChange={(event) => onChange({ text: event.target.value } as Partial<ProductContentBlockDraft>)}
-          placeholder="상품 설명을 입력하세요"
-          rows={Math.max(3, block.text.split('\n').length + 1)}
-        />
+        <div className="product-content-text-block-editor">
+          <textarea
+            className={`product-content-textarea align-${block.textAlign} size-${block.textSize}`}
+            value={block.text}
+            onChange={(event) => onChange({ text: event.target.value } as Partial<ProductContentBlockDraft>)}
+            placeholder="상품 설명을 입력하세요"
+            rows={Math.max(3, block.text.split('\n').length + 1)}
+          />
+          <TextBlockStyleControls block={block} onChange={onChange} />
+        </div>
       ) : null}
 
       {block.type === 'quote' ? (
-        <textarea
-          className="product-content-textarea is-quote"
-          value={block.text}
-          onChange={(event) => onChange({ text: event.target.value } as Partial<ProductContentBlockDraft>)}
-          placeholder="강조하고 싶은 문장을 입력하세요"
-          rows={Math.max(2, block.text.split('\n').length + 1)}
-        />
+        <div className="product-content-text-block-editor">
+          <textarea
+            className={`product-content-textarea is-quote align-${block.textAlign} size-${block.textSize}`}
+            value={block.text}
+            onChange={(event) => onChange({ text: event.target.value } as Partial<ProductContentBlockDraft>)}
+            placeholder="강조하고 싶은 문장을 입력하세요"
+            rows={Math.max(2, block.text.split('\n').length + 1)}
+          />
+          <TextBlockStyleControls block={block} onChange={onChange} />
+        </div>
       ) : null}
 
       {block.type === 'divider' ? <hr className="product-content-editor-divider" /> : null}
@@ -402,6 +449,68 @@ function ProductContentBlockEditor({
   );
 }
 
+type TextBlockStyleControlsProps = {
+  block: Extract<ProductContentBlockDraft, { type: 'paragraph' | 'quote' }>;
+  onChange: (patch: Partial<ProductContentBlockDraft>) => void;
+};
+
+function TextBlockStyleControls({ block, onChange }: TextBlockStyleControlsProps) {
+  return (
+    <div className="product-content-text-style-controls" aria-label="텍스트 스타일 설정">
+      <div className="product-content-text-style-menu">
+        <button className="product-content-text-style-trigger" type="button" aria-label="텍스트 크기 설정">
+          <TextSizeIcon />
+        </button>
+        <div className="product-content-text-style-popover" role="menu" aria-label="텍스트 크기 옵션">
+          {[
+            { value: 'sm', label: '작게' },
+            { value: 'base', label: '기본' },
+            { value: 'lg', label: '크게' },
+            { value: 'xl', label: '아주 크게' },
+          ].map((option) => (
+            <button
+              className={block.textSize === option.value ? 'is-active' : ''}
+              key={option.value}
+              type="button"
+              role="menuitem"
+              onClick={() => onChange({ textSize: option.value as ProductContentTextSize } as Partial<ProductContentBlockDraft>)}
+            >
+              <span className={`text-size-preview size-${option.value}`}>A</span>
+              <span>{option.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="product-content-text-style-menu">
+        <button className="product-content-text-style-trigger" type="button" aria-label="텍스트 정렬 설정">
+          <TextAlignIcon />
+        </button>
+        <div className="product-content-text-style-popover" role="menu" aria-label="텍스트 정렬 옵션">
+          {[
+            { value: 'left', label: '왼쪽', Icon: AlignLeftIcon },
+            { value: 'center', label: '가운데', Icon: AlignCenterIcon },
+            { value: 'right', label: '오른쪽', Icon: AlignRightIcon },
+          ].map((option) => {
+            const Icon = option.Icon;
+            return (
+              <button
+                className={block.textAlign === option.value ? 'is-active' : ''}
+                key={option.value}
+                type="button"
+                role="menuitem"
+                onClick={() => onChange({ textAlign: option.value as ProductContentTextAlign } as Partial<ProductContentBlockDraft>)}
+              >
+                <Icon />
+                <span>{option.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function GripIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
@@ -450,6 +559,61 @@ function DividerBlockIcon() {
       <path d="M4 10h12" />
       <path d="M6 6h8" />
       <path d="M6 14h8" />
+    </svg>
+  );
+}
+
+function TextSizeIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <path d="M4.5 15 8.8 5h2.4l4.3 10" />
+      <path d="M6.3 11.2h7.4" />
+      <path d="M3.8 5h4" />
+      <path d="M5.8 5v10" />
+    </svg>
+  );
+}
+
+function TextAlignIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <path d="M4 5h12" />
+      <path d="M4 9h9" />
+      <path d="M4 13h12" />
+      <path d="M4 17h7" />
+    </svg>
+  );
+}
+
+function AlignLeftIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <path d="M4 5h12" />
+      <path d="M4 9h8" />
+      <path d="M4 13h12" />
+      <path d="M4 17h7" />
+    </svg>
+  );
+}
+
+function AlignCenterIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <path d="M4 5h12" />
+      <path d="M6 9h8" />
+      <path d="M4 13h12" />
+      <path d="M6.5 17h7" />
+    </svg>
+  );
+}
+
+function AlignRightIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <path d="M4 5h12" />
+      <path d="M8 9h8" />
+      <path d="M4 13h12" />
+      <path d="M9 17h7" />
     </svg>
   );
 }

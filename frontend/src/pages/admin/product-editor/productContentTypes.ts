@@ -1,15 +1,22 @@
 import { ProductContent, ProductContentBlock } from '../../../lib/api';
 
+export type ProductContentTextAlign = 'left' | 'center' | 'right';
+export type ProductContentTextSize = 'sm' | 'base' | 'lg' | 'xl';
+
 export type ProductContentBlockDraft =
   | {
       key: string;
       type: 'paragraph';
       text: string;
+      textAlign: ProductContentTextAlign;
+      textSize: ProductContentTextSize;
     }
   | {
       key: string;
       type: 'quote';
       text: string;
+      textAlign: ProductContentTextAlign;
+      textSize: ProductContentTextSize;
     }
   | {
       key: string;
@@ -39,19 +46,28 @@ export function nextProductContentKey(): string {
   return `product-content-${productContentSequence}`;
 }
 
-export function createParagraphBlock(text = ''): ProductContentBlockDraft {
+type ProductContentTextStylePatch = {
+  textAlign?: ProductContentTextAlign;
+  textSize?: ProductContentTextSize;
+};
+
+export function createParagraphBlock(text = '', style: ProductContentTextStylePatch = {}): ProductContentBlockDraft {
   return {
     key: nextProductContentKey(),
     type: 'paragraph',
     text,
+    textAlign: style.textAlign ?? 'left',
+    textSize: style.textSize ?? 'base',
   };
 }
 
-export function createQuoteBlock(text = ''): ProductContentBlockDraft {
+export function createQuoteBlock(text = '', style: ProductContentTextStylePatch = {}): ProductContentBlockDraft {
   return {
     key: nextProductContentKey(),
     type: 'quote',
     text,
+    textAlign: style.textAlign ?? 'left',
+    textSize: style.textSize ?? 'base',
   };
 }
 
@@ -89,11 +105,19 @@ export function productContentBlocksFromContent(content: ProductContent | null |
 
   return content.blocks.map((block) => {
     if (block.type === 'paragraph') {
-      return createParagraphBlock(block.text);
+      return {
+        ...createParagraphBlock(block.text),
+        textAlign: block.textAlign ?? 'left',
+        textSize: block.textSize ?? 'base',
+      };
     }
 
     if (block.type === 'quote') {
-      return createQuoteBlock(block.text);
+      return {
+        ...createQuoteBlock(block.text),
+        textAlign: block.textAlign ?? 'left',
+        textSize: block.textSize ?? 'base',
+      };
     }
 
     if (block.type === 'divider') {
@@ -125,7 +149,12 @@ export function buildProductContent(blocks: ProductContentBlockDraft[]): Product
       const text = block.text.trim();
 
       if (text) {
-        accumulator.push({ type: block.type, text });
+        accumulator.push({
+          type: block.type,
+          text,
+          textAlign: block.textAlign,
+          textSize: block.textSize,
+        });
       }
 
       return accumulator;

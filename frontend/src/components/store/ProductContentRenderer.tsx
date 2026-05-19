@@ -10,7 +10,10 @@ export function ProductContentRenderer({ content }: ProductContentRendererProps)
       {content.blocks.map((block, index) => {
         if (block.type === 'paragraph') {
           return (
-            <p className="product-content-paragraph" key={`${block.type}-${index}`}>
+            <p
+              className={`product-content-paragraph align-${block.textAlign ?? 'left'} size-${block.textSize ?? 'base'}`}
+              key={`${block.type}-${index}`}
+            >
               {block.text}
             </p>
           );
@@ -18,7 +21,10 @@ export function ProductContentRenderer({ content }: ProductContentRendererProps)
 
         if (block.type === 'quote') {
           return (
-            <blockquote className="product-content-quote" key={`${block.type}-${index}`}>
+            <blockquote
+              className={`product-content-quote align-${block.textAlign ?? 'left'} size-${block.textSize ?? 'base'}`}
+              key={`${block.type}-${index}`}
+            >
               {block.text}
             </blockquote>
           );

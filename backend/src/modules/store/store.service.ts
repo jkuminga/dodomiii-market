@@ -1772,6 +1772,8 @@ export class StoreService {
             accumulator.push({
               type: block.type,
               text: block.text,
+              textAlign: block.textAlign === 'center' || block.textAlign === 'right' ? block.textAlign : 'left',
+              textSize: block.textSize === 'sm' || block.textSize === 'lg' || block.textSize === 'xl' ? block.textSize : 'base',
             });
             return accumulator;
           }

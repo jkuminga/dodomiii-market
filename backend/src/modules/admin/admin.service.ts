@@ -116,10 +116,14 @@ type ProductContentBlock =
   | {
       type: 'paragraph';
       text: string;
+      textAlign: 'left' | 'center' | 'right';
+      textSize: 'sm' | 'base' | 'lg' | 'xl';
     }
   | {
       type: 'quote';
       text: string;
+      textAlign: 'left' | 'center' | 'right';
+      textSize: 'sm' | 'base' | 'lg' | 'xl';
     }
   | {
       type: 'divider';
@@ -1456,9 +1460,18 @@ export class AdminService {
         });
       }
 
+      const textAlign =
+        'textAlign' in block && (block.textAlign === 'center' || block.textAlign === 'right') ? block.textAlign : 'left';
+      const textSize =
+        'textSize' in block && (block.textSize === 'sm' || block.textSize === 'lg' || block.textSize === 'xl')
+          ? block.textSize
+          : 'base';
+
       return {
         type: rawType,
         text,
+        textAlign,
+        textSize,
       };
     }
 
@@ -1809,6 +1822,8 @@ export class AdminService {
       return {
         type: block.type,
         text: block.text,
+        textAlign: block.textAlign,
+        textSize: block.textSize,
       };
     }
 

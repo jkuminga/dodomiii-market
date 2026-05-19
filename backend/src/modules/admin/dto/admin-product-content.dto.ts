@@ -13,6 +13,14 @@ export class AdminProductContentBlockDto {
   text?: string;
 
   @IsOptional()
+  @IsIn(['left', 'center', 'right'])
+  textAlign?: 'left' | 'center' | 'right';
+
+  @IsOptional()
+  @IsIn(['sm', 'base', 'lg', 'xl'])
+  textSize?: 'sm' | 'base' | 'lg' | 'xl';
+
+  @IsOptional()
   @IsString()
   @MaxLength(500)
   imageUrl?: string;

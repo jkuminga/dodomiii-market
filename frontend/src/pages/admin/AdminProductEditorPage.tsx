@@ -577,6 +577,7 @@ export function AdminProductEditorPage() {
   const [selectedImageFiles, setSelectedImageFiles] = useState<Record<string, File | null>>({});
   const [selectedNewImageFile, setSelectedNewImageFile] = useState<File | null>(null);
   const [uploadingImageKey, setUploadingImageKey] = useState<string | null>(null);
+  const [isNewImageDragOver, setIsNewImageDragOver] = useState(false);
   const allowNavigationRef = useRef(false);
 
   const resetEditorPanels = (nextForm: ProductFormState) => {
@@ -587,6 +588,7 @@ export function AdminProductEditorPage() {
     setSelectedImageFiles({});
     setSelectedNewImageFile(null);
     setUploadingImageKey(null);
+    setIsNewImageDragOver(false);
     setNewImage(createImageDraft(getNextSortOrder(nextForm.images)));
     setNewOption(createOptionDraft(getNextSortOrder(nextForm.options)));
   };
@@ -1069,17 +1071,13 @@ export function AdminProductEditorPage() {
     }
   };
 
-  const onUploadNewImage = async () => {
-    if (!selectedNewImageFile) {
-      setError('업로드할 파일을 먼저 선택해주세요.');
-      return;
-    }
-
+  const uploadNewImageFile = async (file: File) => {
     setUploadingImageKey('new-image');
+    setSelectedNewImageFile(file);
     setError('');
 
     try {
-      const secureUrl = await uploadProductImageToCloudinary(selectedNewImageFile);
+      const secureUrl = await uploadProductImageToCloudinary(file);
       setNewImage((current) => ({ ...current, imageUrl: secureUrl }));
       setSelectedNewImageFile(null);
       showToast('썸네일 이미지 URL을 자동 입력했습니다.');
@@ -1088,6 +1086,33 @@ export function AdminProductEditorPage() {
     } finally {
       setUploadingImageKey(null);
     }
+  };
+
+  const onUploadNewImage = async () => {
+    if (!selectedNewImageFile) {
+      setError('업로드할 파일을 먼저 선택해주세요.');
+      return;
+    }
+
+    await uploadNewImageFile(selectedNewImageFile);
+  };
+
+  const onDropNewImageFile = (event: DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    setIsNewImageDragOver(false);
+
+    if (uploadingImageKey !== null) {
+      return;
+    }
+
+    const file = Array.from(event.dataTransfer.files).find((candidate) => candidate.type.startsWith('image/'));
+
+    if (!file) {
+      setError('드롭한 파일 중 이미지 파일을 찾지 못했습니다.');
+      return;
+    }
+
+    void uploadNewImageFile(file);
   };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -1295,7 +1320,7 @@ export function AdminProductEditorPage() {
 
 
 
-          <div className="admin-check-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+          <div className="admin-product-status-actions">
             <label className={`admin-pill-checkbox ${form.isVisible ? 'is-active' : ''}`}>
               <input
                 type="checkbox"
@@ -1443,24 +1468,30 @@ export function AdminProductEditorPage() {
             </div>
 
             {isAddingImage ? (
-              <section className="admin-subcard admin-creator-panel">
+              <section
+                className={`admin-subcard admin-creator-panel admin-new-image-dropzone ${isNewImageDragOver ? 'is-drag-over' : ''}`}
+                onDragLeave={(event) => {
+                  if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                    return;
+                  }
+
+                  setIsNewImageDragOver(false);
+                }}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = 'copy';
+                  setIsNewImageDragOver(true);
+                }}
+                onDrop={onDropNewImageFile}
+              >
                 <div className="admin-panel-head">
                   <div>
                     <strong>새 이미지 추가</strong>
-                    <p>미니 패널에서 값을 먼저 입력한 뒤 리스트에 반영합니다.</p>
+                    <p>파일을 직접 선택하거나 이 영역에 드롭하거나 이미지 주소를 직접 입력하세요.</p>
                   </div>
                 </div>
 
                 <div className="admin-field-grid">
-                  <label className="field">
-                    <span>정렬 순서</span>
-                    <input
-                      type="number"
-                      value={newImage.sortOrder}
-                      onChange={(event) => setNewImage((current) => ({ ...current, sortOrder: event.target.value }))}
-                    />
-                  </label>
-
                   <label className="field admin-field-span-2">
                     <span>이미지 URL</span>
                     <input
@@ -1476,11 +1507,6 @@ export function AdminProductEditorPage() {
                     파일 선택
                   </label>
                   <input id="admin-new-image-file" className="sr-only" type="file" accept="image/*" onChange={onSelectNewImageFile} />
-                  <span className="admin-inline-note">
-                    {selectedNewImageFile
-                      ? `${selectedNewImageFile.name} · ${formatFileSize(selectedNewImageFile.size)}`
-                      : 'Cloudinary로 업로드하면 URL이 자동 입력됩니다.'}
-                  </span>
                   <button
                     className="button"
                     type="button"
@@ -1489,6 +1515,11 @@ export function AdminProductEditorPage() {
                   >
                     {uploadingImageKey === 'new-image' ? '업로드 중...' : 'Cloudinary 업로드'}
                   </button>
+                  <span className="admin-inline-note">
+                    {selectedNewImageFile
+                      ? `${selectedNewImageFile.name} · ${formatFileSize(selectedNewImageFile.size)}`
+                      : 'Cloudinary로 업로드하면 URL이 자동 입력됩니다.'}
+                  </span>
                 </div>
 
                 <div className="inline-actions">

@@ -61,10 +61,14 @@ export type ProductContentBlockResponse =
   | {
       type: 'paragraph';
       text: string;
+      textAlign: 'left' | 'center' | 'right';
+      textSize: 'sm' | 'base' | 'lg' | 'xl';
     }
   | {
       type: 'quote';
       text: string;
+      textAlign: 'left' | 'center' | 'right';
+      textSize: 'sm' | 'base' | 'lg' | 'xl';
     }
   | {
       type: 'divider';
