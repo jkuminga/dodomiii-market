@@ -269,17 +269,17 @@ function ProductContentBlockEditor({
   return (
     <article className={`product-content-block is-${block.type} ${active ? 'is-active' : ''}`} onFocus={onActivate} onClick={onActivate}>
       <div className="product-content-block-tools">
-        <button className="product-content-handle" type="button" draggable onDragStart={onDragStart} onDragEnd={onDragEnd} aria-label="블록 이동">
-          ::
+        <button className="product-content-handle" type="button" draggable onDragStart={onDragStart} onDragEnd={onDragEnd} aria-label="블록 이동" title="블록 이동">
+          <GripIcon />
         </button>
-        <button type="button" onClick={() => onMove(-1)} disabled={index === 0}>
-          위
+        <button type="button" onClick={() => onMove(-1)} disabled={index === 0} aria-label="위로 이동" title="위로 이동">
+          <ChevronUpIcon />
         </button>
-        <button type="button" onClick={() => onMove(1)}>
-          아래
+        <button type="button" onClick={() => onMove(1)} aria-label="아래로 이동" title="아래로 이동">
+          <ChevronDownIcon />
         </button>
-        <button type="button" onClick={onRemove}>
-          삭제
+        <button type="button" onClick={onRemove} aria-label="블록 삭제" title="블록 삭제">
+          <TrashIcon />
         </button>
       </div>
 
@@ -399,5 +399,46 @@ function ProductContentBlockEditor({
         </div>
       ) : null}
     </article>
+  );
+}
+
+function GripIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <circle cx="7" cy="5" r="1.3" />
+      <circle cx="13" cy="5" r="1.3" />
+      <circle cx="7" cy="10" r="1.3" />
+      <circle cx="13" cy="10" r="1.3" />
+      <circle cx="7" cy="15" r="1.3" />
+      <circle cx="13" cy="15" r="1.3" />
+    </svg>
+  );
+}
+
+function ChevronUpIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <path d="M5.5 12.5 10 8l4.5 4.5" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <path d="M5.5 7.5 10 12l4.5-4.5" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <path d="M7 6.5V5.3c0-.7.6-1.3 1.3-1.3h3.4c.7 0 1.3.6 1.3 1.3v1.2" />
+      <path d="M4.8 6.5h10.4" />
+      <path d="m6.1 8 .5 7.1c.1.8.7 1.4 1.5 1.4h3.8c.8 0 1.5-.6 1.5-1.4L13.9 8" />
+      <path d="M8.7 9.6v4.7" />
+      <path d="M11.3 9.6v4.7" />
+    </svg>
   );
 }

@@ -8740,14 +8740,42 @@ button.admin-list-card {
 
 .product-content-block-tools button,
 .product-content-handle {
+  display: inline-grid;
+  width: 34px;
   min-width: 34px;
-  min-height: 28px;
+  height: 30px;
+  min-height: 30px;
+  place-items: center;
   border: 1px solid rgba(31, 41, 55, 0.16);
   border-radius: 7px;
   background: #fff;
   color: #334155;
-  font-size: 11px;
   cursor: pointer;
+}
+
+.product-content-block-tools button:disabled {
+  color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.product-content-block-tools button:hover:not(:disabled) {
+  border-color: rgba(37, 99, 235, 0.28);
+  color: #2563eb;
+}
+
+.product-content-block-tools svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.product-content-handle svg {
+  fill: currentColor;
+  stroke: none;
 }
 
 .product-content-handle {
