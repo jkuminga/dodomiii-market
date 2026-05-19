@@ -7366,6 +7366,17 @@ button.admin-list-card {
   box-shadow: 0 0 0 3px rgb(var(--primary-rgb) / 0.08);
 }
 
+.admin-image-gallery-card {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
+}
+
+.admin-image-gallery-card:not(.is-dragging):hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 24px rgba(172, 84, 63, 0.12), 0 4px 12px rgba(172, 84, 63, 0.08) !important;
+  border-color: rgba(172, 84, 63, 0.4) !important;
+  z-index: 10;
+}
+
 .admin-item-card-shell,
 .admin-item-actions,
 .admin-panel-head {
@@ -7530,6 +7541,63 @@ button.admin-list-card {
   height: 18px;
   margin: 0;
   accent-color: var(--primary);
+}
+
+.admin-pill-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 18px 8px 14px;
+  border-radius: 9999px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.admin-pill-checkbox::before {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 0;
+  border: 1.5px solid #94a3b8;
+  background: #f8fafc;
+  transition: all 0.2s ease;
+}
+
+.admin-pill-checkbox:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.admin-pill-checkbox.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb) / 0.2);
+}
+
+.admin-pill-checkbox.is-active::before {
+  border-color: white;
+  background-color: white;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ac543f' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.admin-pill-checkbox.is-active:hover {
+  transform: translateY(-1px);
+  background: var(--primary);
+  border-color: var(--primary);
 }
 
 .admin-font-size-slider {
@@ -8695,6 +8763,64 @@ button.admin-list-card {
   background: #f8fafc;
 }
 
+.product-content-toolbar-button {
+  position: relative;
+  display: inline-grid;
+  width: 38px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid rgba(31, 41, 55, 0.14);
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.product-content-toolbar-button:hover,
+.product-content-toolbar-button:focus-visible {
+  border-color: rgba(37, 99, 235, 0.3);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+  color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.product-content-toolbar-button::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  z-index: 10;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  white-space: nowrap;
+}
+
+.product-content-toolbar-button:hover::after,
+.product-content-toolbar-button:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.product-content-toolbar-button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
 .product-content-canvas {
   min-height: 420px;
   padding: 28px clamp(16px, 4vw, 48px);
@@ -8761,64 +8887,6 @@ button.admin-list-card {
 .product-content-block-tools button:hover:not(:disabled) {
   border-color: rgba(37, 99, 235, 0.28);
   color: #2563eb;
-}
-
-.product-content-toolbar-button {
-  position: relative;
-  display: inline-grid;
-  width: 38px;
-  height: 36px;
-  place-items: center;
-  border: 1px solid rgba(31, 41, 55, 0.14);
-  border-radius: 8px;
-  background: #fff;
-  color: #334155;
-  cursor: pointer;
-  transition: border-color 0.16s ease, color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
-}
-
-.product-content-toolbar-button:hover,
-.product-content-toolbar-button:focus-visible {
-  border-color: rgba(37, 99, 235, 0.3);
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
-  color: #2563eb;
-  transform: translateY(-1px);
-}
-
-.product-content-toolbar-button::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  z-index: 10;
-  padding: 5px 8px;
-  border-radius: 7px;
-  background: #0f172a;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(-50%, 4px);
-  transition: opacity 0.16s ease, transform 0.16s ease;
-  white-space: nowrap;
-}
-
-.product-content-toolbar-button:hover::after,
-.product-content-toolbar-button:focus-visible::after {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
-
-.product-content-toolbar-button svg {
-  width: 17px;
-  height: 17px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.8;
 }
 
 .product-content-block-tools svg {
