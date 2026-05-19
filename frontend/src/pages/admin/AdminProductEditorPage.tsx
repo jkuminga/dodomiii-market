@@ -1,4 +1,4 @@
-import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, DragEvent, FormEvent, type MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 
 import { AdminFloatingSubmitButton } from '../../components/admin/AdminFloatingSubmitButton';
@@ -63,6 +63,7 @@ type ProductFormState = {
 };
 
 const FLOATING_SUBMIT_SUCCESS_MS = 700;
+const UNSAVED_PRODUCT_FORM_MESSAGE = '저장하지 않은 상품 변경사항이 있습니다. 페이지를 나가시겠습니까?';
 
 let draftSequence = 0;
 
@@ -194,6 +195,141 @@ function serializeFormState(form: ProductFormState): string {
       sortOrder,
     })),
   });
+}
+
+function hasNewImageDraftInput(image: ProductImageDraft, selectedFile: File | null): boolean {
+  return image.imageUrl.trim() !== '' || selectedFile !== null;
+}
+
+function hasNewOptionDraftInput(option: ProductOptionDraft): boolean {
+  return (
+    option.optionGroupName.trim() !== '' ||
+    option.optionValue.trim() !== '' ||
+    option.selectionType !== 'SINGLE' ||
+    option.isRequired ||
+    option.extraPrice.trim() !== '0' ||
+    option.maxQuantity.trim() !== '' ||
+    !option.isActive
+  );
+}
+
+function usePrimitiveUnsavedChangesGuard(when: boolean, allowNavigationRef: MutableRefObject<boolean>) {
+  const whenRef = useRef(when);
+  const guardUrlRef = useRef('');
+  const historyTrapArmedRef = useRef(false);
+
+  useEffect(() => {
+    whenRef.current = when;
+  }, [when]);
+
+  useEffect(() => {
+    if (!when) {
+      return;
+    }
+
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!whenRef.current || allowNavigationRef.current) {
+        return;
+      }
+
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [allowNavigationRef, when]);
+
+  useEffect(() => {
+    const onDocumentClick = (event: MouseEvent) => {
+      if (!whenRef.current || allowNavigationRef.current || event.defaultPrevented || event.button !== 0) {
+        return;
+      }
+
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
+
+      const target = event.target instanceof Element ? event.target : null;
+      const anchor = target?.closest('a[href]');
+
+      if (!anchor) {
+        return;
+      }
+
+      const href = anchor.getAttribute('href');
+
+      if (!href || href.startsWith('#') || anchor.hasAttribute('download')) {
+        return;
+      }
+
+      const targetAttribute = anchor.getAttribute('target');
+
+      if (targetAttribute && targetAttribute !== '_self') {
+        return;
+      }
+
+      const nextUrl = new URL(href, window.location.href);
+
+      if (nextUrl.href === window.location.href) {
+        return;
+      }
+
+      const confirmed = window.confirm(UNSAVED_PRODUCT_FORM_MESSAGE);
+
+      if (!confirmed) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+
+      allowNavigationRef.current = true;
+      window.setTimeout(() => {
+        allowNavigationRef.current = false;
+      }, 1000);
+    };
+
+    document.addEventListener('click', onDocumentClick, true);
+    return () => document.removeEventListener('click', onDocumentClick, true);
+  }, [allowNavigationRef]);
+
+  useEffect(() => {
+    if (!when) {
+      historyTrapArmedRef.current = false;
+      return;
+    }
+
+    guardUrlRef.current = window.location.href;
+
+    if (!historyTrapArmedRef.current) {
+      window.history.pushState({ ...(window.history.state ?? {}), productEditorUnsavedGuard: true }, '', guardUrlRef.current);
+      historyTrapArmedRef.current = true;
+    }
+
+    const onPopState = () => {
+      if (!whenRef.current || allowNavigationRef.current || !historyTrapArmedRef.current) {
+        return;
+      }
+
+      const confirmed = window.confirm(UNSAVED_PRODUCT_FORM_MESSAGE);
+
+      if (confirmed) {
+        allowNavigationRef.current = true;
+        historyTrapArmedRef.current = false;
+        window.history.back();
+        window.setTimeout(() => {
+          allowNavigationRef.current = false;
+        }, 1000);
+        return;
+      }
+
+      window.history.pushState({ ...(window.history.state ?? {}), productEditorUnsavedGuard: true }, '', guardUrlRef.current);
+      historyTrapArmedRef.current = true;
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [allowNavigationRef, when]);
 }
 
 function getNextSortOrder(items: Array<{ sortOrder: string }>): string {
@@ -441,6 +577,7 @@ export function AdminProductEditorPage() {
   const [selectedImageFiles, setSelectedImageFiles] = useState<Record<string, File | null>>({});
   const [selectedNewImageFile, setSelectedNewImageFile] = useState<File | null>(null);
   const [uploadingImageKey, setUploadingImageKey] = useState<string | null>(null);
+  const allowNavigationRef = useRef(false);
 
   const resetEditorPanels = (nextForm: ProductFormState) => {
     setExpandedImageKey(null);
@@ -505,6 +642,26 @@ export function AdminProductEditorPage() {
       : 0;
   const hasDiscount = Number.isFinite(previewBasePrice) && previewDiscountRate > 0 && previewDiscountedPrice < previewBasePrice;
   const hasUnsavedChanges = useMemo(() => serializeFormState(form) !== initialSignature, [form, initialSignature]);
+  const hasPendingNewImageInput = useMemo(
+    () => isAddingImage && hasNewImageDraftInput(newImage, selectedNewImageFile),
+    [isAddingImage, newImage, selectedNewImageFile],
+  );
+  const hasPendingNewOptionInput = useMemo(
+    () => isAddingOption && hasNewOptionDraftInput(newOption),
+    [isAddingOption, newOption],
+  );
+  const hasPendingSelectedImageFiles = useMemo(
+    () => Object.values(selectedImageFiles).some((file) => file !== null),
+    [selectedImageFiles],
+  );
+  const hasUploadingContentImage = useMemo(
+    () => form.contentBlocks.some((block) => block.type === 'image' && block.isUploading),
+    [form.contentBlocks],
+  );
+  const shouldBlockLeaving =
+    !loading &&
+    !deleting &&
+    (hasUnsavedChanges || hasPendingNewImageInput || hasPendingNewOptionInput || hasPendingSelectedImageFiles || hasUploadingContentImage);
   const hasPendingImageOrderChanges = useMemo(
     () => buildOrderSignature(form.images) !== savedImageOrderSignature,
     [form.images, savedImageOrderSignature],
@@ -542,6 +699,8 @@ export function AdminProductEditorPage() {
 
     return [...grouped.values()];
   }, [form.options]);
+
+  usePrimitiveUnsavedChangesGuard(shouldBlockLeaving, allowNavigationRef);
 
   const replaceImage = (key: string, patch: Partial<ProductImageDraft>) => {
     setForm((current) => ({
@@ -950,6 +1109,7 @@ export function AdminProductEditorPage() {
         showToast('상품을 생성했습니다.');
         setSubmitSuccess(true);
         await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
+        allowNavigationRef.current = true;
         navigate(`/admin/products/${created.id}`, { replace: true });
         return;
       }
@@ -1033,6 +1193,7 @@ export function AdminProductEditorPage() {
     try {
       await apiClient.deleteAdminProduct(productId);
       showToast('상품을 삭제했습니다.');
+      allowNavigationRef.current = true;
       navigate('/admin/products', { replace: true });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : '상품 삭제에 실패했습니다.');
