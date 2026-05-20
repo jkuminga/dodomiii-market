@@ -952,6 +952,10 @@ img {
   border-right: 1px solid rgb(var(--surface-cream-rgb) / 0.82);
 }
 
+.app-shell.is-store:has(.detail-page) {
+  background: #fff;
+}
+
 .app-shell.is-store .m-logo-image-wrap,
 .app-shell.is-store .button-secondary,
 .app-shell.is-store .button-ghost,
@@ -3615,6 +3619,14 @@ img {
   gap: 16px;
 }
 
+.app-shell.is-store .detail-tab-card {
+  background: #fff;
+  border-color: rgb(var(--primary-rgb) / 0.1);
+  box-shadow:
+    0 1px 2px rgb(var(--neutral-deep-rgb) / 0.04),
+    0 12px 28px rgb(var(--primary-rgb) / 0.05);
+}
+
 .benefit-item {
   display: grid;
   gap: 4px;
@@ -3672,6 +3684,9 @@ img {
 
 .tab-panel {
   margin-top: 16px;
+  padding-top: 18px;
+  border-top: 1px solid rgb(var(--primary-rgb) / 0.08);
+  background: #fff;
 }
 
 .policy-copy p:first-child {
@@ -8451,6 +8466,10 @@ button.admin-list-card {
       radial-gradient(circle at 10% 4%, rgb(var(--primary-rgb) / 0.12), transparent 42%),
       radial-gradient(circle at 92% 95%, rgb(var(--highlight-rgb) / 0.12), transparent 34%),
       linear-gradient(180deg, rgba(246, 250, 241, 0.98), rgba(255, 255, 253, 0.98));
+  }
+
+  .app-shell.is-store.is-store-desktop:has(.detail-page) {
+    background: #fff;
   }
 
   .app-shell.is-store.is-store-desktop .m-page {
