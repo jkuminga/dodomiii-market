@@ -453,7 +453,6 @@ function HomePage() {
           <nav className="landing-footer-mobile-links" aria-label="도도미마켓 정책 문서">
             <Link to="/legal/terms">이용약관</Link>
             <Link to="/legal/privacy">개인정보취급방침</Link>
-            <Link to="/legal/guide">이용안내</Link>
           </nav>
         </div>
       </footer>
