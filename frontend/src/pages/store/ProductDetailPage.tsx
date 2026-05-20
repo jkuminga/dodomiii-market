@@ -456,22 +456,6 @@ export function ProductDetailPage() {
           </div>
         </section>
 
-        <section className="surface-card info-stack">
-          <div className="benefit-item">
-            <span className="benefit-label">배송</span>
-            <p>{product.policy.shippingInfo}</p>
-          </div>
-          <div className="benefit-item">
-            <span className="benefit-label">환불</span>
-            <p>{product.policy.refundInfo}</p>
-          </div>
-          {product.consultationRequired ? 
-            (<div className="benefit-item">
-            <span className="benefit-label">주문 방식</span>
-            <p>상담 후 주문이 필요한 상품입니다.</p>
-          </div>): null }
-        </section>
-
         <section className="surface-card detail-order-card">
           <div className="section-head">
             <div>
