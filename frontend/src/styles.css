@@ -2836,6 +2836,36 @@ img {
   text-underline-offset: 3px;
 }
 
+.landing-footer-policy-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.landing-footer-policy-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgb(var(--primary-rgb) / 0.14);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.66);
+  color: rgb(42 48 40 / 0.76);
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1.3;
+  text-decoration: none;
+}
+
+.landing-footer-policy-links a:hover,
+.landing-footer-policy-links a:focus-visible {
+  border-color: rgb(var(--primary-rgb) / 0.28);
+  color: var(--primary-deep);
+  text-decoration: none;
+}
+
 .landing-footer-mobile-contact {
   display: grid;
   gap: 4px;
@@ -2970,6 +3000,33 @@ img {
 
 .legal-document-body p {
   margin: 0;
+}
+
+.legal-document-viewer {
+  display: grid;
+  gap: 12px;
+}
+
+.legal-document-viewer iframe {
+  width: 100%;
+  min-height: 72vh;
+  border: 1px solid rgb(42 48 40 / 0.12);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.legal-document-viewer p {
+  margin: 0;
+  color: rgb(42 48 40 / 0.72);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.legal-document-viewer a {
+  color: var(--primary-deep);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .category-row {
@@ -8512,10 +8569,20 @@ button.admin-list-card {
 
   .app-shell.is-store.is-store-desktop .landing-footer-section h3 {
     display: block;
-    padding-top: 1px;
+    padding-top: 0;
+    line-height: 32px;
+  }
+
+  .app-shell.is-store.is-store-desktop .landing-footer-policy-links {
+    grid-column: 2;
+    grid-row: 1;
+    align-items: center;
+    min-height: 32px;
+    margin-bottom: 0;
   }
 
   .app-shell.is-store.is-store-desktop .landing-footer-list {
+    grid-column: 2;
     gap: 6px;
   }
 
