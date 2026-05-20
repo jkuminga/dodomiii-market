@@ -521,19 +521,21 @@ export function OrderPage() {
       ) : null}
 
       <section className="surface-card order-product-card">
-        <div className="order-product-head">
-          <div>
+        <div className="order-product-head" style={{ alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, minWidth: 0, paddingRight: '12px' }}>
             <p className="section-kicker">{product.categoryName}</p>
-            <h2 className="section-subtitle">{product.name}</h2>
+            <h2 className="section-subtitle" style={{ wordBreak: 'keep-all', overflowWrap: 'break-word' }}>{product.name}</h2>
           </div>
-          <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`}>{product.isSoldOut ? '품절' : '주문 가능'}</span>
+          <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {product.isSoldOut ? '품절' : '주문 가능'}
+          </span>
         </div>
 
         <div className="order-product-summary">
           <div className="order-summary-row">
             <span>기본가</span>
             <div className="detail-price-stack">
-              <strong className="detail-price">{formatCurrency(discountedBasePrice)}</strong>
+              <strong>{formatCurrency(discountedBasePrice)}</strong>
               {hasDiscount ? (
                 <span className="detail-price-meta">
                   <span className="detail-original-price">{formatCurrency(product.basePrice)}</span>
@@ -543,16 +545,16 @@ export function OrderPage() {
             </div>
           </div>
           {selectedOptions.length > 0 ? (
-            <div className="order-summary-row">
-              <span>
-                선택 옵션
+            <div className="order-summary-row" style={{ alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span>선택 옵션</span>
                 {selectedOptions.map((entry) => (
-                  <small key={`${entry.group.id}-${entry.option.id}`}>
+                  <small key={`${entry.group.id}-${entry.option.id}`} style={{ color: 'var(--text-muted, #666)' }}>
                     {entry.group.name} / {entry.option.name}
                     {entry.quantity > 1 ? ` x${entry.quantity}` : ''}
                   </small>
                 ))}
-              </span>
+              </div>
               <strong>
                 {selectedOptionExtraTotal > 0
                   ? `+${formatCurrency(selectedOptionExtraTotal)}`
@@ -560,9 +562,12 @@ export function OrderPage() {
               </strong>
             </div>
           ) : null}
-          <div className="order-summary-row">
-            <span>예상 상품 금액</span>
-            <strong>{formatCurrency(estimatedSubtotal)}</strong>
+          
+          <hr className="order-form-divider" style={{ margin: '12px 0' }} />
+
+          <div className="order-summary-row" style={{ alignItems: 'center' }}>
+            <span style={{ fontWeight: 500 }}>예상 결제 금액</span>
+            <strong className="detail-price" style={{ color: 'var(--primary-color, #1a1a1a)' }}>{formatCurrency(estimatedSubtotal)}</strong>
           </div>
         </div>
       </section>
