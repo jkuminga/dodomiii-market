@@ -1,11 +1,11 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, MaxLength, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Matches, MaxLength, Min, ValidateNested } from 'class-validator';
 
-export const PRODUCT_CONTENT_BLOCK_TYPES = ['paragraph', 'image', 'divider', 'quote'] as const;
+export const PRODUCT_CONTENT_BLOCK_TYPES = ['paragraph', 'image', 'divider', 'quote', 'spacer'] as const;
 
 export class AdminProductContentBlockDto {
   @IsIn(PRODUCT_CONTENT_BLOCK_TYPES)
-  type!: 'paragraph' | 'image' | 'divider' | 'quote';
+  type!: 'paragraph' | 'image' | 'divider' | 'quote' | 'spacer';
 
   @IsOptional()
   @IsString()
@@ -19,6 +19,15 @@ export class AdminProductContentBlockDto {
   @IsOptional()
   @IsIn(['sm', 'base', 'lg', 'xl'])
   textSize?: 'sm' | 'base' | 'lg' | 'xl';
+
+  @IsOptional()
+  @IsIn(['normal', 'bold'])
+  fontWeight?: 'normal' | 'bold';
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^#[0-9a-fA-F]{6}$/)
+  textColor?: string;
 
   @IsOptional()
   @IsString()

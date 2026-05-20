@@ -5,8 +5,11 @@ import {
   createImageBlock,
   createParagraphBlock,
   createQuoteBlock,
+  createSpacerBlock,
   ProductContentBlockDraft,
+  ProductContentFontWeight,
   ProductContentTextAlign,
+  ProductContentTextColor,
   ProductContentTextSize,
 } from './productContentTypes';
 
@@ -16,6 +19,12 @@ type UploadedProductImage = {
   width: number | null;
   height: number | null;
 };
+
+const DEFAULT_TEXT_COLOR = '#374151';
+
+function normalizeHexColor(color: string): ProductContentTextColor {
+  return /^#[0-9a-fA-F]{6}$/.test(color) ? color.toLowerCase() : DEFAULT_TEXT_COLOR;
+}
 
 type ProductContentEditorProps = {
   blocks: ProductContentBlockDraft[];
@@ -32,6 +41,7 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
   const [openImageSettingsKey, setOpenImageSettingsKey] = useState<string | null>(null);
   const [defaultTextAlign, setDefaultTextAlign] = useState<ProductContentTextAlign>('left');
   const [defaultTextSize, setDefaultTextSize] = useState<ProductContentTextSize>('base');
+  const [recentTextColors, setRecentTextColors] = useState<ProductContentTextColor[]>([DEFAULT_TEXT_COLOR]);
   const blocksRef = useRef(blocks);
 
   useEffect(() => {
@@ -44,6 +54,12 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
     onChange(nextBlocks);
   };
 
+  const rememberTextColor = (color: string): ProductContentTextColor => {
+    const normalizedColor = normalizeHexColor(color);
+    setRecentTextColors((current) => [normalizedColor, ...current.filter((item) => item !== normalizedColor)].slice(0, 3));
+    return normalizedColor;
+  };
+
   const insertBlock = (index: number, block: ProductContentBlockDraft) => {
     const next = [...blocksRef.current];
     next.splice(index, 0, block);
@@ -54,8 +70,24 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
 
   const appendBlock = (block: ProductContentBlockDraft) => insertBlock(blocksRef.current.length, block);
 
-  const createDefaultParagraphBlock = (text = '') => createParagraphBlock(text, { textAlign: defaultTextAlign, textSize: defaultTextSize });
-  const createDefaultQuoteBlock = (text = '') => createQuoteBlock(text, { textAlign: defaultTextAlign, textSize: defaultTextSize });
+  const createDefaultParagraphBlock = (text = '') =>
+    createParagraphBlock(text, { textAlign: defaultTextAlign, textSize: defaultTextSize });
+  const createDefaultQuoteBlock = (text = '') =>
+    createQuoteBlock(text, { textAlign: defaultTextAlign, textSize: defaultTextSize });
+  const insertBlockByType = (index: number, type: 'paragraph' | 'image' | 'quote' | 'divider' | 'spacer') => {
+    const block =
+      type === 'paragraph'
+        ? createDefaultParagraphBlock()
+        : type === 'image'
+          ? createImageBlock()
+          : type === 'quote'
+            ? createDefaultQuoteBlock()
+            : type === 'divider'
+              ? createDividerBlock()
+              : createSpacerBlock();
+
+    insertBlock(index, block);
+  };
 
   const removeBlock = (key: string) => {
     const removedBlock = blocksRef.current.find((block) => block.key === key);
@@ -200,6 +232,9 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
         <button className="product-content-toolbar-button" type="button" onClick={() => appendBlock(createDividerBlock())} aria-label="구분선 블록 추가" data-tooltip="구분선">
           <DividerBlockIcon />
         </button>
+        <button className="product-content-toolbar-button" type="button" onClick={() => appendBlock(createSpacerBlock())} aria-label="공백 블록 추가" data-tooltip="공백">
+          <SpacerBlockIcon />
+        </button>
         <div className="product-content-default-text-controls" aria-label="새 텍스트 블록 기본값">
           <span className="product-content-default-text-label">새 텍스트 기본값 ㅣ </span>
           <label>
@@ -229,6 +264,7 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
             key={`drop-${block.key}`}
             onDragEnter={() => setDropIndex(index)}
           >
+            <InlineBlockInsertControls index={index} onInsert={insertBlockByType} />
             <ProductContentBlockEditor
               active={activeKey === block.key}
               block={block}
@@ -236,6 +272,8 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
               index={index}
               onActivate={() => setActiveKey(block.key)}
               onChange={(patch) => updateBlock(block.key, patch)}
+              onTextColorChange={(color) => updateBlock(block.key, { textColor: rememberTextColor(color) } as Partial<ProductContentBlockDraft>)}
+              recentTextColors={recentTextColors}
               imageSettingsOpen={openImageSettingsKey === block.key}
               onMove={(direction) => moveBlock(block.key, direction)}
               onRemove={() => removeBlock(block.key)}
@@ -256,12 +294,39 @@ export function ProductContentEditor({ blocks, onChange, onUploadImage, onDelete
         ))}
 
         <div className={`product-content-final-drop ${dropIndex === blocks.length ? 'is-target' : ''}`} onDragEnter={() => setDropIndex(blocks.length)}>
-          <button className="product-content-inline-add" type="button" onClick={() => appendBlock(createDefaultParagraphBlock())}>
-            + 계속 작성
-          </button>
+          <InlineBlockInsertControls index={blocks.length} onInsert={insertBlockByType} final />
         </div>
       </div>
     </section>
+  );
+}
+
+type InlineBlockInsertControlsProps = {
+  final?: boolean;
+  index: number;
+  onInsert: (index: number, type: 'paragraph' | 'image' | 'quote' | 'divider' | 'spacer') => void;
+};
+
+function InlineBlockInsertControls({ final = false, index, onInsert }: InlineBlockInsertControlsProps) {
+  const controls = [
+    { type: 'paragraph' as const, label: '텍스트', Icon: TextBlockIcon },
+    { type: 'image' as const, label: '이미지', Icon: ImageBlockIcon },
+    { type: 'quote' as const, label: '인용구', Icon: QuoteBlockIcon },
+    { type: 'divider' as const, label: '구분선', Icon: DividerBlockIcon },
+    { type: 'spacer' as const, label: '공백', Icon: SpacerBlockIcon },
+  ];
+
+  return (
+    <div className={`product-content-insert-row ${final ? 'is-final' : ''}`}>
+      <span className="product-content-insert-line" />
+      <div className="product-content-insert-actions" aria-label={`${index + 1}번째 위치에 본문 블록 삽입`}>
+        {controls.map(({ type, label, Icon }) => (
+          <button key={type} type="button" aria-label={`${label} 블록 삽입`} data-tooltip={label} onClick={() => onInsert(index, type)}>
+            <Icon />
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -272,6 +337,8 @@ type ProductContentBlockEditorProps = {
   index: number;
   onActivate: () => void;
   onChange: (patch: Partial<ProductContentBlockDraft>) => void;
+  onTextColorChange: (color: string) => void;
+  recentTextColors: ProductContentTextColor[];
   imageSettingsOpen: boolean;
   onMove: (direction: -1 | 1) => void;
   onRemove: () => void;
@@ -289,6 +356,8 @@ function ProductContentBlockEditor({
   index,
   onActivate,
   onChange,
+  onTextColorChange,
+  recentTextColors,
   imageSettingsOpen,
   onMove,
   onRemove,
@@ -327,30 +396,38 @@ function ProductContentBlockEditor({
       {block.type === 'paragraph' ? (
         <div className="product-content-text-block-editor">
           <textarea
-            className={`product-content-textarea align-${block.textAlign} size-${block.textSize}`}
+            className={`product-content-textarea align-${block.textAlign} size-${block.textSize} weight-${block.fontWeight}`}
+            style={{ color: block.textColor }}
             value={block.text}
             onChange={(event) => onChange({ text: event.target.value } as Partial<ProductContentBlockDraft>)}
             placeholder="상품 설명을 입력하세요"
             rows={Math.max(3, block.text.split('\n').length + 1)}
           />
-          <TextBlockStyleControls block={block} onChange={onChange} />
+          <TextBlockStyleControls block={block} onChange={onChange} onTextColorChange={onTextColorChange} recentTextColors={recentTextColors} />
         </div>
       ) : null}
 
       {block.type === 'quote' ? (
         <div className="product-content-text-block-editor">
           <textarea
-            className={`product-content-textarea is-quote align-${block.textAlign} size-${block.textSize}`}
+            className={`product-content-textarea is-quote align-${block.textAlign} size-${block.textSize} weight-${block.fontWeight}`}
+            style={{ color: block.textColor }}
             value={block.text}
             onChange={(event) => onChange({ text: event.target.value } as Partial<ProductContentBlockDraft>)}
             placeholder="강조하고 싶은 문장을 입력하세요"
             rows={Math.max(2, block.text.split('\n').length + 1)}
           />
-          <TextBlockStyleControls block={block} onChange={onChange} />
+          <TextBlockStyleControls block={block} onChange={onChange} onTextColorChange={onTextColorChange} recentTextColors={recentTextColors} />
         </div>
       ) : null}
 
       {block.type === 'divider' ? <hr className="product-content-editor-divider" /> : null}
+
+      {block.type === 'spacer' ? (
+        <div className="product-content-editor-spacer" aria-label="공백 블록">
+          <span>공백</span>
+        </div>
+      ) : null}
 
       {block.type === 'image' ? (
         <div className="product-content-image-editor">
@@ -452,11 +529,26 @@ function ProductContentBlockEditor({
 type TextBlockStyleControlsProps = {
   block: Extract<ProductContentBlockDraft, { type: 'paragraph' | 'quote' }>;
   onChange: (patch: Partial<ProductContentBlockDraft>) => void;
+  onTextColorChange: (color: string) => void;
+  recentTextColors: ProductContentTextColor[];
 };
 
-function TextBlockStyleControls({ block, onChange }: TextBlockStyleControlsProps) {
+function TextBlockStyleControls({ block, onChange, onTextColorChange, recentTextColors }: TextBlockStyleControlsProps) {
   return (
     <div className="product-content-text-style-controls" aria-label="텍스트 스타일 설정">
+      <button
+        className={`product-content-text-style-trigger ${block.fontWeight === 'bold' ? 'is-active' : ''}`}
+        type="button"
+        aria-label="굵게 설정"
+        aria-pressed={block.fontWeight === 'bold'}
+        onClick={() =>
+          onChange({
+            fontWeight: (block.fontWeight === 'bold' ? 'normal' : 'bold') as ProductContentFontWeight,
+          } as Partial<ProductContentBlockDraft>)
+        }
+      >
+        <BoldIcon />
+      </button>
       <div className="product-content-text-style-menu">
         <button className="product-content-text-style-trigger" type="button" aria-label="텍스트 크기 설정">
           <TextSizeIcon />
@@ -480,6 +572,15 @@ function TextBlockStyleControls({ block, onChange }: TextBlockStyleControlsProps
             </button>
           ))}
         </div>
+      </div>
+      <div className="product-content-text-style-menu">
+        <ColorPickerButton
+          ariaLabel="텍스트 색상 설정"
+          className="product-content-text-style-trigger product-content-color-trigger"
+          color={block.textColor}
+          onChange={onTextColorChange}
+        />
+        <RecentTextColorSwatches colors={recentTextColors} activeColor={block.textColor} onSelect={onTextColorChange} compact />
       </div>
       <div className="product-content-text-style-menu">
         <button className="product-content-text-style-trigger" type="button" aria-label="텍스트 정렬 설정">
@@ -508,6 +609,56 @@ function TextBlockStyleControls({ block, onChange }: TextBlockStyleControlsProps
         </div>
       </div>
     </div>
+  );
+}
+
+type RecentTextColorSwatchesProps = {
+  activeColor: ProductContentTextColor;
+  colors: ProductContentTextColor[];
+  compact?: boolean;
+  onSelect: (color: string) => void;
+};
+
+function RecentTextColorSwatches({ activeColor, colors, compact = false, onSelect }: RecentTextColorSwatchesProps) {
+  return (
+    <div className={`product-content-recent-colors ${compact ? 'is-compact' : ''}`} aria-label="최근 사용 색상">
+      {colors.map((color) => (
+        <button
+          className={normalizeHexColor(activeColor) === color ? 'is-active' : ''}
+          key={color}
+          type="button"
+          aria-label={`최근 색상 ${color} 적용`}
+          title={color}
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelect(color);
+          }}
+        >
+          <span style={{ backgroundColor: color }} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+type ColorPickerButtonProps = {
+  ariaLabel: string;
+  className: string;
+  color: ProductContentTextColor;
+  onChange: (color: string) => void;
+};
+
+function ColorPickerButton({ ariaLabel, className, color, onChange }: ColorPickerButtonProps) {
+  return (
+    <label className={className} aria-label={ariaLabel}>
+      <ColorIcon color={color} />
+      <input
+        className="product-content-native-color-input"
+        type="color"
+        value={color}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
   );
 }
 
@@ -559,6 +710,38 @@ function DividerBlockIcon() {
       <path d="M4 10h12" />
       <path d="M6 6h8" />
       <path d="M6 14h8" />
+    </svg>
+  );
+}
+
+function SpacerBlockIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <path d="M6 4.5h8" />
+      <path d="M6 15.5h8" />
+      <path d="M10 6.5v7" />
+      <path d="m7.8 8.2 2.2-2.2 2.2 2.2" />
+      <path d="m7.8 11.8 2.2 2.2 2.2-2.2" />
+    </svg>
+  );
+}
+
+function BoldIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <path d="M7 4.5h4.2a3 3 0 0 1 0 6H7z" />
+      <path d="M7 10.5h4.7a3 3 0 0 1 0 6H7z" />
+      <path d="M7 4.5v12" />
+    </svg>
+  );
+}
+
+function ColorIcon({ color }: { color: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false">
+      <path d="M5.8 14 9.1 5.2h1.8L14.2 14" />
+      <path d="M7.2 10.9h5.6" />
+      <rect x="5.4" y="15.2" width="9.2" height="1.8" rx=".9" fill={color} stroke="none" />
     </svg>
   );
 }

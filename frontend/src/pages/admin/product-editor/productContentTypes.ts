@@ -2,6 +2,8 @@ import { ProductContent, ProductContentBlock } from '../../../lib/api';
 
 export type ProductContentTextAlign = 'left' | 'center' | 'right';
 export type ProductContentTextSize = 'sm' | 'base' | 'lg' | 'xl';
+export type ProductContentFontWeight = 'normal' | 'bold';
+export type ProductContentTextColor = string;
 
 export type ProductContentBlockDraft =
   | {
@@ -10,6 +12,8 @@ export type ProductContentBlockDraft =
       text: string;
       textAlign: ProductContentTextAlign;
       textSize: ProductContentTextSize;
+      fontWeight: ProductContentFontWeight;
+      textColor: ProductContentTextColor;
     }
   | {
       key: string;
@@ -17,10 +21,16 @@ export type ProductContentBlockDraft =
       text: string;
       textAlign: ProductContentTextAlign;
       textSize: ProductContentTextSize;
+      fontWeight: ProductContentFontWeight;
+      textColor: ProductContentTextColor;
     }
   | {
       key: string;
       type: 'divider';
+    }
+  | {
+      key: string;
+      type: 'spacer';
     }
   | {
       key: string;
@@ -49,6 +59,8 @@ export function nextProductContentKey(): string {
 type ProductContentTextStylePatch = {
   textAlign?: ProductContentTextAlign;
   textSize?: ProductContentTextSize;
+  fontWeight?: ProductContentFontWeight;
+  textColor?: ProductContentTextColor;
 };
 
 export function createParagraphBlock(text = '', style: ProductContentTextStylePatch = {}): ProductContentBlockDraft {
@@ -58,6 +70,8 @@ export function createParagraphBlock(text = '', style: ProductContentTextStylePa
     text,
     textAlign: style.textAlign ?? 'left',
     textSize: style.textSize ?? 'base',
+    fontWeight: style.fontWeight ?? 'normal',
+    textColor: style.textColor ?? '#374151',
   };
 }
 
@@ -68,6 +82,8 @@ export function createQuoteBlock(text = '', style: ProductContentTextStylePatch 
     text,
     textAlign: style.textAlign ?? 'left',
     textSize: style.textSize ?? 'base',
+    fontWeight: style.fontWeight ?? 'normal',
+    textColor: style.textColor ?? '#374151',
   };
 }
 
@@ -75,6 +91,13 @@ export function createDividerBlock(): ProductContentBlockDraft {
   return {
     key: nextProductContentKey(),
     type: 'divider',
+  };
+}
+
+export function createSpacerBlock(): ProductContentBlockDraft {
+  return {
+    key: nextProductContentKey(),
+    type: 'spacer',
   };
 }
 
@@ -109,6 +132,8 @@ export function productContentBlocksFromContent(content: ProductContent | null |
         ...createParagraphBlock(block.text),
         textAlign: block.textAlign ?? 'left',
         textSize: block.textSize ?? 'base',
+        fontWeight: block.fontWeight ?? 'normal',
+        textColor: normalizeTextColor(block.textColor),
       };
     }
 
@@ -117,11 +142,17 @@ export function productContentBlocksFromContent(content: ProductContent | null |
         ...createQuoteBlock(block.text),
         textAlign: block.textAlign ?? 'left',
         textSize: block.textSize ?? 'base',
+        fontWeight: block.fontWeight ?? 'normal',
+        textColor: normalizeTextColor(block.textColor),
       };
     }
 
     if (block.type === 'divider') {
       return createDividerBlock();
+    }
+
+    if (block.type === 'spacer') {
+      return createSpacerBlock();
     }
 
     return createImageBlock({
@@ -154,6 +185,8 @@ export function buildProductContent(blocks: ProductContentBlockDraft[]): Product
           text,
           textAlign: block.textAlign,
           textSize: block.textSize,
+          fontWeight: block.fontWeight,
+          textColor: block.textColor,
         });
       }
 
@@ -162,6 +195,11 @@ export function buildProductContent(blocks: ProductContentBlockDraft[]): Product
 
     if (block.type === 'divider') {
       accumulator.push({ type: 'divider' });
+      return accumulator;
+    }
+
+    if (block.type === 'spacer') {
+      accumulator.push({ type: 'spacer' });
       return accumulator;
     }
 
@@ -199,4 +237,12 @@ export function productContentPlainText(blocks: ProductContentBlockDraft[]): str
     .filter(Boolean)
     .join('\n\n')
     .slice(0, 5000);
+}
+
+function normalizeTextColor(color: string | undefined): ProductContentTextColor {
+  if (color && /^#[0-9a-fA-F]{6}$/.test(color)) {
+    return color;
+  }
+
+  return '#374151';
 }

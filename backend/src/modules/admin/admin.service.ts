@@ -118,15 +118,22 @@ type ProductContentBlock =
       text: string;
       textAlign: 'left' | 'center' | 'right';
       textSize: 'sm' | 'base' | 'lg' | 'xl';
+      fontWeight: 'normal' | 'bold';
+      textColor: string;
     }
   | {
       type: 'quote';
       text: string;
       textAlign: 'left' | 'center' | 'right';
       textSize: 'sm' | 'base' | 'lg' | 'xl';
+      fontWeight: 'normal' | 'bold';
+      textColor: string;
     }
   | {
       type: 'divider';
+    }
+  | {
+      type: 'spacer';
     }
   | {
       type: 'image';
@@ -1466,18 +1473,28 @@ export class AdminService {
         'textSize' in block && (block.textSize === 'sm' || block.textSize === 'lg' || block.textSize === 'xl')
           ? block.textSize
           : 'base';
+      const fontWeight = 'fontWeight' in block && block.fontWeight === 'bold' ? 'bold' : 'normal';
+      const textColor = 'textColor' in block && typeof block.textColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(block.textColor) ? block.textColor : '#374151';
 
       return {
         type: rawType,
         text,
         textAlign,
         textSize,
+        fontWeight,
+        textColor,
       };
     }
 
     if (rawType === 'divider') {
       return {
         type: 'divider',
+      };
+    }
+
+    if (rawType === 'spacer') {
+      return {
+        type: 'spacer',
       };
     }
 
@@ -1824,12 +1841,20 @@ export class AdminService {
         text: block.text,
         textAlign: block.textAlign,
         textSize: block.textSize,
+        fontWeight: block.fontWeight,
+        textColor: block.textColor,
       };
     }
 
     if (block.type === 'divider') {
       return {
         type: 'divider',
+      };
+    }
+
+    if (block.type === 'spacer') {
+      return {
+        type: 'spacer',
       };
     }
 

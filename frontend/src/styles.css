@@ -8941,6 +8941,8 @@ button.admin-list-card {
 }
 
 .product-content-toolbar {
+  position: relative;
+  z-index: 8;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -8997,6 +8999,73 @@ button.admin-list-card {
   border-color: rgba(37, 99, 235, 0.36);
   outline: 2px solid rgba(37, 99, 235, 0.14);
   outline-offset: 1px;
+}
+
+.product-content-native-color-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.product-content-recent-colors {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.product-content-recent-colors button {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 1px solid rgba(31, 41, 55, 0.14);
+  border-radius: 999px;
+  background: #fff;
+  cursor: pointer;
+  padding: 0;
+}
+
+.product-content-recent-colors button:hover,
+.product-content-recent-colors button:focus-visible,
+.product-content-recent-colors button.is-active {
+  border-color: rgba(37, 99, 235, 0.42);
+  outline: 2px solid rgba(37, 99, 235, 0.12);
+  outline-offset: 1px;
+}
+
+.product-content-recent-colors span {
+  display: block;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.64);
+}
+
+.product-content-recent-colors.is-compact {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 6;
+  padding: 5px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-3px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.product-content-text-style-menu:hover .product-content-recent-colors.is-compact,
+.product-content-text-style-menu:focus-within .product-content-recent-colors.is-compact {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
 .product-content-toolbar-button {
@@ -9064,6 +9133,100 @@ button.admin-list-card {
 
 .product-content-drop-row {
   position: relative;
+}
+
+.product-content-insert-row {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  min-height: 18px;
+  place-items: center;
+  margin: -2px 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease, margin 0.16s ease;
+}
+
+.product-content-drop-row:hover .product-content-insert-row,
+.product-content-final-drop:hover .product-content-insert-row,
+.product-content-insert-row:hover {
+  margin: 6px 0;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.product-content-insert-line {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: rgba(37, 99, 235, 0.18);
+}
+
+.product-content-insert-actions {
+  position: relative;
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+.product-content-insert-actions button {
+  position: relative;
+  display: inline-grid;
+  width: 30px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.product-content-insert-actions button:hover,
+.product-content-insert-actions button:focus-visible {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.product-content-insert-actions button::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  z-index: 10;
+  padding: 5px 7px;
+  border-radius: 7px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  white-space: nowrap;
+}
+
+.product-content-insert-actions button:hover::after,
+.product-content-insert-actions button:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.product-content-insert-actions svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 .product-content-drop-row.is-target::before,
@@ -9197,6 +9360,20 @@ button.admin-list-card {
   font-size: 1.32rem;
 }
 
+.product-content-textarea.weight-normal,
+.product-content-paragraph.weight-normal,
+.product-content-quote.weight-normal {
+  font-weight: 400;
+}
+
+.product-content-textarea.weight-bold,
+.product-content-paragraph.weight-bold,
+.product-content-quote.weight-bold {
+  font-weight: 900;
+  -webkit-text-stroke: 0.18px currentColor;
+  text-shadow: 0.22px 0 currentColor, -0.22px 0 currentColor;
+}
+
 .product-content-textarea:focus {
   box-shadow: inset 3px 0 0 #2563eb;
   padding-left: 12px;
@@ -9220,7 +9397,6 @@ button.admin-list-card {
   transition: opacity 0.16s ease;
 }
 
-.product-content-block:hover .product-content-text-style-controls,
 .product-content-block.is-active .product-content-text-style-controls {
   opacity: 1;
   pointer-events: auto;
@@ -9230,7 +9406,18 @@ button.admin-list-card {
   position: relative;
 }
 
+.product-content-text-style-menu::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: -10px;
+  left: -10px;
+  z-index: 1;
+  height: 16px;
+}
+
 .product-content-text-style-trigger {
+  position: relative;
   display: inline-grid;
   width: 34px;
   height: 32px;
@@ -9241,10 +9428,13 @@ button.admin-list-card {
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
   color: #334155;
   cursor: pointer;
+  line-height: 0;
+  overflow: hidden;
 }
 
 .product-content-text-style-trigger:hover,
 .product-content-text-style-trigger:focus-visible,
+.product-content-text-style-trigger.is-active,
 .product-content-text-style-menu:focus-within .product-content-text-style-trigger {
   border-color: rgba(37, 99, 235, 0.3);
   color: #2563eb;
@@ -9252,6 +9442,7 @@ button.admin-list-card {
 
 .product-content-text-style-trigger svg,
 .product-content-text-style-popover svg {
+  display: block;
   width: 16px;
   height: 16px;
   fill: none;
@@ -9265,6 +9456,7 @@ button.admin-list-card {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
+  z-index: 6;
   display: grid;
   min-width: 128px;
   gap: 4px;
@@ -9310,6 +9502,19 @@ button.admin-list-card {
   color: #2563eb;
 }
 
+.product-content-color-popover {
+  min-width: 122px;
+}
+
+.text-color-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.8);
+}
+
 .text-size-preview {
   display: inline-grid;
   width: 16px;
@@ -9346,6 +9551,24 @@ button.admin-list-card {
   border: 0;
   border-top: 1px solid rgba(31, 41, 55, 0.2);
   margin: 20px 0;
+}
+
+.product-content-editor-spacer {
+  display: grid;
+  min-height: 8.5rem;
+  place-items: center;
+  border: 1px dashed rgba(100, 116, 139, 0.28);
+  border-radius: 8px;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(248, 250, 252, 0.86) 0,
+    rgba(248, 250, 252, 0.86) 16px,
+    rgba(226, 232, 240, 0.48) 16px,
+    rgba(226, 232, 240, 0.48) 17px
+  );
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .product-content-image-editor {
@@ -9510,7 +9733,7 @@ button.admin-list-card {
 
 .product-content-final-drop {
   position: relative;
-  padding: 10px 0 0;
+  padding: 2px 0 0;
 }
 
 .product-content-inline-add {
@@ -9547,6 +9770,10 @@ button.admin-list-card {
   width: 100%;
   border: 0;
   border-top: 1px solid rgba(31, 41, 55, 0.16);
+}
+
+.product-content-spacer {
+  min-height: 8.5rem;
 }
 
 .product-content-image {

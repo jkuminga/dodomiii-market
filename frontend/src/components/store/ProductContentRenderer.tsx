@@ -11,8 +11,9 @@ export function ProductContentRenderer({ content }: ProductContentRendererProps)
         if (block.type === 'paragraph') {
           return (
             <p
-              className={`product-content-paragraph align-${block.textAlign ?? 'left'} size-${block.textSize ?? 'base'}`}
+              className={`product-content-paragraph align-${block.textAlign ?? 'left'} size-${block.textSize ?? 'base'} weight-${block.fontWeight ?? 'normal'}`}
               key={`${block.type}-${index}`}
+              style={{ color: block.textColor ?? undefined }}
             >
               {block.text}
             </p>
@@ -22,8 +23,9 @@ export function ProductContentRenderer({ content }: ProductContentRendererProps)
         if (block.type === 'quote') {
           return (
             <blockquote
-              className={`product-content-quote align-${block.textAlign ?? 'left'} size-${block.textSize ?? 'base'}`}
+              className={`product-content-quote align-${block.textAlign ?? 'left'} size-${block.textSize ?? 'base'} weight-${block.fontWeight ?? 'normal'}`}
               key={`${block.type}-${index}`}
+              style={{ color: block.textColor ?? undefined }}
             >
               {block.text}
             </blockquote>
@@ -32,6 +34,10 @@ export function ProductContentRenderer({ content }: ProductContentRendererProps)
 
         if (block.type === 'divider') {
           return <hr className="product-content-divider" key={`${block.type}-${index}`} />;
+        }
+
+        if (block.type === 'spacer') {
+          return <div className="product-content-spacer" aria-hidden="true" key={`${block.type}-${index}`} />;
         }
 
         const image = <img src={block.imageUrl} alt={block.alt ?? block.caption ?? ''} loading="lazy" />;

@@ -255,15 +255,22 @@ export type ProductContentBlock =
       text: string;
       textAlign?: 'left' | 'center' | 'right';
       textSize?: 'sm' | 'base' | 'lg' | 'xl';
+      fontWeight?: 'normal' | 'bold';
+      textColor?: string;
     }
   | {
       type: 'quote';
       text: string;
       textAlign?: 'left' | 'center' | 'right';
       textSize?: 'sm' | 'base' | 'lg' | 'xl';
+      fontWeight?: 'normal' | 'bold';
+      textColor?: string;
     }
   | {
       type: 'divider';
+    }
+  | {
+      type: 'spacer';
     }
   | {
       type: 'image';

@@ -1775,12 +1775,19 @@ export class StoreService {
               text: block.text,
               textAlign: block.textAlign === 'center' || block.textAlign === 'right' ? block.textAlign : 'left',
               textSize: block.textSize === 'sm' || block.textSize === 'lg' || block.textSize === 'xl' ? block.textSize : 'base',
+              fontWeight: block.fontWeight === 'bold' ? 'bold' : 'normal',
+              textColor: typeof block.textColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(block.textColor) ? block.textColor : '#374151',
             });
             return accumulator;
           }
 
           if (block.type === 'divider') {
             accumulator.push({ type: 'divider' });
+            return accumulator;
+          }
+
+          if (block.type === 'spacer') {
+            accumulator.push({ type: 'spacer' });
             return accumulator;
           }
 
