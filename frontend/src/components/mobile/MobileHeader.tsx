@@ -152,7 +152,7 @@ export function MobileHeader() {
               <img className="m-logo-image" src={logoMain} alt="" />
             </span>
             <span className="m-logo-copy">
-              <strong>DODOMIII</strong>
+              <strong>DODOMiiii</strong>
               <small>Handmade market</small>
             </span>
           </Link>

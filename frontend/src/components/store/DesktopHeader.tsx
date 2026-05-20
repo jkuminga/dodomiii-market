@@ -61,7 +61,7 @@ export function DesktopHeader({ onOpenSearch }: DesktopHeaderProps) {
             <img className="d-logo-image" src={logoMain} alt="" />
           </span>
           <span className="d-logo-copy">
-            <strong>DODOMIII</strong>
+            <strong>DODOMiiii</strong>
             <small>Handmade market</small>
           </span>
         </Link>

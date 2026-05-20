@@ -263,8 +263,8 @@ function HomePage() {
         </div>
 
         <div className="hero-copy hero-copy-polished hero-copy-landing">
-          <p className="hero-badge">DODOMII MARKET</p>
-          <h1 className="section-title hero-title">DODOMIIII MARKET</h1>
+          <p className="hero-badge">DODOMiiii MARKET</p>
+          <h1 className="section-title hero-title">DODOMiiii MARKET</h1>
           <p className="section-copy hero-summary">
             시들지 않는 마음을 선물하세요
           </p>
@@ -330,7 +330,7 @@ function HomePage() {
       <footer className="landing-footer landing-footer-desktop" aria-labelledby="landing-footer-title">
         <div className="landing-footer-inner">
           <div className="landing-footer-brand">
-            <p className="landing-footer-kicker">DODOMII MARKET</p>
+            <p className="landing-footer-kicker">DODOMiiii MARKET</p>
             <h2 id="landing-footer-title">도도미마켓</h2>
             <p>시들지 않는 마음을 전하는 핸드메이드 마켓</p>
           </div>
@@ -402,7 +402,7 @@ function HomePage() {
         <div className="landing-footer-inner">
           <div className="landing-footer-mobile-contact">
             <p className="landing-footer-mobile-name">도도미 마켓</p>
-            <p className="landing-footer-mobile-name-en">DODOMII MARKET</p>
+            <p className="landing-footer-mobile-name-en">DODOMiiii MARKET</p>
             <a href="mailto:dodomiiiimarket@gmail.com">dodomiiiimarket@gmail.com</a>
             <a href="tel:01085116605">010-8511-6605</a>
           </div>
