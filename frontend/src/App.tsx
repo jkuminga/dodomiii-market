@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 
+import termsOfUsePdf from './assets/documents/terms_of_use.pdf';
 import logoMain from './assets/images/Hero_image.png';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { BottomNav } from './components/mobile/BottomNav';
@@ -368,6 +369,10 @@ function HomePage() {
                   <dd>도현정</dd>
                 </div>
                 <div>
+                  <dt>사업장주소</dt>
+                  <dd>울산광역시 남구 은월로2번길 23 (44644)</dd>
+                </div>
+                <div>
                   <dt>사업자등록번호</dt>
                   <dd>139-30-35084</dd>
                 </div>
@@ -384,19 +389,10 @@ function HomePage() {
 
             <section className="landing-footer-section" aria-label="사업장 및 개인정보 안내">
               <h3>INFO</h3>
-              <dl className="landing-footer-list">
-                <div>
-                  <dt>사업장주소</dt>
-                  <dd>울산광역시 남구 은월로2번길 23 (44644)</dd>
-                </div>
-                <div>
-                  <dt>개인정보처리방침</dt>
-                  <dd>
-                    주문 시 제공해주시는 개인정보는 배송 및 고객응대를 위해서만 사용되며, 관련 법령에 따라 안전하게
-                    사용됩니다.
-                  </dd>
-                </div>
-              </dl>
+              <nav className="landing-footer-policy-links" aria-label="도도미마켓 정책 문서">
+                <Link to="/legal/terms">이용약관</Link>
+                <Link to="/legal/privacy">개인정보취급방침</Link>
+              </nav>
             </section>
           </div>
         </div>
@@ -672,15 +668,18 @@ function SearchOverlay({ isOpen, keyword, onKeywordChange, onClose, onSubmit }: 
 const LEGAL_DOCUMENTS = {
   terms: {
     title: '이용약관',
-    description: '도도미마켓 이용약관 문서를 준비 중입니다.',
+    description: '도도미마켓 이용약관 문서입니다.',
+    pdfUrl: termsOfUsePdf,
   },
   privacy: {
     title: '개인정보취급방침',
     description: '도도미마켓 개인정보취급방침 문서를 준비 중입니다.',
+    pdfUrl: null,
   },
   guide: {
     title: '이용안내',
     description: '도도미마켓 이용안내 문서를 준비 중입니다.',
+    pdfUrl: null,
   },
 } as const;
 
@@ -709,10 +708,23 @@ function LegalDocumentPage() {
           </h1>
         </div>
 
-        <article className="legal-document-body">
-          <p>{document.description}</p>
-          <p>추후 markdown 또는 텍스트 파일을 연결해 이 영역에 문서 본문을 렌더링할 예정입니다.</p>
-        </article>
+        {document.pdfUrl ? (
+          <div className="legal-document-viewer">
+            <iframe src={document.pdfUrl} title={document.title} />
+            <p>
+              PDF가 보이지 않으면{' '}
+              <a href={document.pdfUrl} target="_blank" rel="noreferrer">
+                새 창에서 열기
+              </a>
+              를 눌러 확인해주세요.
+            </p>
+          </div>
+        ) : (
+          <article className="legal-document-body">
+            <p>{document.description}</p>
+            <p>추후 PDF 파일을 연결해 이 영역에 문서 본문을 렌더링할 예정입니다.</p>
+          </article>
+        )}
       </section>
     </main>
   );
