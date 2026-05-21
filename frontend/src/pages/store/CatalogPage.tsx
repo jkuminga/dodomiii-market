@@ -140,18 +140,20 @@ export function CatalogPage() {
     return findCategoryNameBySlug(categories, categorySlug) ?? '상품';
   }, [categories, categorySlug, searchKeyword]);
 
-  const showCustomBouquetItem = useMemo(() => {
-    if (!categorySlug) {
-      return false;
-    }
-
-    const bouquetCategory = findCategoryNodeBySlug(categories, 'bouquet');
-    if (!bouquetCategory) {
-      return categorySlug === 'bouquet';
-    }
-
-    return categoryTreeContainsSlug(bouquetCategory, categorySlug);
-  }, [categories, categorySlug]);
+  // 커스텀 주문용 상품 카드는 필요 시 다시 노출할 수 있도록 렌더링 코드는 아래에 남겨두고, 현재는 목록에서 숨긴다.
+  const showCustomBouquetItem = false;
+  // const showCustomBouquetItem = useMemo(() => {
+  //   if (!categorySlug) {
+  //     return false;
+  //   }
+  //
+  //   const bouquetCategory = findCategoryNodeBySlug(categories, 'bouquet');
+  //   if (!bouquetCategory) {
+  //     return categorySlug === 'bouquet';
+  //   }
+  //
+  //   return categoryTreeContainsSlug(bouquetCategory, categorySlug);
+  // }, [categories, categorySlug]);
 
   const hasVisibleItems = showCustomBouquetItem || products.length > 0;
 
