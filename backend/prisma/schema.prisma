@@ -345,10 +345,12 @@ model HomeHeroSetting {
 }
 
 model StorefrontSetting {
-  key             String          @id @default("default") @db.VarChar(30)
-  userWebFontSize UserWebFontSize @default(NORMAL) @map("user_web_font_size")
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
+  key               String          @id @default("default") @db.VarChar(30)
+  userWebFontSize   UserWebFontSize @default(NORMAL) @map("user_web_font_size")
+  userWebFontFamily String          @default("HANAM_DAUM") @map("user_web_font_family") @db.VarChar(50)
+  userWebFontWeightPreset String    @default("NORMAL") @map("user_web_font_weight_preset") @db.VarChar(30)
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
 
   @@map("storefront_settings")
 }

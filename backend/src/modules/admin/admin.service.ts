@@ -287,9 +287,13 @@ export class AdminService {
       create: {
         key: 'default',
         userWebFontSize: dto.userWebFontSize,
+        userWebFontFamily: dto.userWebFontFamily,
+        userWebFontWeightPreset: dto.userWebFontWeightPreset,
       },
       update: {
         userWebFontSize: dto.userWebFontSize,
+        userWebFontFamily: dto.userWebFontFamily,
+        userWebFontWeightPreset: dto.userWebFontWeightPreset,
       },
     });
 
@@ -1749,12 +1753,16 @@ export class AdminService {
   private mapStorefrontSettings(settings: {
     key: string;
     userWebFontSize: UserWebFontSize;
+    userWebFontFamily: string;
+    userWebFontWeightPreset: string;
     createdAt: Date;
     updatedAt: Date;
   }): AdminStorefrontSettingsResponse {
     return {
       key: settings.key,
       userWebFontSize: settings.userWebFontSize,
+      userWebFontFamily: settings.userWebFontFamily as AdminStorefrontSettingsResponse['userWebFontFamily'],
+      userWebFontWeightPreset: settings.userWebFontWeightPreset as AdminStorefrontSettingsResponse['userWebFontWeightPreset'],
       createdAt: settings.createdAt.toISOString(),
       updatedAt: settings.updatedAt.toISOString(),
     };

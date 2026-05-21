@@ -9,7 +9,22 @@ import { MobileHeader } from './components/mobile/MobileHeader';
 import { AnimatedCursor } from './components/store/AnimatedCursor';
 import { DesktopHeader } from './components/store/DesktopHeader';
 import { ProductArtwork } from './components/store/ProductArtwork';
-import { apiClient, CategoryTreeNode, ProductListItem, StoreHomeHero, StoreHomePopup, UserWebFontSize } from './lib/api';
+import {
+  apiClient,
+  CategoryTreeNode,
+  ProductListItem,
+  StoreHomeHero,
+  StoreHomePopup,
+  StoreWebFontFamily,
+  StoreWebFontWeightPreset,
+  UserWebFontSize,
+} from './lib/api';
+import {
+  DEFAULT_STORE_WEB_FONT_FAMILY,
+  DEFAULT_STORE_WEB_FONT_WEIGHT_PRESET,
+  STORE_WEB_FONT_ATTRIBUTE,
+  STORE_WEB_FONT_WEIGHT_ATTRIBUTE,
+} from './lib/storeFonts';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
 import { AdminAccountFormPage } from './pages/admin/AdminAccountFormPage';
 import { AdminAccountsPage } from './pages/admin/AdminAccountsPage';
@@ -748,6 +763,8 @@ function AppFrame() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [storeFontSize, setStoreFontSize] = useState<UserWebFontSize>('NORMAL');
+  const [storeFontFamily, setStoreFontFamily] = useState<StoreWebFontFamily>(DEFAULT_STORE_WEB_FONT_FAMILY);
+  const [storeFontWeightPreset, setStoreFontWeightPreset] = useState<StoreWebFontWeightPreset>(DEFAULT_STORE_WEB_FONT_WEIGHT_PRESET);
   const [isDesktopViewport, setIsDesktopViewport] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 960px)').matches : false,
   );
@@ -777,6 +794,8 @@ function AppFrame() {
 
     if (isAdminRoute) {
       setStoreFontSize('NORMAL');
+      setStoreFontFamily(DEFAULT_STORE_WEB_FONT_FAMILY);
+      setStoreFontWeightPreset(DEFAULT_STORE_WEB_FONT_WEIGHT_PRESET);
       return;
     }
 
@@ -785,10 +804,14 @@ function AppFrame() {
         const settings = await apiClient.getStorefrontSettings();
         if (!cancelled) {
           setStoreFontSize(settings.userWebFontSize);
+          setStoreFontFamily(settings.userWebFontFamily);
+          setStoreFontWeightPreset(settings.userWebFontWeightPreset);
         }
       } catch {
         if (!cancelled) {
           setStoreFontSize('NORMAL');
+          setStoreFontFamily(DEFAULT_STORE_WEB_FONT_FAMILY);
+          setStoreFontWeightPreset(DEFAULT_STORE_WEB_FONT_WEIGHT_PRESET);
         }
       }
     };
@@ -807,15 +830,21 @@ function AppFrame() {
 
     if (isAdminRoute) {
       delete document.documentElement.dataset.storeFontSize;
+      delete document.documentElement.dataset.storeFontFamily;
+      delete document.documentElement.dataset.storeFontWeight;
       return;
     }
 
     document.documentElement.dataset.storeFontSize = STORE_FONT_SIZE_ATTRIBUTE[storeFontSize];
+    document.documentElement.dataset.storeFontFamily = STORE_WEB_FONT_ATTRIBUTE[storeFontFamily];
+    document.documentElement.dataset.storeFontWeight = STORE_WEB_FONT_WEIGHT_ATTRIBUTE[storeFontWeightPreset];
 
     return () => {
       delete document.documentElement.dataset.storeFontSize;
+      delete document.documentElement.dataset.storeFontFamily;
+      delete document.documentElement.dataset.storeFontWeight;
     };
-  }, [isAdminRoute, storeFontSize]);
+  }, [isAdminRoute, storeFontFamily, storeFontSize, storeFontWeightPreset]);
 
   const openSearch = () => {
     setSearchKeyword('');

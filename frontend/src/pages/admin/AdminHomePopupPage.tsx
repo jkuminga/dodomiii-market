@@ -3,7 +3,22 @@ import { useOutletContext } from 'react-router-dom';
 
 import { AdminFloatingSubmitButton } from '../../components/admin/AdminFloatingSubmitButton';
 import { LoadingScreen } from '../../components/common/LoadingScreen';
-import { AdminHomeHero, AdminHomePopup, AdminMediaUsage, AdminStorefrontSettings, UserWebFontSize, apiClient } from '../../lib/api';
+import {
+  AdminHomeHero,
+  AdminHomePopup,
+  AdminMediaUsage,
+  AdminStorefrontSettings,
+  StoreWebFontFamily,
+  StoreWebFontWeightPreset,
+  UserWebFontSize,
+  apiClient,
+} from '../../lib/api';
+import {
+  DEFAULT_STORE_WEB_FONT_FAMILY,
+  DEFAULT_STORE_WEB_FONT_WEIGHT_PRESET,
+  STORE_WEB_FONT_OPTIONS,
+  STORE_WEB_FONT_WEIGHT_OPTIONS,
+} from '../../lib/storeFonts';
 import { AdminLayoutContext, formatAdminDateTime } from './adminUtils';
 
 type PopupFormState = {
@@ -20,6 +35,8 @@ type HeroFormState = {
 
 type StorefrontSettingsFormState = {
   userWebFontSize: UserWebFontSize;
+  userWebFontFamily: StoreWebFontFamily;
+  userWebFontWeightPreset: StoreWebFontWeightPreset;
 };
 
 const USER_WEB_FONT_SIZE_OPTIONS: Array<{
@@ -75,6 +92,8 @@ function toHeroFormState(hero: AdminHomeHero | null): HeroFormState {
 function toStorefrontSettingsFormState(settings: AdminStorefrontSettings | null): StorefrontSettingsFormState {
   return {
     userWebFontSize: settings?.userWebFontSize ?? 'NORMAL',
+    userWebFontFamily: settings?.userWebFontFamily ?? DEFAULT_STORE_WEB_FONT_FAMILY,
+    userWebFontWeightPreset: settings?.userWebFontWeightPreset ?? DEFAULT_STORE_WEB_FONT_WEIGHT_PRESET,
   };
 }
 
@@ -154,6 +173,20 @@ export function AdminHomePopupPage() {
     value: StorefrontSettingsFormState[Key],
   ) => {
     setStorefrontSettingsForm((current) => ({ ...current, [key]: value }));
+
+    if (storefrontSettingsError !== '') {
+      setStorefrontSettingsError('');
+    }
+  };
+
+  const updateStorefrontFontFamily = (value: StoreWebFontFamily) => {
+    const nextFont = STORE_WEB_FONT_OPTIONS.find((option) => option.value === value);
+
+    setStorefrontSettingsForm((current) => ({
+      ...current,
+      userWebFontFamily: value,
+      userWebFontWeightPreset: nextFont?.supportsWeightPreset ? current.userWebFontWeightPreset : DEFAULT_STORE_WEB_FONT_WEIGHT_PRESET,
+    }));
 
     if (storefrontSettingsError !== '') {
       setStorefrontSettingsError('');
@@ -358,16 +391,20 @@ export function AdminHomePopupPage() {
     try {
       const result = await apiClient.updateAdminStorefrontSettings({
         userWebFontSize: storefrontSettingsForm.userWebFontSize,
+        userWebFontFamily: storefrontSettingsForm.userWebFontFamily,
+        userWebFontWeightPreset: selectedFontOption.supportsWeightPreset
+          ? storefrontSettingsForm.userWebFontWeightPreset
+          : DEFAULT_STORE_WEB_FONT_WEIGHT_PRESET,
       });
 
       setStorefrontSettings(result);
       setStorefrontSettingsForm(toStorefrontSettingsFormState(result));
-      showToast('사용자 웹 글자 크기를 저장했습니다.');
+      showToast('사용자 웹 표시 설정을 저장했습니다.');
       setStorefrontSettingsSaveSuccess(true);
       await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
     } catch (caught) {
       setStorefrontSettingsSaveSuccess(false);
-      setStorefrontSettingsError(caught instanceof Error ? caught.message : '사용자 웹 글자 크기 저장에 실패했습니다.');
+      setStorefrontSettingsError(caught instanceof Error ? caught.message : '사용자 웹 표시 설정 저장에 실패했습니다.');
     } finally {
       setStorefrontSettingsSaving(false);
       setStorefrontSettingsSaveSuccess(false);
@@ -393,6 +430,12 @@ export function AdminHomePopupPage() {
   const selectedFontSizeOption =
     USER_WEB_FONT_SIZE_OPTIONS.find((option) => option.value === storefrontSettingsForm.userWebFontSize) ??
     USER_WEB_FONT_SIZE_OPTIONS[2];
+  const selectedFontOption =
+    STORE_WEB_FONT_OPTIONS.find((option) => option.value === storefrontSettingsForm.userWebFontFamily) ??
+    STORE_WEB_FONT_OPTIONS[0];
+  const selectedFontWeightOption =
+    STORE_WEB_FONT_WEIGHT_OPTIONS.find((option) => option.value === storefrontSettingsForm.userWebFontWeightPreset) ??
+    STORE_WEB_FONT_WEIGHT_OPTIONS[1];
   const selectedFontSizeIndex = Math.max(
     USER_WEB_FONT_SIZE_OPTIONS.findIndex((option) => option.value === storefrontSettingsForm.userWebFontSize),
     0,
@@ -406,8 +449,8 @@ export function AdminHomePopupPage() {
     <section className="admin-section">
       <section className="surface-hero compact-hero admin-hero-card">
         <div className="admin-hero-copy">
-          <p className="section-kicker">Home Popup</p>
-          <h2 className="section-title admin-section-title">홈 팝업 관리</h2>
+          <p className="section-kicker">Home & Theme</p>
+          <h2 className="section-title admin-section-title">홈 & 테마 관리</h2>
         </div>
 
         <div className="admin-stat-grid">
@@ -431,23 +474,31 @@ export function AdminHomePopupPage() {
             <span>사용자 웹 글자</span>
             <strong>{loading ? '확인 중' : selectedFontSizeOption.label}</strong>
           </div>
+          <div className="admin-stat-card">
+            <span>사용자 웹 폰트</span>
+            <strong>{loading ? '확인 중' : selectedFontOption.label}</strong>
+          </div>
+          <div className="admin-stat-card">
+            <span>사용자 웹 굵기</span>
+            <strong>{loading ? '확인 중' : selectedFontOption.supportsWeightPreset ? selectedFontWeightOption.label : '기본'}</strong>
+          </div>
         </div>
       </section>
 
-      <form className="surface-card admin-card-stack" onSubmit={onSubmitStorefrontSettings} aria-busy={loading || storefrontSettingsSaving}>
+      <form className="surface-card admin-card-stack admin-home-section-card admin-storefront-settings-form" onSubmit={onSubmitStorefrontSettings} aria-busy={loading || storefrontSettingsSaving}>
         <AdminFloatingSubmitButton
           busy={storefrontSettingsSaving}
           busyLabel="저장 중..."
           disabled={storefrontSettingsSaving || loading}
-          label="글자 크기 저장"
+          label="표시 설정 저장"
           success={storefrontSettingsSaveSuccess}
         />
         <div className="admin-section-head">
           <div>
             <p className="section-kicker">User Web</p>
-            <h3 className="section-subtitle">사용자 웹 글자 크기</h3>
+            <h3 className="section-subtitle">사용자 웹 표시 설정</h3>
             <p className="section-copy section-copy-compact">
-              사용자 웹 전체의 글자 크기를 설정합니다. 기본 값은 보통입니다.
+              사용자 웹 전체의 폰트, 굵기, 글자 크기를 설정합니다. 기본 값은 하남다움체와 보통입니다.
             </p>
           </div>
           <button className="button" type="submit" disabled={storefrontSettingsSaving || loading}>
@@ -464,37 +515,106 @@ export function AdminHomePopupPage() {
         {loading ? (
           <LoadingScreen mode="inline" title="글자 크기 설정 로딩 중" message="사용자 웹 표시 설정을 불러오고 있습니다." />
         ) : (
-          <div
-            className="admin-font-size-slider"
-            style={{ '--selected-font-size-index': selectedFontSizeIndex } as CSSProperties}
-            aria-label="사용자 웹 글자 크기 선택"
-          >
-            <div className="admin-font-size-slider-track" aria-hidden="true">
-              <span className="admin-font-size-slider-dot" />
+          <>
+            <div className="admin-storefront-setting-group">
+              <div className="admin-field-heading">
+                <strong>폰트 타입</strong>
+                <span>{selectedFontOption.label}</span>
+              </div>
+              <div className="admin-font-family-grid" aria-label="사용자 웹 폰트 타입 선택">
+                {STORE_WEB_FONT_OPTIONS.map((option) => (
+                  <label
+                    className={`admin-font-family-option${storefrontSettingsForm.userWebFontFamily === option.value ? ' is-selected' : ''}`}
+                    key={option.value}
+                  >
+                    <input
+                      type="radio"
+                      name="userWebFontFamily"
+                      value={option.value}
+                      checked={storefrontSettingsForm.userWebFontFamily === option.value}
+                      onChange={() => updateStorefrontFontFamily(option.value)}
+                    />
+                    <span className="admin-font-family-option-copy">
+                      <strong style={{ fontFamily: `'${option.cssFamily}', sans-serif` }}>가나다 ABC 123</strong>
+                      <span>{option.label}{option.supportsWeightPreset ? ' · 굵기 지원' : ''}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
-            <div className="admin-font-size-slider-options">
-              {USER_WEB_FONT_SIZE_OPTIONS.map((option) => (
-                <label
-                  className={`admin-font-size-slider-option${storefrontSettingsForm.userWebFontSize === option.value ? ' is-selected' : ''}`}
-                  key={option.value}
-                >
-                  <input
-                    type="radio"
-                    name="userWebFontSize"
-                    value={option.value}
-                    checked={storefrontSettingsForm.userWebFontSize === option.value}
-                    onChange={() => updateStorefrontSettingsField('userWebFontSize', option.value)}
-                  />
-                  <span className="admin-font-size-slider-hit" aria-hidden="true" />
-                  <strong>{option.label}</strong>
-                </label>
-              ))}
+
+            <div className="admin-storefront-setting-group">
+              <div className="admin-field-heading">
+                <strong>글자 굵기</strong>
+                <span>{selectedFontOption.supportsWeightPreset ? selectedFontWeightOption.label : '선택한 폰트는 단일 굵기입니다'}</span>
+              </div>
+              <div
+                className={`admin-font-weight-grid${selectedFontOption.supportsWeightPreset ? '' : ' is-disabled'}`}
+                aria-label="사용자 웹 글자 굵기 선택"
+              >
+                {STORE_WEB_FONT_WEIGHT_OPTIONS.map((option) => (
+                  <label
+                    className={`admin-font-weight-option${storefrontSettingsForm.userWebFontWeightPreset === option.value ? ' is-selected' : ''}`}
+                    key={option.value}
+                    aria-disabled={!selectedFontOption.supportsWeightPreset}
+                  >
+                    <input
+                      type="radio"
+                      name="userWebFontWeightPreset"
+                      value={option.value}
+                      checked={storefrontSettingsForm.userWebFontWeightPreset === option.value}
+                      disabled={!selectedFontOption.supportsWeightPreset}
+                      onChange={() => updateStorefrontSettingsField('userWebFontWeightPreset', option.value)}
+                    />
+                    <span className="admin-font-weight-option-copy">
+                      <strong style={{ fontFamily: `'${selectedFontOption.cssFamily}', sans-serif`, fontWeight: option.previewWeight }}>
+                        가나다 ABC 123
+                      </strong>
+                      <span>{option.label}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
+
+            <div className="admin-storefront-setting-group">
+              <div className="admin-field-heading">
+                <strong>글자 크기</strong>
+                <span>{selectedFontSizeOption.label}</span>
+              </div>
+              <div
+                className="admin-font-size-slider"
+                style={{ '--selected-font-size-index': selectedFontSizeIndex } as CSSProperties}
+                aria-label="사용자 웹 글자 크기 선택"
+              >
+                <div className="admin-font-size-slider-track" aria-hidden="true">
+                  <span className="admin-font-size-slider-dot" />
+                </div>
+                <div className="admin-font-size-slider-options">
+                  {USER_WEB_FONT_SIZE_OPTIONS.map((option) => (
+                    <label
+                      className={`admin-font-size-slider-option${storefrontSettingsForm.userWebFontSize === option.value ? ' is-selected' : ''}`}
+                      key={option.value}
+                    >
+                      <input
+                        type="radio"
+                        name="userWebFontSize"
+                        value={option.value}
+                        checked={storefrontSettingsForm.userWebFontSize === option.value}
+                        onChange={() => updateStorefrontSettingsField('userWebFontSize', option.value)}
+                      />
+                      <span className="admin-font-size-slider-hit" aria-hidden="true" />
+                      <strong>{option.label}</strong>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </form>
 
-      <form className="admin-two-column admin-home-popup-layout" onSubmit={onSubmit} aria-busy={loading || saving || uploading}>
+      <form className="admin-two-column admin-home-popup-layout admin-home-section-card" onSubmit={onSubmit} aria-busy={loading || saving || uploading}>
         <AdminFloatingSubmitButton
           busy={saving}
           busyLabel="저장 중..."
@@ -719,7 +839,7 @@ export function AdminHomePopupPage() {
         </aside>
       </form>
 
-      <form className="admin-two-column admin-home-popup-layout" onSubmit={onSubmitHero} aria-busy={loading || heroSaving || heroUploading}>
+      <form className="admin-two-column admin-home-popup-layout admin-home-section-card" onSubmit={onSubmitHero} aria-busy={loading || heroSaving || heroUploading}>
         <AdminFloatingSubmitButton
           busy={heroSaving}
           busyLabel="저장 중..."

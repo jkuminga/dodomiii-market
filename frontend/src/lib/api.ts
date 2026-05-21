@@ -342,10 +342,21 @@ export type AdminHomeHero = {
 };
 
 export type UserWebFontSize = 'VERY_SMALL' | 'SMALL' | 'NORMAL' | 'LARGE' | 'VERY_LARGE';
+export type StoreWebFontFamily =
+  | 'HANAM_DAUM'
+  | 'MARUMINYA'
+  | 'NANUM_BARUNPEN'
+  | 'HAKGYOANSIM_KKOKOMA'
+  | 'HS_SAEMAEUL'
+  | 'HAKGYOANSIM_NADEURI'
+  | 'PRETENDARD';
+export type StoreWebFontWeightPreset = 'NORMAL' | 'LIGHT' | 'STRONG';
 
 export type AdminStorefrontSettings = {
   key: string;
   userWebFontSize: UserWebFontSize;
+  userWebFontFamily: StoreWebFontFamily;
+  userWebFontWeightPreset: StoreWebFontWeightPreset;
   createdAt: string;
   updatedAt: string;
 };
@@ -511,6 +522,8 @@ export type StoreHomeHero = {
 
 export type StorefrontSettings = {
   userWebFontSize: UserWebFontSize;
+  userWebFontFamily: StoreWebFontFamily;
+  userWebFontWeightPreset: StoreWebFontWeightPreset;
   updatedAt: string;
 };
 
@@ -1392,7 +1405,11 @@ export const apiClient = {
       body: JSON.stringify(payload),
     }),
 
-  updateAdminStorefrontSettings: (payload: { userWebFontSize: UserWebFontSize }) =>
+  updateAdminStorefrontSettings: (payload: {
+    userWebFontSize: UserWebFontSize;
+    userWebFontFamily: StoreWebFontFamily;
+    userWebFontWeightPreset: StoreWebFontWeightPreset;
+  }) =>
     request<AdminStorefrontSettings>('/admin/home-popup/storefront-settings', {
       method: 'PUT',
       body: JSON.stringify(payload),

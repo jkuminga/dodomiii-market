@@ -4,6 +4,52 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Maruminya';
+  src: url('./assets/fonts/Maruminya.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'NanumBarunpen';
+  src: url('./assets/fonts/NanumBarunpen/NanumBarunpenR.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'NanumBarunpen';
+  src: url('./assets/fonts/NanumBarunpen/NanumBarunpenB.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
+
+
+@font-face {
+  font-family: 'HakgyoansimKkokoma';
+  src: url('./assets/fonts/hakgyoansim-kkokoma.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'HSSaemaeul';
+  src: url('./assets/fonts/HSSaemaeul.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'HakgyoansimNadeuri';
+  src: url('./assets/fonts/Hakgyoansim Nadeuri TTF L.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('./assets/fonts/PretendardVariable.woff2') format('woff2-variations');
+  font-weight: 45 920;
+  font-display: swap;
+}
+
 .notice-page-wrap {
   display: grid;
   gap: 1rem;
@@ -687,6 +733,10 @@
   --accent: #efd8cb;
   --accent-strong: #f4e6dc;
   --shadow: 0 24px 60px rgba(88, 57, 42, 0.08);
+  --store-font-weight-light: 350;
+  --store-font-weight-regular: 450;
+  --store-font-weight-medium: 600;
+  --store-font-weight-strong: 750;
   font-family: var(--font-body);
   color: var(--text);
   background: var(--bg);
@@ -721,6 +771,62 @@ html[data-store-font-size='large'] {
 
 html[data-store-font-size='very-large'] {
   font-size: 19px;
+}
+
+html[data-store-font-family='hanam-daum'] {
+  --font-body: 'HanamDaum', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-display: 'HanamDaum', 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', 'Nanum Myeongjo', serif;
+}
+
+html[data-store-font-family='maruminya'] {
+  --font-body: 'Maruminya', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-display: 'Maruminya', 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', 'Nanum Myeongjo', serif;
+}
+
+html[data-store-font-family='nanum-barunpen'] {
+  --font-body: 'NanumBarunpen', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-display: 'NanumBarunpen', 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', 'Nanum Myeongjo', serif;
+}
+
+html[data-store-font-family='hakgyoansim-kkokoma'] {
+  --font-body: 'HakgyoansimKkokoma', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-display: 'HakgyoansimKkokoma', 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', 'Nanum Myeongjo', serif;
+}
+
+html[data-store-font-family='hs-saemaeul'] {
+  --font-body: 'HSSaemaeul', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-display: 'HSSaemaeul', 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', 'Nanum Myeongjo', serif;
+}
+
+html[data-store-font-family='hakgyoansim-nadeuri'] {
+  --font-body: 'HakgyoansimNadeuri', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-display: 'HakgyoansimNadeuri', 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', 'Nanum Myeongjo', serif;
+}
+
+html[data-store-font-family='pretendard'] {
+  --font-body: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --font-display: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+}
+
+html[data-store-font-weight='light'] {
+  --store-font-weight-light: 300;
+  --store-font-weight-regular: 350;
+  --store-font-weight-medium: 450;
+  --store-font-weight-strong: 600;
+}
+
+html[data-store-font-weight='normal'] {
+  --store-font-weight-light: 350;
+  --store-font-weight-regular: 450;
+  --store-font-weight-medium: 600;
+  --store-font-weight-strong: 750;
+}
+
+html[data-store-font-weight='strong'] {
+  --store-font-weight-light: 450;
+  --store-font-weight-regular: 550;
+  --store-font-weight-medium: 700;
+  --store-font-weight-strong: 850;
 }
 
 body {
@@ -7926,6 +8032,207 @@ button.admin-list-card {
   margin-bottom: 8px;
 }
 
+.admin-home-section-card + .admin-home-section-card {
+  margin-top: 1.25rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgb(var(--primary-rgb) / 0.12);
+}
+
+.admin-storefront-settings-form {
+  gap: 1.35rem;
+}
+
+.admin-storefront-setting-group {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.admin-storefront-setting-group + .admin-storefront-setting-group {
+  padding-top: 1.1rem;
+  border-top: 1px solid rgb(var(--primary-rgb) / 0.1);
+}
+
+.admin-field-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-field-heading strong {
+  color: var(--text);
+  font-size: 0.96rem;
+}
+
+.admin-field-heading span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.admin-font-family-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-font-family-option {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 88px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1px solid rgb(var(--primary-rgb) / 0.1);
+  background: rgb(var(--surface-cream-rgb) / 0.62);
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.admin-font-family-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.admin-font-family-option:hover,
+.admin-font-family-option:focus-within {
+  transform: translateY(-1px);
+  border-color: rgb(var(--primary-rgb) / 0.2);
+  background: rgb(var(--primary-rgb) / 0.07);
+  box-shadow: 0 12px 24px rgb(var(--primary-deep-rgb) / 0.08);
+}
+
+.admin-font-family-option.is-selected {
+  border-color: rgb(var(--primary-rgb) / 0.32);
+  background: rgb(var(--primary-rgb) / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(var(--primary-rgb) / 0.08);
+}
+
+.admin-font-family-option-copy {
+  display: grid;
+  align-content: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.admin-font-family-option-copy strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-font-family-option-copy span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-font-family-option.is-selected .admin-font-family-option-copy span {
+  color: var(--primary-deep);
+}
+
+.admin-font-weight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-font-weight-grid.is-disabled {
+  opacity: 0.58;
+}
+
+.admin-font-weight-option {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 110px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1px solid rgb(var(--primary-rgb) / 0.1);
+  background: rgb(var(--surface-cream-rgb) / 0.62);
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.admin-font-weight-grid.is-disabled .admin-font-weight-option {
+  cursor: not-allowed;
+}
+
+.admin-font-weight-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.admin-font-weight-option:hover,
+.admin-font-weight-option:focus-within {
+  transform: translateY(-1px);
+  border-color: rgb(var(--primary-rgb) / 0.2);
+  background: rgb(var(--primary-rgb) / 0.07);
+  box-shadow: 0 12px 24px rgb(var(--primary-deep-rgb) / 0.08);
+}
+
+.admin-font-weight-grid.is-disabled .admin-font-weight-option:hover {
+  transform: none;
+  border-color: rgb(var(--primary-rgb) / 0.1);
+  background: rgb(var(--surface-cream-rgb) / 0.62);
+  box-shadow: none;
+}
+
+.admin-font-weight-option.is-selected {
+  border-color: rgb(var(--primary-rgb) / 0.32);
+  background: rgb(var(--primary-rgb) / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(var(--primary-rgb) / 0.08);
+}
+
+.admin-font-weight-option-copy {
+  display: grid;
+  align-content: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.admin-font-weight-option-copy strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 1.08rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-font-weight-option-copy span {
+  color: var(--primary-deep);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.admin-font-weight-option-copy small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
 .admin-font-size-slider {
   --font-size-slider-option-count: 5;
   position: relative;
@@ -8039,6 +8346,27 @@ button.admin-list-card {
 .admin-font-size-slider-option.is-selected strong {
   color: var(--primary-deep);
   font-weight: 800;
+}
+
+@media (max-width: 720px) {
+  .admin-home-section-card + .admin-home-section-card {
+    margin-top: 1rem;
+    padding-top: 1.2rem;
+  }
+
+  .admin-font-family-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-font-weight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-field-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
 }
 
 .admin-subcard {
@@ -9975,4 +10303,56 @@ button.admin-list-card {
   color: #64748b;
   font-size: 13px;
   text-align: center;
+}
+
+.app-shell.is-store {
+  font-weight: var(--store-font-weight-regular);
+}
+
+.app-shell.is-store :where(
+  p,
+  li,
+  dd,
+  td,
+  input,
+  textarea,
+  select,
+  .section-copy,
+  .product-content-paragraph,
+  .product-content-quote
+) {
+  font-weight: var(--store-font-weight-regular);
+}
+
+.app-shell.is-store :where(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  strong,
+  b,
+  button,
+  .button,
+  .section-title,
+  .section-subtitle,
+  .product-card-title,
+  .detail-product-name,
+  .detail-price,
+  .order-total,
+  .cart-total
+) {
+  font-weight: var(--store-font-weight-strong) !important;
+}
+
+.app-shell.is-store :where(
+  .section-kicker,
+  .badge,
+  .pill,
+  .chip,
+  label,
+  th
+) {
+  font-weight: var(--store-font-weight-medium) !important;
 }

@@ -7,6 +7,8 @@ import type {
   UserWebFontSize,
 } from '@prisma/client';
 
+import type { StoreWebFontFamily, StoreWebFontWeightPreset } from '../../common/storefront-fonts';
+
 export type AdminCategoryResponse = {
   id: number;
   parentId: number | null;
@@ -312,6 +314,8 @@ export type AdminHomeHeroResponse = {
 export type AdminStorefrontSettingsResponse = {
   key: string;
   userWebFontSize: UserWebFontSize;
+  userWebFontFamily: StoreWebFontFamily;
+  userWebFontWeightPreset: StoreWebFontWeightPreset;
   createdAt: string;
   updatedAt: string;
 };

@@ -428,6 +428,8 @@ export class StoreService {
 
       return {
         userWebFontSize: settings.userWebFontSize,
+        userWebFontFamily: settings.userWebFontFamily as StorefrontSettingsResponse['userWebFontFamily'],
+        userWebFontWeightPreset: settings.userWebFontWeightPreset as StorefrontSettingsResponse['userWebFontWeightPreset'],
         updatedAt: settings.updatedAt.toISOString(),
       };
     });

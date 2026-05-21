@@ -1,5 +1,7 @@
 import type { DepositStatus, OrderStatus, ShipmentStatus, UserWebFontSize } from '@prisma/client';
 
+import type { StoreWebFontFamily, StoreWebFontWeightPreset } from '../../common/storefront-fonts';
+
 export type StoreOrderItemSnapshot = {
   productNameSnapshot: string;
   thumbnailImageUrl: string | null;
@@ -118,6 +120,8 @@ export type StoreHomeHeroResponse = {
 
 export type StorefrontSettingsResponse = {
   userWebFontSize: UserWebFontSize;
+  userWebFontFamily: StoreWebFontFamily;
+  userWebFontWeightPreset: StoreWebFontWeightPreset;
   updatedAt: string;
 };
 
