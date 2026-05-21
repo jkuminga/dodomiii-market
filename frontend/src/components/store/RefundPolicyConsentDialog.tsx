@@ -51,9 +51,29 @@ export function RefundPolicyConsentDialog({
           <h2 className="section-subtitle" id="refund-consent-title">
             주문제작 안내
           </h2>
-          <p className="refund-consent-warning">⚠️ {REFUND_POLICY_CONSENT_MESSAGE}</p>
-          <p className="feedback-copy">
-            단, 제품에 하자(불량)이 있거나 오배송 된 경우에는 수령 후 7일 이내에 교환이 가능합니다.(자세한 내용은 이용약관 명시)
+          <div 
+            className="refund-consent-warning"
+            style={{
+              display: 'flex',
+              gap: '6px',
+              alignItems: 'flex-start',
+              whiteSpace: 'pre-line'
+            }}
+          >
+            <span style={{ fontSize: '1.1rem', lineHeight: '1.4' }}>⚠️</span>
+            <span>{REFUND_POLICY_CONSENT_MESSAGE}</span>
+          </div>
+          <p 
+            className="feedback-copy" 
+            style={{ 
+              wordBreak: 'keep-all', 
+              marginTop: '4px',
+              color: 'var(--muted)'
+            }}
+          >
+            단, 제품에 하자(불량)이 있거나 오배송 된 경우에는 수령 후 7일 이내에 교환이 가능합니다.
+            {/* <br /> */}
+            (자세한 내용은 이용약관 명시)
           </p>
         </div>
 
@@ -65,7 +85,9 @@ export function RefundPolicyConsentDialog({
             disabled={busy}
             onChange={(event) => setChecked(event.target.checked)}
           />
-          <span>(필수)위 내용을 확인하였으며, 이에 동의합니다.</span>
+          <span style={{ wordBreak: 'keep-all' }}>
+            (필수) 위 내용을 확인하였으며, 이에 동의합니다.
+          </span>
         </label>
 
         <div className="refund-consent-actions">
