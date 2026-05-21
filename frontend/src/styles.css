@@ -1734,6 +1734,14 @@ img {
   gap: 16px;
 }
 
+.detail-page {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.detail-page > * {
+  min-width: 0;
+}
+
 .product-action-row {
   display: flex;
   flex-wrap: wrap;
@@ -10237,6 +10245,7 @@ button.admin-list-card {
 .product-content-renderer {
   display: grid;
   gap: 22px;
+  min-width: 0;
 }
 
 .product-content-paragraph {
@@ -10270,10 +10279,12 @@ button.admin-list-card {
   display: grid;
   gap: 8px;
   margin: 0;
+  min-width: 0;
 }
 
 .product-content-image img {
   display: block;
+  width: 100%;
   max-width: 100%;
   border-radius: 8px;
 }
