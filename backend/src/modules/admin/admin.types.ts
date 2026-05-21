@@ -226,6 +226,7 @@ export type AdminOrderDetailResponse = {
   orderNumber: string;
   orderStatus: OrderStatus;
   customerRequest: string | null;
+  refundPolicyConsent: unknown | null;
   pricing: {
     totalProductPrice: number;
     shippingFee: number;

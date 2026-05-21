@@ -285,6 +285,21 @@ export function AdminOrderDetailPage() {
                   </>
                 ) : null}
               </div>
+              <div className="admin-status-preview-card has-tooltip">
+                <span>취소/환불 안내 동의</span>
+                <strong>
+                  {order.refundPolicyConsent?.agreed
+                    ? formatAdminDateTime(order.refundPolicyConsent.agreedAt)
+                    : '미동의/기록 없음'}
+                </strong>
+                {order.refundPolicyConsent ? (
+                  <div className="admin-preview-tooltip">
+                    {order.refundPolicyConsent.message}
+                    <br />
+                    버전: {order.refundPolicyConsent.version}
+                  </div>
+                ) : null}
+              </div>
             </section>
           </section>
 

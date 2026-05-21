@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsDefined,
   IsIn,
   IsInt,
@@ -101,6 +102,16 @@ export class CreateOrderContactDto {
   address2?: string;
 }
 
+export class CreateRefundPolicyConsentDto {
+  @IsBoolean()
+  agreed!: boolean;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(80)
+  version!: string;
+}
+
 export class CreateOrderDto {
   @IsArray()
   @ArrayMinSize(1)
@@ -112,6 +123,11 @@ export class CreateOrderDto {
   @ValidateNested()
   @Type(() => CreateOrderContactDto)
   contact!: CreateOrderContactDto;
+
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => CreateRefundPolicyConsentDto)
+  refundPolicyConsent!: CreateRefundPolicyConsentDto;
 
   @IsOptional()
   @IsString()

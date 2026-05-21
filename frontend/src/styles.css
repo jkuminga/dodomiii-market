@@ -5047,6 +5047,82 @@ img {
   min-height: 48px;
 }
 
+.refund-consent-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 76;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.56);
+}
+
+.refund-consent-dialog {
+  width: min(100%, 440px);
+  display: grid;
+  gap: 18px;
+  padding: 24px 22px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 24px 54px rgba(15, 23, 42, 0.26);
+  animation: home-popup-rise 180ms ease-out;
+}
+
+.refund-consent-body {
+  display: grid;
+  gap: 9px;
+}
+
+.refund-consent-body .section-kicker,
+.refund-consent-body .section-subtitle,
+.refund-consent-body .feedback-copy,
+.refund-consent-warning {
+  margin: 0;
+}
+
+.refund-consent-warning {
+  color: var(--text);
+  font-weight: 800;
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.refund-consent-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.88);
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.refund-consent-check input {
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  flex: 0 0 auto;
+  accent-color: var(--primary);
+}
+
+.refund-consent-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.refund-consent-actions .button,
+.refund-consent-actions .button-secondary {
+  width: 100%;
+  min-height: 48px;
+}
+
 .custom-checkout-summary-card,
 .custom-checkout-result-card {
   display: grid;

@@ -70,6 +70,7 @@ const adminOrderDetailArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
     shippingFee: true,
     finalTotalPrice: true,
     customerRequest: true,
+    refundPolicyConsent: true,
     depositDeadlineAt: true,
     paymentRequestedAt: true,
     paymentConfirmedAt: true,
@@ -619,6 +620,7 @@ export class AdminOrdersService {
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
       customerRequest: order.customerRequest,
+      refundPolicyConsent: order.refundPolicyConsent,
       pricing: {
         totalProductPrice: order.totalProductPrice,
         shippingFee: order.shippingFee,

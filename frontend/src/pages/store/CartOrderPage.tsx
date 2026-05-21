@@ -1,8 +1,10 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { RefundPolicyConsentDialog } from '../../components/store/RefundPolicyConsentDialog';
 import { apiClient } from '../../lib/api';
 import { calculateCartItemUnitPrice, clearCart, useCart } from '../../lib/cart';
+import { buildRefundPolicyConsentPayload } from '../../lib/refundPolicyConsent';
 
 type KakaoPostcodeAddressData = {
   zonecode: string;
@@ -111,6 +113,7 @@ export function CartOrderPage() {
   const [addressError, setAddressError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [refundConsentOpen, setRefundConsentOpen] = useState(false);
 
   const totalProductPrice = items.reduce((sum, item) => sum + calculateCartItemUnitPrice(item) * item.productQuantity, 0);
   const shippingFee = items.length > 0 ? 3000 : 0;
@@ -186,18 +189,12 @@ export function CartOrderPage() {
     }
   };
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const submitOrder = async () => {
     if (items.length === 0) {
       return;
     }
 
-    if (!contact.zipcode.trim() || !contact.address1.trim()) {
-      setSubmitError('주소 검색 버튼으로 배송지 정보를 먼저 입력해 주세요.');
-      return;
-    }
-
+    setRefundConsentOpen(false);
     setSubmitting(true);
     setSubmitError('');
 
@@ -227,6 +224,7 @@ export function CartOrderPage() {
           roadAddress: selectedAddress?.roadAddress || undefined,
           jibunAddress: selectedAddress?.jibunAddress || undefined,
         },
+        refundPolicyConsent: buildRefundPolicyConsentPayload(),
         customerRequest: contact.customerRequest.trim() || undefined,
       });
 
@@ -241,6 +239,22 @@ export function CartOrderPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (items.length === 0) {
+      return;
+    }
+
+    if (!contact.zipcode.trim() || !contact.address1.trim()) {
+      setSubmitError('주소 검색 버튼으로 배송지 정보를 먼저 입력해 주세요.');
+      return;
+    }
+
+    setSubmitError('');
+    setRefundConsentOpen(true);
   };
 
   if (items.length === 0) {
@@ -470,6 +484,12 @@ export function CartOrderPage() {
           </div>
         </section>
       </form>
+      <RefundPolicyConsentDialog
+        open={refundConsentOpen}
+        busy={submitting}
+        onCancel={() => setRefundConsentOpen(false)}
+        onConfirm={() => void submitOrder()}
+      />
     </main>
   );
 }

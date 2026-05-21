@@ -87,6 +87,10 @@ describe('StoreService integration', () => {
         jibunAddress: '서울 성동구 테스트동 1',
         address2: '  101호  ',
       },
+      refundPolicyConsent: {
+        agreed: true,
+        version: 'custom_order_refund_policy_v1',
+      },
       customerRequest: '문 앞에 놓아주세요',
     });
     createdOrderIds.push(BigInt(result.orderId));
@@ -149,6 +153,12 @@ describe('StoreService integration', () => {
       shippingFee: SHIPPING_FEE,
       finalTotalPrice: 27000,
       customerRequest: '문 앞에 놓아주세요',
+    });
+    expect(order?.refundPolicyConsent).toMatchObject({
+      agreed: true,
+      version: 'custom_order_refund_policy_v1',
+      message: '주문제작 상품은 결제 후 단순 변심에 의한 취소/환불/교환이 어려워요.',
+      agreedAt: expect.any(String),
     });
     expect(order?.items).toHaveLength(1);
     expect(order?.items[0]).toMatchObject({

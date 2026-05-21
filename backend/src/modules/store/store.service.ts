@@ -14,7 +14,12 @@ import { OrderNotificationsService } from '../notifications/order-notifications.
 import { assertOrderStatusTransition } from '../orders/domain/order-status-transition';
 import { CreateCustomCheckoutOrderDto } from './dto/create-custom-checkout-order.dto';
 import { CreateDepositRequestDto } from './dto/create-deposit-request.dto';
-import { CreateOrderContactDto, CreateOrderDto, CreateOrderItemDto } from './dto/create-order.dto';
+import {
+  CreateOrderContactDto,
+  CreateOrderDto,
+  CreateOrderItemDto,
+  CreateRefundPolicyConsentDto,
+} from './dto/create-order.dto';
 import { GetProductsQueryDto } from './dto/get-products.query.dto';
 import {
   StoreCustomCheckoutResponse,
@@ -168,6 +173,9 @@ const STORE_HOME_POPUP_CACHE_TTL_MS = 30 * 1000;
 const STORE_PRODUCTS_CACHE_TTL_MS = 20 * 1000;
 const STORE_PRODUCT_DETAIL_CACHE_TTL_MS = 20 * 1000;
 const STORE_NOTICE_CACHE_TTL_MS = 60 * 1000;
+const REFUND_POLICY_CONSENT_VERSION = 'custom_order_refund_policy_v1';
+const REFUND_POLICY_CONSENT_MESSAGE =
+  '주문제작 상품은 결제 후 단순 변심에 의한 취소/환불/교환이 어려워요.';
 
 const storeOrderDetailArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
   select: {
@@ -768,6 +776,7 @@ export class StoreService {
               orderNumber,
               resolvedItems,
               contact: dto.contact,
+              refundPolicyConsent: dto.refundPolicyConsent,
               customerRequest: dto.customerRequest,
               pricing,
               now,
@@ -890,6 +899,7 @@ export class StoreService {
               orderNumber: await this.generateOrderNumber(tx, now),
               resolvedItems: [],
               contact: dto.contact,
+              refundPolicyConsent: dto.refundPolicyConsent,
               customerRequest: dto.customerRequest,
               pricing: {
                 totalProductPrice: link.totalProductPrice,
@@ -1315,6 +1325,7 @@ export class StoreService {
       orderNumber: string;
       resolvedItems: ResolvedOrderItem[];
       contact: CreateOrderContactDto;
+      refundPolicyConsent: CreateRefundPolicyConsentDto;
       customerRequest?: string;
       pricing: OrderPricingSnapshot;
       now: Date;
@@ -1323,6 +1334,10 @@ export class StoreService {
     const depositDeadlineAt = this.getDepositDeadlineAt(params.now);
     const depositInfo = await this.getDepositAccountInfo(tx);
     const normalizedContactAddress = normalizeOrderContactAddress(params.contact);
+    const refundPolicyConsent = this.buildRefundPolicyConsentSnapshot(
+      params.refundPolicyConsent,
+      params.now,
+    );
 
     const order = await tx.order.create({
       data: {
@@ -1332,6 +1347,7 @@ export class StoreService {
         shippingFee: params.pricing.shippingFee,
         finalTotalPrice: params.pricing.finalTotalPrice,
         customerRequest: params.customerRequest ?? null,
+        refundPolicyConsent,
         depositDeadlineAt,
       },
     });
@@ -1436,6 +1452,25 @@ export class StoreService {
         depositDeadlineAt: depositDeadlineAt.toISOString(),
       },
       createdAt: order.createdAt.toISOString(),
+    };
+  }
+
+  private buildRefundPolicyConsentSnapshot(
+    consent: CreateRefundPolicyConsentDto,
+    agreedAt: Date,
+  ): Prisma.InputJsonObject {
+    if (!consent?.agreed || consent.version !== REFUND_POLICY_CONSENT_VERSION) {
+      throw new BadRequestException({
+        code: 'REFUND_POLICY_CONSENT_REQUIRED',
+        message: '주문제작 상품의 취소/환불/교환 제한 안내에 동의해 주세요.',
+      });
+    }
+
+    return {
+      agreed: true,
+      version: REFUND_POLICY_CONSENT_VERSION,
+      message: REFUND_POLICY_CONSENT_MESSAGE,
+      agreedAt: agreedAt.toISOString(),
     };
   }
 

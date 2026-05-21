@@ -162,6 +162,7 @@ model Order {
   shippingFee        Int         @default(0) @map("shipping_fee")
   finalTotalPrice    Int         @default(0) @map("final_total_price")
   customerRequest    String?     @map("customer_request") @db.VarChar(500)
+  refundPolicyConsent Json?       @map("refund_policy_consent")
   depositDeadlineAt  DateTime?   @map("deposit_deadline_at")
   paymentRequestedAt DateTime?   @map("payment_requested_at")
   paymentConfirmedAt DateTime?   @map("payment_confirmed_at")

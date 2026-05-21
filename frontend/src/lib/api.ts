@@ -616,6 +616,10 @@ export type StoreOrderCreateRequest = {
     roadAddress?: string;
     jibunAddress?: string;
   };
+  refundPolicyConsent: {
+    agreed: true;
+    version: string;
+  };
   customerRequest?: string;
 };
 
@@ -793,6 +797,10 @@ export type StoreCustomCheckoutOrderCreateRequest = {
     roadAddress?: string;
     jibunAddress?: string;
   };
+  refundPolicyConsent: {
+    agreed: true;
+    version: string;
+  };
   customerRequest?: string;
 };
 
@@ -824,6 +832,12 @@ export type AdminOrderDetail = {
   orderNumber: string;
   orderStatus: StoreOrderStatus;
   customerRequest: string | null;
+  refundPolicyConsent: {
+    agreed: boolean;
+    version: string;
+    message: string;
+    agreedAt: string;
+  } | null;
   items: Array<{
     productId?: number | null;
     productOptionId?: number | null;
@@ -911,6 +925,7 @@ type AdminOrderDetailResponse = {
   orderNumber?: string | null;
   orderStatus?: StoreOrderStatus;
   customerRequest?: string | null;
+  refundPolicyConsent?: unknown;
   items?: Array<{
     productId?: number | string | null;
     productOptionId?: number | string | null;
@@ -1023,6 +1038,28 @@ function normalizeShipmentStatus(value: unknown): StoreShipmentStatus {
     : 'READY';
 }
 
+function normalizeRefundPolicyConsent(value: unknown): AdminOrderDetail['refundPolicyConsent'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const version = typeof record.version === 'string' ? record.version : '';
+  const message = typeof record.message === 'string' ? record.message : '';
+  const agreedAt = typeof record.agreedAt === 'string' ? record.agreedAt : '';
+
+  if (!version || !message || !agreedAt) {
+    return null;
+  }
+
+  return {
+    agreed: record.agreed === true,
+    version,
+    message,
+    agreedAt,
+  };
+}
+
 function normalizeAdminOrderListItem(raw: {
   id?: number | string;
   orderId?: number | string;
@@ -1096,6 +1133,7 @@ function normalizeAdminOrderDetail(raw: AdminOrderDetailResponse): AdminOrderDet
     orderNumber: raw.orderNumber?.trim() || `주문 #${id}`,
     orderStatus: normalizeOrderStatus(raw.orderStatus),
     customerRequest: raw.customerRequest ?? null,
+    refundPolicyConsent: normalizeRefundPolicyConsent(raw.refundPolicyConsent),
     items: Array.isArray(raw.items)
       ? raw.items.map((item, index) => ({
           productId: item.productId === null || item.productId === undefined ? null : normalizeNumber(item.productId, 0),

@@ -2,7 +2,9 @@ import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 
 import { LoadingScreen } from '../../components/common/LoadingScreen';
+import { RefundPolicyConsentDialog } from '../../components/store/RefundPolicyConsentDialog';
 import { StoreCustomCheckoutLink, StoreDepositStatus, StoreOrderCreateResponse, StoreOrderStatus, apiClient } from '../../lib/api';
+import { buildRefundPolicyConsentPayload } from '../../lib/refundPolicyConsent';
 
 type ContactFormState = {
   buyerName: string;
@@ -102,6 +104,7 @@ export function CustomCheckoutPage() {
   const [loadError, setLoadError] = useState('');
   const [submitError, setSubmitError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
+  const [refundConsentOpen, setRefundConsentOpen] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -164,14 +167,13 @@ export function CustomCheckoutPage() {
       }));
     };
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const submitOrder = async () => {
     if (!checkoutLink || checkoutLink.isExpired) {
       setSubmitError('현재 링크는 주문을 받을 수 없는 상태입니다.');
       return;
     }
 
+    setRefundConsentOpen(false);
     setSubmitting(true);
     setSubmitError('');
 
@@ -186,6 +188,7 @@ export function CustomCheckoutPage() {
           address1: contact.address1.trim(),
           address2: contact.address2.trim() || undefined,
         },
+        refundPolicyConsent: buildRefundPolicyConsentPayload(),
         customerRequest: contact.customerRequest.trim() || undefined,
       });
 
@@ -195,6 +198,18 @@ export function CustomCheckoutPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!checkoutLink || checkoutLink.isExpired) {
+      setSubmitError('현재 링크는 주문을 받을 수 없는 상태입니다.');
+      return;
+    }
+
+    setSubmitError('');
+    setRefundConsentOpen(true);
   };
 
   if (loading) {
@@ -460,6 +475,13 @@ export function CustomCheckoutPage() {
           </div>
         </form>
       )}
+      <RefundPolicyConsentDialog
+        open={refundConsentOpen}
+        busy={submitting}
+        confirmLabel="동의하고 주문 접수"
+        onCancel={() => setRefundConsentOpen(false)}
+        onConfirm={() => void submitOrder()}
+      />
     </main>
   );
 }

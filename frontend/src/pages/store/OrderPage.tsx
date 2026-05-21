@@ -2,8 +2,10 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 're
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { LoadingScreen } from '../../components/common/LoadingScreen';
+import { RefundPolicyConsentDialog } from '../../components/store/RefundPolicyConsentDialog';
 import { apiClient, ProductDetail } from '../../lib/api';
 import { calculateDiscountedPrice, formatDiscountRate } from '../../lib/productPricing';
+import { buildRefundPolicyConsentPayload } from '../../lib/refundPolicyConsent';
 
 type KakaoPostcodeAddressData = {
   zonecode: string;
@@ -146,6 +148,7 @@ export function OrderPage() {
   const [addressError, setAddressError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [refundConsentOpen, setRefundConsentOpen] = useState(false);
   const optionGroupRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
@@ -414,24 +417,12 @@ export function OrderPage() {
     }
   };
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const submitOrder = async () => {
     if (!product) {
       return;
     }
 
-    if (requiresOptionSelection) {
-      setSubmitError('옵션을 먼저 선택해 주세요.');
-      focusFirstMissingRequiredGroup();
-      return;
-    }
-
-    if (!contact.zipcode.trim() || !contact.address1.trim()) {
-      setSubmitError('주소 검색 버튼으로 배송지 정보를 먼저 입력해 주세요.');
-      return;
-    }
-
+    setRefundConsentOpen(false);
     setSubmitting(true);
     setSubmitError('');
 
@@ -463,6 +454,7 @@ export function OrderPage() {
           roadAddress: selectedAddress?.roadAddress || undefined,
           jibunAddress: selectedAddress?.jibunAddress || undefined,
         },
+        refundPolicyConsent: buildRefundPolicyConsentPayload(),
         customerRequest: contact.customerRequest.trim() || undefined,
       });
 
@@ -476,6 +468,28 @@ export function OrderPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!product) {
+      return;
+    }
+
+    if (requiresOptionSelection) {
+      setSubmitError('옵션을 먼저 선택해 주세요.');
+      focusFirstMissingRequiredGroup();
+      return;
+    }
+
+    if (!contact.zipcode.trim() || !contact.address1.trim()) {
+      setSubmitError('주소 검색 버튼으로 배송지 정보를 먼저 입력해 주세요.');
+      return;
+    }
+
+    setSubmitError('');
+    setRefundConsentOpen(true);
   };
 
   if (loading) {
@@ -949,6 +963,12 @@ export function OrderPage() {
           </div>
         </section>
       </form>
+      <RefundPolicyConsentDialog
+        open={refundConsentOpen}
+        busy={submitting}
+        onCancel={() => setRefundConsentOpen(false)}
+        onConfirm={() => void submitOrder()}
+      />
     </main>
   );
 }
