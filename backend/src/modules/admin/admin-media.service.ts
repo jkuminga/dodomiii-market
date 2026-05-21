@@ -43,6 +43,10 @@ const usagePolicy: Record<AdminMediaSignUploadDto['usage'], { folder: string; ma
     folder: 'home-hero',
     maxBytes: 5 * 1024 * 1024,
   },
+  CATEGORY_IMAGE: {
+    folder: 'category-images',
+    maxBytes: 5 * 1024 * 1024,
+  },
   PRODUCT_THUMBNAIL: {
     folder: 'product-thumbnails',
     maxBytes: 5 * 1024 * 1024,

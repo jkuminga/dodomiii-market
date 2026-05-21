@@ -450,7 +450,7 @@ export type StoreNoticeDetail = {
   updatedAt: string;
 };
 
-export type AdminMediaUsage = 'HOME_POPUP' | 'HOME_HERO' | 'PRODUCT_THUMBNAIL' | 'PRODUCT_DETAIL' | 'NOTICE_CONTENT';
+export type AdminMediaUsage = 'HOME_POPUP' | 'HOME_HERO' | 'CATEGORY_IMAGE' | 'PRODUCT_THUMBNAIL' | 'PRODUCT_DETAIL' | 'NOTICE_CONTENT';
 
 export type AdminMediaSignUploadPayload = {
   usage: AdminMediaUsage;

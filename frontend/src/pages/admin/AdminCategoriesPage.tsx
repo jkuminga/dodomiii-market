@@ -1,4 +1,4 @@
-import { CSSProperties, DragEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, CSSProperties, DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
 import { AdminFloatingSubmitButton } from '../../components/admin/AdminFloatingSubmitButton';
@@ -14,6 +14,11 @@ import {
 } from './adminUtils';
 
 const FLOATING_SUBMIT_SUCCESS_MS = 700;
+
+type CategoryImageAsset = {
+  publicId: string;
+  secureUrl: string;
+};
 
 type CategoryFormState = {
   parentId: string;
@@ -47,6 +52,57 @@ function formFromCategory(category: AdminCategoryItem): CategoryFormState {
     sortOrder: String(category.sortOrder),
     isVisible: category.isVisible,
   };
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function extractCloudinaryPublicId(imageUrl: string): string | null {
+  const trimmedUrl = imageUrl.trim();
+
+  if (!trimmedUrl) {
+    return null;
+  }
+
+  try {
+    const url = new URL(trimmedUrl);
+
+    if (!url.hostname.includes('cloudinary.com')) {
+      return null;
+    }
+
+    const uploadMarker = '/image/upload/';
+    const uploadIndex = url.pathname.indexOf(uploadMarker);
+
+    if (uploadIndex < 0) {
+      return null;
+    }
+
+    const parts = url.pathname
+      .slice(uploadIndex + uploadMarker.length)
+      .split('/')
+      .filter(Boolean);
+    const versionIndex = parts.findIndex((part) => /^v\d+$/.test(part));
+    const publicIdParts = versionIndex >= 0 ? parts.slice(versionIndex + 1) : parts.slice(1);
+
+    if (publicIdParts.length === 0) {
+      return null;
+    }
+
+    const publicId = publicIdParts.join('/').replace(/\.[a-zA-Z0-9]+$/, '');
+    return publicId || null;
+  } catch {
+    return null;
+  }
 }
 
 function buildPayload(form: CategoryFormState, editingId: number | null): AdminCategoryPayload {
@@ -98,6 +154,11 @@ export function AdminCategoriesPage() {
   const [dragOverCategoryId, setDragOverCategoryId] = useState<number | null>(null);
   const [landingSwapOpen, setLandingSwapOpen] = useState(false);
   const [landingReplacementCategoryId, setLandingReplacementCategoryId] = useState<number | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [pendingUploadedImage, setPendingUploadedImage] = useState<CategoryImageAsset | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [isImageDragOver, setIsImageDragOver] = useState(false);
+  const pendingUploadedImageRef = useRef<CategoryImageAsset | null>(null);
 
   const loadCategories = async () => {
     setLoading(true);
@@ -114,8 +175,123 @@ export function AdminCategoriesPage() {
     }
   };
 
+  const deleteCloudinaryImage = (publicId: string, failureMessage: string) => {
+    const normalizedPublicId = publicId.trim();
+
+    if (!normalizedPublicId) {
+      return;
+    }
+
+    void apiClient.deleteAdminUpload({ publicId: normalizedPublicId }).catch((caught) => {
+      console.error('Failed to delete Cloudinary category image', caught);
+      showToast(failureMessage, 'error');
+    });
+  };
+
+  const clearPendingUploadedImage = () => {
+    if (pendingUploadedImage) {
+      deleteCloudinaryImage(pendingUploadedImage.publicId, '미적용 대표 이미지 파일 삭제에 실패했습니다.');
+    }
+
+    setPendingUploadedImage(null);
+    setSelectedImageFile(null);
+    setIsImageDragOver(false);
+  };
+
+  const buildUploadFolderSuffix = () => {
+    const slugCandidate = (form.slug.trim() || selectedCategory?.slug || '').toLowerCase();
+    const normalizedSlug = slugCandidate
+      .replace(/[^a-z0-9-_]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 50);
+
+    if (selectedCategoryId !== null) {
+      return normalizedSlug ? `category-${selectedCategoryId}-${normalizedSlug}` : `category-${selectedCategoryId}`;
+    }
+
+    return normalizedSlug || 'new-category';
+  };
+
+  const uploadCategoryImageToCloudinary = async (file: File): Promise<CategoryImageAsset> => {
+    const signed = await apiClient.signAdminUpload({
+      usage: 'CATEGORY_IMAGE',
+      fileName: file.name,
+      contentType: file.type,
+      size: file.size,
+      folderSuffix: buildUploadFolderSuffix(),
+    });
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('api_key', signed.apiKey);
+    formData.append('timestamp', String(signed.timestamp));
+    formData.append('signature', signed.signature);
+    formData.append('folder', signed.folder);
+    formData.append('public_id', signed.publicId);
+
+    const uploadResponse = await fetch(signed.uploadUrl, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const uploadResult = (await uploadResponse.json().catch(() => ({}))) as {
+      public_id?: string;
+      version?: number;
+      secure_url?: string;
+      signature?: string;
+      resource_type?: 'image';
+      format?: string;
+      width?: number;
+      height?: number;
+      bytes?: number;
+      error?: {
+        message?: string;
+      };
+    };
+
+    if (!uploadResponse.ok || !uploadResult.public_id || !uploadResult.version || !uploadResult.secure_url) {
+      throw new Error(uploadResult.error?.message ?? 'Cloudinary 업로드에 실패했습니다.');
+    }
+
+    const finalized = await apiClient.finalizeAdminUpload({
+      publicId: uploadResult.public_id,
+      version: uploadResult.version,
+      secureUrl: uploadResult.secure_url,
+      signature: uploadResult.signature,
+      resourceType: uploadResult.resource_type,
+      format: uploadResult.format,
+      width: uploadResult.width,
+      height: uploadResult.height,
+      bytes: uploadResult.bytes,
+    });
+
+    return {
+      publicId: finalized.publicId,
+      secureUrl: finalized.secureUrl,
+    };
+  };
+
   useEffect(() => {
     void loadCategories();
+  }, []);
+
+  useEffect(() => {
+    pendingUploadedImageRef.current = pendingUploadedImage;
+  }, [pendingUploadedImage]);
+
+  useEffect(() => {
+    return () => {
+      const pendingImage = pendingUploadedImageRef.current;
+
+      if (!pendingImage) {
+        return;
+      }
+
+      void apiClient.deleteAdminUpload({ publicId: pendingImage.publicId }).catch((caught) => {
+        console.error('Failed to delete unapplied category image on page leave', caught);
+      });
+    };
   }, []);
 
   const hierarchicalCategories = useMemo(() => buildAdminCategoryHierarchy(draftCategories), [draftCategories]);
@@ -226,6 +402,7 @@ export function AdminCategoriesPage() {
   );
 
   const onSelectCategory = (category: AdminCategoryItem) => {
+    clearPendingUploadedImage();
     setSelectedCategoryId(category.id);
     setForm(formFromCategory(category));
     setLandingSwapOpen(false);
@@ -234,11 +411,86 @@ export function AdminCategoriesPage() {
   };
 
   const onResetForm = () => {
+    clearPendingUploadedImage();
     setSelectedCategoryId(null);
     setForm(createEmptyForm(getNextSortOrder(null)));
     setLandingSwapOpen(false);
     setLandingReplacementCategoryId(null);
     setError('');
+  };
+
+  const uploadCategoryImageFile = async (file: File) => {
+    setSelectedImageFile(file);
+    setUploadingImage(true);
+    setError('');
+
+    try {
+      const previousPendingImage = pendingUploadedImage;
+      const asset = await uploadCategoryImageToCloudinary(file);
+
+      if (previousPendingImage && previousPendingImage.publicId !== asset.publicId) {
+        deleteCloudinaryImage(previousPendingImage.publicId, '교체 전 대표 이미지 파일 삭제에 실패했습니다.');
+      }
+
+      setPendingUploadedImage(asset);
+      setForm((current) => ({ ...current, imageUrl: asset.secureUrl }));
+      setSelectedImageFile(null);
+      showToast(`대표 이미지를 업로드했습니다. (${formatFileSize(file.size)})`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : '대표 이미지 업로드에 실패했습니다.');
+    } finally {
+      setUploadingImage(false);
+      setIsImageDragOver(false);
+    }
+  };
+
+  const onSelectImageFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    void uploadCategoryImageFile(file);
+  };
+
+  const onDropImageFile = (event: DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    setIsImageDragOver(false);
+
+    if (uploadingImage) {
+      return;
+    }
+
+    const file = Array.from(event.dataTransfer.files).find((candidate) => candidate.type.startsWith('image/'));
+
+    if (!file) {
+      setError('드롭한 파일 중 이미지 파일을 찾지 못했습니다.');
+      return;
+    }
+
+    void uploadCategoryImageFile(file);
+  };
+
+  const onChangeImageUrl = (imageUrl: string) => {
+    if (pendingUploadedImage && imageUrl.trim() !== pendingUploadedImage.secureUrl) {
+      deleteCloudinaryImage(pendingUploadedImage.publicId, '미적용 대표 이미지 파일 삭제에 실패했습니다.');
+      setPendingUploadedImage(null);
+      setSelectedImageFile(null);
+    }
+
+    setForm((current) => ({ ...current, imageUrl }));
+  };
+
+  const onClearImage = () => {
+    if (pendingUploadedImage) {
+      deleteCloudinaryImage(pendingUploadedImage.publicId, '미적용 대표 이미지 파일 삭제에 실패했습니다.');
+      setPendingUploadedImage(null);
+      setSelectedImageFile(null);
+    }
+
+    setForm((current) => ({ ...current, imageUrl: '' }));
   };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -258,10 +510,13 @@ export function AdminCategoriesPage() {
       }
 
       const payload = buildPayload(form, selectedCategoryId);
+      const previousImageUrl = selectedCategory?.imageUrl?.trim() ?? '';
 
       if (selectedCategoryId === null) {
         const created = await apiClient.createAdminCategory(payload);
         showToast('카테고리를 생성했습니다.');
+        setPendingUploadedImage(null);
+        setSelectedImageFile(null);
         setSubmitSuccess(true);
         await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
         await loadCategories();
@@ -270,6 +525,17 @@ export function AdminCategoriesPage() {
       } else {
         const updated = await apiClient.updateAdminCategory(selectedCategoryId, payload);
         showToast('카테고리 정보를 저장했습니다.');
+        setPendingUploadedImage(null);
+        setSelectedImageFile(null);
+
+        if (previousImageUrl && previousImageUrl !== (payload.imageUrl ?? '')) {
+          const previousPublicId = extractCloudinaryPublicId(previousImageUrl);
+
+          if (previousPublicId) {
+            deleteCloudinaryImage(previousPublicId, '교체 전 대표 이미지 파일 삭제에 실패했습니다.');
+          }
+        }
+
         setSubmitSuccess(true);
         await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
         await loadCategories();
@@ -304,8 +570,19 @@ export function AdminCategoriesPage() {
 
     try {
       await apiClient.deleteAdminCategory(selectedCategory.id);
+      if (pendingUploadedImage) {
+        deleteCloudinaryImage(pendingUploadedImage.publicId, '미적용 대표 이미지 파일 삭제에 실패했습니다.');
+      }
+
+      const selectedPublicId = extractCloudinaryPublicId(selectedCategory.imageUrl ?? '');
+      if (selectedPublicId) {
+        deleteCloudinaryImage(selectedPublicId, '삭제한 카테고리 대표 이미지 파일 삭제에 실패했습니다.');
+      }
+
       showToast('카테고리를 삭제했습니다.');
       setSelectedCategoryId(null);
+      setPendingUploadedImage(null);
+      setSelectedImageFile(null);
       setForm(createEmptyForm(getNextSortOrder(null, selectedCategory.id)));
       await loadCategories();
     } catch (caught) {
@@ -710,14 +987,53 @@ export function AdminCategoriesPage() {
             />
           </label>
 
-          <label className="field">
-            <span>대표 이미지 URL</span>
-            <input
-              value={form.imageUrl}
-              onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
-              placeholder="https://..."
-            />
-          </label>
+          <div className="field">
+            <span>대표 이미지</span>
+            <div className="admin-category-image-upload">
+              <label
+                className={`admin-category-image-dropzone${isImageDragOver ? ' is-drag-over' : ''}${form.imageUrl.trim() ? ' has-image' : ''}`}
+                htmlFor="admin-category-image-file"
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  if (!uploadingImage) {
+                    setIsImageDragOver(true);
+                  }
+                }}
+                onDragLeave={() => setIsImageDragOver(false)}
+                onDrop={onDropImageFile}
+              >
+                {form.imageUrl.trim() ? (
+                  <img src={form.imageUrl} alt="" />
+                ) : (
+                  <span className="admin-category-image-placeholder">이미지를 선택하거나 드래그하세요</span>
+                )}
+                <span className="admin-category-image-file-button">{uploadingImage ? '업로드 중...' : '파일 선택'}</span>
+              </label>
+              <input
+                id="admin-category-image-file"
+                className="sr-only"
+                type="file"
+                accept="image/*"
+                onChange={onSelectImageFile}
+                disabled={uploadingImage}
+              />
+              <div className="admin-category-image-meta">
+                <span>
+                  {selectedImageFile
+                    ? `${selectedImageFile.name} · ${formatFileSize(selectedImageFile.size)}`
+                    : pendingUploadedImage
+                      ? '업로드 완료. 저장하면 카테고리에 적용됩니다.'
+                      : '파일 선택 또는 드롭 시 Cloudinary에 바로 업로드됩니다.'}
+                </span>
+                {form.imageUrl.trim() ? (
+                  <button className="button button-ghost" type="button" onClick={onClearImage} disabled={uploadingImage}>
+                    이미지 제거
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            <input value={form.imageUrl} onChange={(event) => onChangeImageUrl(event.target.value)} placeholder="https://..." />
+          </div>
 
           <label className="field">
             <span>정렬 순서</span>
