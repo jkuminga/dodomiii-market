@@ -5,6 +5,12 @@
 }
 
 @font-face {
+  font-family: 'Cafe24Decoline';
+  src: url('./assets/fonts/Cafe24Decoline.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'Maruminya';
   src: url('./assets/fonts/Maruminya.ttf') format('truetype');
   font-display: swap;
@@ -2136,6 +2142,7 @@ img {
 }
 
 .hero-title {
+  font-family: 'Cafe24Decoline', var(--font-display);
   max-width: 8ch;
   margin-top: 0;
   font-size: clamp(1.9rem, 10vw, 2.8rem);
@@ -9168,7 +9175,8 @@ button.admin-list-card {
     top: 106px;
     max-height: calc(100vh - 122px);
     overflow: auto;
-    padding-right: 4px;
+    margin: -2px -14px -22px -2px;
+    padding: 2px 14px 22px 2px;
     scrollbar-gutter: stable;
   }
 
@@ -9186,11 +9194,12 @@ button.admin-list-card {
   .app-shell.is-store.is-store-desktop .detail-side-column>.detail-summary-card,
   .app-shell.is-store.is-store-desktop .detail-side-column>.surface-card,
   .app-shell.is-store.is-store-desktop .detail-side-column>.fixed-product-bar {
-    border-color: rgb(var(--primary-rgb) / 0.12);
+    border-color: rgba(15, 23, 42, 0.07);
+    border-radius: 30px;
     box-shadow:
-      0 1px 2px rgb(var(--neutral-deep-rgb) / 0.05),
-      0 10px 24px rgb(var(--primary-deep-rgb) / 0.07),
-      0 18px 36px rgb(var(--primary-rgb) / 0.04);
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 12px 24px -22px rgba(15, 23, 42, 0.2);
+    filter: drop-shadow(0 4px 7px rgba(15, 23, 42, 0.025));
   }
 
   .app-shell.is-store.is-store-desktop .detail-side-column>.detail-summary-card {
@@ -9211,13 +9220,12 @@ button.admin-list-card {
     margin-top: 0;
     padding: 0;
     /* Remove padding to handle breakdown placement */
-    border-radius: 24px;
-    border: 1px solid rgb(var(--primary-rgb) / 0.12);
+    border-radius: 30px;
+    border: 1px solid rgba(15, 23, 42, 0.07);
     background: rgb(var(--surface-cream-rgb) / 0.96);
     box-shadow:
-      0 2px 4px rgb(var(--neutral-deep-rgb) / 0.05),
-      0 12px 28px rgb(var(--primary-deep-rgb) / 0.08),
-      0 22px 40px rgb(var(--primary-rgb) / 0.05);
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 12px 24px -22px rgba(15, 23, 42, 0.2);
     backdrop-filter: none;
     display: flex;
     flex-direction: column;

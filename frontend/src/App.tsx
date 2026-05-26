@@ -278,15 +278,13 @@ function HomePage() {
         </div>
 
         <div className="hero-copy hero-copy-polished hero-copy-landing">
-          <p className="hero-badge">DODOMiiii MARKET</p>
+          {/* <p className="hero-badge">DODOMiiii MARKET</p> */}
           <h1 className="section-title hero-title">DODOMiiii MARKET</h1>
-          <p className="section-copy hero-summary">
+          {/* <p className="section-copy hero-summary">
             시들지 않는 마음을 선물하세요
-          </p>
+          </p> */}
           <div className="hero-actions">
-            <Link className="button" to="/products">
-              상품 보기
-            </Link>
+            {/* s */}
             {/* <Link className="button-text" to="/notices">
               공지 확인
             </Link> */}
@@ -347,7 +345,7 @@ function HomePage() {
           <div className="landing-footer-brand">
             <p className="landing-footer-kicker">DODOMiiii MARKET</p>
             <h2 id="landing-footer-title">도도미마켓</h2>
-            <p>시들지 않는 마음을 전하는 핸드메이드 마켓</p>
+            <p>행복을 나누는 핸드메이드 마켓☘️</p>
           </div>
 
           <hr className="landing-footer-divider" />
@@ -408,6 +406,11 @@ function HomePage() {
                 <Link to="/legal/terms">이용약관</Link>
                 <Link to="/legal/privacy">개인정보취급방침</Link>
               </nav>
+            </section>
+            <section className='landing-footer-section'>
+              <dl className='landing-footer-list' style={{marginLeft :"10px", color : "grey"}}>
+                Copyright 2026. 도도미마켓. All rights reserved.
+              </dl>
             </section>
           </div>
         </div>
