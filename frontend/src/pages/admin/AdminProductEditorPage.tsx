@@ -637,7 +637,7 @@ export function AdminProductEditorPage() {
   const categoryOptions = useMemo(() => buildAdminCategoryOptions(categories), [categories]);
   const previewCategoryLabel =
     form.categoryIds.length > 0
-      ? form.categoryIds.map((categoryId) => getAdminCategoryLabel(Number(categoryId), categories)).join(' / ')
+      ? form.categoryIds.map((categoryId) => getAdminCategoryLabel(Number(categoryId), categories)).join(' | ')
       : '카테고리 미선택';
   const previewBasePrice = Number(form.basePrice);
   const previewDiscountRate = Number(form.discountRate || '0');

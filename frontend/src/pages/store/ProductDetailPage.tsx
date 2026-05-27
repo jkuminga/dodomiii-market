@@ -614,7 +614,7 @@ export function ProductDetailPage() {
               ))}
             </div>
           ) : (
-            <p className="feedback-copy">추가 옵션이 없는 상품입니다. 주문서에서 수량과 배송지 정보만 입력하면 됩니다.</p>
+            <p className="feedback-copy">추가 옵션이 없는 상품입니다.</p>
           )}
 
           {product.consultationRequired ? (
@@ -704,15 +704,6 @@ export function ProductDetailPage() {
               상세정보
             </button>
             <button
-              className={`tab-button ${activeTab === 'options' ? 'is-active' : ''}`}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'options'}
-              onClick={() => setActiveTab('options')}
-            >
-              옵션
-            </button>
-            <button
               className={`tab-button ${activeTab === 'policy' ? 'is-active' : ''}`}
               type="button"
               role="tab"
@@ -720,6 +711,15 @@ export function ProductDetailPage() {
               onClick={() => setActiveTab('policy')}
             >
               안내
+            </button>
+            <button
+              className={`tab-button ${activeTab === 'options' ? 'is-active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'options'}
+              onClick={() => setActiveTab('options')}
+            >
+              리뷰
             </button>
           </div>
 

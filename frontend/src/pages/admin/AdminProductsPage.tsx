@@ -274,7 +274,7 @@ export function AdminProductsPage() {
                         <strong>{product.name}</strong>
                         <p>
                           {product.categories.length > 0
-                            ? product.categories.map((category) => getAdminCategoryLabel(category.id, categories)).join(' / ')
+                            ? product.categories.map((category) => getAdminCategoryLabel(category.id, categories)).join(',   ')
                             : '카테고리 없음'}
                         </p>
                       </div>
