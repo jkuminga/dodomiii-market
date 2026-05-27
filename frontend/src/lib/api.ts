@@ -179,6 +179,11 @@ export type ProductListItem = {
   id: number;
   categoryId: number;
   categoryName: string;
+  categories: Array<{
+    id: number;
+    name: string;
+    slug: string;
+  }>;
   name: string;
   slug: string;
   shortDescription: string | null;
@@ -193,6 +198,11 @@ export type ProductDetail = {
   id: number;
   categoryId: number;
   categoryName: string;
+  categories: Array<{
+    id: number;
+    name: string;
+    slug: string;
+  }>;
   name: string;
   slug: string;
   shortDescription: string | null;
@@ -231,7 +241,13 @@ export type ProductDetail = {
 
 export type AdminProductListItem = {
   id: number;
-  categoryId: number;
+  categories: Array<{
+    id: number;
+    name: string;
+    slug: string;
+    parentId: number | null;
+    isVisible: boolean;
+  }>;
   name: string;
   slug: string;
   basePrice: number;
@@ -309,7 +325,7 @@ export type AdminProductOptionGroupInput = {
 };
 
 export type AdminProductPayload = {
-  categoryId: number;
+  categoryIds: number[];
   name: string;
   slug: string;
   shortDescription: string | null;
@@ -529,13 +545,13 @@ export type StorefrontSettings = {
 
 export type AdminProductDetail = {
   id: number;
-  category: {
+  categories: Array<{
     id: number;
     name: string;
     slug: string;
     parentId: number | null;
     isVisible: boolean;
-  };
+  }>;
   name: string;
   slug: string;
   shortDescription: string | null;

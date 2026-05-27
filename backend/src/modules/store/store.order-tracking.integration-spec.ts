@@ -164,12 +164,16 @@ describe('StoreService order lookup and tracking integration', () => {
 
     const product = await prisma.product.create({
       data: {
-        categoryId: category.id,
         name: `${TEST_PREFIX} product ${suffix}`,
         slug: `test-order-tracking-product-${suffix}`,
         basePrice: 10000,
         isVisible: true,
         isSoldOut: false,
+        productCategories: {
+          create: {
+            categoryId: category.id,
+          },
+        },
       },
     });
     createdProductIds.push(product.id);

@@ -272,7 +272,11 @@ export function AdminProductsPage() {
                     <div className="admin-list-card-head">
                       <div>
                         <strong>{product.name}</strong>
-                        <p>{getAdminCategoryLabel(product.categoryId, categories)}</p>
+                        <p>
+                          {product.categories.length > 0
+                            ? product.categories.map((category) => getAdminCategoryLabel(category.id, categories)).join(' / ')
+                            : '카테고리 없음'}
+                        </p>
                       </div>
                       <div className="admin-pill-row">
                         <span className={`status-pill ${product.isVisible ? '' : 'is-muted'}`}>{product.isVisible ? '노출' : '숨김'}</span>

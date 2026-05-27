@@ -64,7 +64,7 @@ model Category {
 
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children Category[] @relation("CategoryHierarchy")
-  products Product[]
+  productCategories ProductCategory[]
 
   @@unique([parentId, slug], map: "uq_categories_parent_slug")
   @@index([parentId], map: "idx_categories_parent_id")
@@ -75,7 +75,6 @@ model Category {
 
 model Product {
   id                   BigInt    @id @default(autoincrement())
-  categoryId           BigInt    @map("category_id")
   name                 String    @db.VarChar(200)
   slug                 String    @unique @db.VarChar(200)
   shortDescription     String?   @map("short_description") @db.VarChar(500)
@@ -90,17 +89,28 @@ model Product {
   updatedAt            DateTime  @updatedAt @map("updated_at")
   deletedAt            DateTime? @map("deleted_at")
 
-  category     Category             @relation(fields: [categoryId], references: [id])
-  thumbnails   ProductThumbnail[]
-  optionGroups ProductOptionGroup[]
-  orderItems   OrderItem[]
+  productCategories ProductCategory[]
+  thumbnails         ProductThumbnail[]
+  optionGroups       ProductOptionGroup[]
+  orderItems         OrderItem[]
 
-  @@index([categoryId], map: "idx_products_category_id")
   @@index([isVisible, isSoldOut], map: "idx_products_visibility_stock")
   @@index([isVisible, deletedAt, createdAt(sort: Desc), id(sort: Desc)], map: "idx_products_visible_deleted_created")
   @@index([isVisible, deletedAt, basePrice, id(sort: Desc)], map: "idx_products_visible_deleted_price")
-  @@index([categoryId, isVisible, deletedAt, createdAt(sort: Desc), id(sort: Desc)], map: "idx_products_category_visible_deleted_created")
   @@map("products")
+}
+
+model ProductCategory {
+  productId  BigInt   @map("product_id")
+  categoryId BigInt   @map("category_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@id([productId, categoryId])
+  @@index([categoryId, productId], map: "idx_product_categories_category_product")
+  @@map("product_categories")
 }
 
 model ProductThumbnail {

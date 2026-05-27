@@ -541,8 +541,12 @@ export class StoreService {
       }
 
       const categoryIds = await this.collectVisibleDescendantCategoryIds(category.id);
-      where.categoryId = {
-        in: categoryIds.map((id) => BigInt(id)),
+      where.productCategories = {
+        some: {
+          categoryId: {
+            in: categoryIds.map((id) => BigInt(id)),
+          },
+        },
       };
     }
 
@@ -553,7 +557,7 @@ export class StoreService {
           ? [{ basePrice: 'desc' }, { id: 'desc' }]
           : [{ createdAt: 'desc' }, { id: 'desc' }];
 
-    const cacheKey = `store:products:v2:${JSON.stringify({
+    const cacheKey = `store:products:v3:${JSON.stringify({
       q: query.q ?? '',
       categorySlug: query.categorySlug ?? '',
       sort: query.sort ?? 'latest',
@@ -570,10 +574,16 @@ export class StoreService {
           skip: (page - 1) * size,
           take: size,
           include: {
-            category: {
-              select: {
-                id: true,
-                name: true,
+            productCategories: {
+              orderBy: [{ categoryId: 'asc' }],
+              include: {
+                category: {
+                  select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                  },
+                },
               },
             },
             thumbnails: {
@@ -590,19 +600,28 @@ export class StoreService {
       const totalPages = Math.ceil(totalItems / size);
 
       return {
-        items: products.map((product) => ({
-          id: Number(product.id),
-          categoryId: Number(product.categoryId),
-          categoryName: product.category.name,
-          name: product.name,
-          slug: product.slug,
-          shortDescription: product.shortDescription,
-          basePrice: product.basePrice,
-          discountRate: product.discountRate,
-          isSoldOut: product.isSoldOut,
-          consultationRequired: product.consultationRequired,
-          thumbnailImageUrl: product.thumbnails[0]?.imageUrl ?? null,
-        })),
+        items: products.map((product) => {
+          const categories = product.productCategories.map((link) => ({
+            id: Number(link.category.id),
+            name: link.category.name,
+            slug: link.category.slug,
+          }));
+
+          return {
+            id: Number(product.id),
+            categoryId: categories[0]?.id ?? 0,
+            categoryName: categories.map((category) => category.name).join(' / '),
+            categories,
+            name: product.name,
+            slug: product.slug,
+            shortDescription: product.shortDescription,
+            basePrice: product.basePrice,
+            discountRate: product.discountRate,
+            isSoldOut: product.isSoldOut,
+            consultationRequired: product.consultationRequired,
+            thumbnailImageUrl: product.thumbnails[0]?.imageUrl ?? null,
+          };
+        }),
         meta: {
           page,
           size,
@@ -623,7 +642,7 @@ export class StoreService {
     }
 
     return this.storeCache.getOrSet(
-      `store:product-detail:v3:${parsedId}`,
+      `store:product-detail:v4:${parsedId}`,
       STORE_PRODUCT_DETAIL_CACHE_TTL_MS,
       async () => {
         const product = await this.prisma.product.findFirst({
@@ -633,10 +652,16 @@ export class StoreService {
             deletedAt: null,
           },
           include: {
-            category: {
-              select: {
-                id: true,
-                name: true,
+            productCategories: {
+              orderBy: [{ categoryId: 'asc' }],
+              include: {
+                category: {
+                  select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                  },
+                },
               },
             },
             thumbnails: {
@@ -675,10 +700,17 @@ export class StoreService {
           });
         }
 
+        const categories = product.productCategories.map((link) => ({
+          id: Number(link.category.id),
+          name: link.category.name,
+          slug: link.category.slug,
+        }));
+
         return {
           id: Number(product.id),
-          categoryId: Number(product.categoryId),
-          categoryName: product.category.name,
+          categoryId: categories[0]?.id ?? 0,
+          categoryName: categories.map((category) => category.name).join(' / '),
+          categories,
           name: product.name,
           slug: product.slug,
           shortDescription: product.shortDescription,

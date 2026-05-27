@@ -42,13 +42,18 @@ import { UpdateAdminProductDto } from './dto/update-admin-product.dto';
 
 const adminProductDetailArgs = Prisma.validator<Prisma.ProductDefaultArgs>()({
   include: {
-    category: {
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        parentId: true,
-        isVisible: true,
+    productCategories: {
+      orderBy: [{ categoryId: 'asc' }],
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            parentId: true,
+            isVisible: true,
+          },
+        },
       },
     },
     thumbnails: {
@@ -157,13 +162,13 @@ type ProductContent = {
 const CATEGORY_LANDING_SELECTION_LIMIT = 3;
 
 function extractGroupedCount(
-  count: true | { id?: number } | undefined,
+  count: true | { id?: number; productId?: number } | undefined,
 ): number {
   if (!count || count === true) {
     return 0;
   }
 
-  return count.id ?? 0;
+  return count.id ?? count.productId ?? 0;
 }
 
 @Injectable()
@@ -518,25 +523,27 @@ export class AdminService {
           },
         },
       }),
-      this.prisma.product.groupBy({
+      this.prisma.productCategory.groupBy({
         by: ['categoryId'],
         orderBy: {
           categoryId: 'asc',
         },
         _count: {
-          id: true,
+          productId: true,
         },
       }),
-      this.prisma.product.groupBy({
+      this.prisma.productCategory.groupBy({
         by: ['categoryId'],
         orderBy: {
           categoryId: 'asc',
         },
         where: {
-          deletedAt: null,
+          product: {
+            deletedAt: null,
+          },
         },
         _count: {
-          id: true,
+          productId: true,
         },
       }),
     ]);
@@ -674,7 +681,7 @@ export class AdminService {
               parentId: existingCategory.id,
             },
           }),
-          tx.product.count({
+          tx.productCategory.count({
             where: {
               categoryId: existingCategory.id,
             },
@@ -719,11 +726,11 @@ export class AdminService {
   async createProduct(dto: CreateAdminProductDto): Promise<AdminProductDetailResponse> {
     try {
       const productId = await this.prisma.$transaction(async (tx) => {
-        await this.assertCategoryExists(tx, BigInt(dto.categoryId));
+        const categoryIds = dto.categoryIds.map((categoryId) => BigInt(categoryId));
+        await this.assertCategoriesExist(tx, categoryIds);
 
         const product = await tx.product.create({
           data: {
-            categoryId: BigInt(dto.categoryId),
             name: dto.name,
             slug: dto.slug,
             shortDescription: dto.shortDescription ?? null,
@@ -738,6 +745,13 @@ export class AdminService {
           select: {
             id: true,
           },
+        });
+
+        await tx.productCategory.createMany({
+          data: categoryIds.map((categoryId) => ({
+            productId: product.id,
+            categoryId,
+          })),
         });
 
         if (dto.images?.length) {
@@ -790,8 +804,12 @@ export class AdminService {
 
     if (query.categoryId !== undefined) {
       const categoryIds = await this.collectDescendantCategoryIds(BigInt(query.categoryId));
-      where.categoryId = {
-        in: categoryIds,
+      where.productCategories = {
+        some: {
+          categoryId: {
+            in: categoryIds,
+          },
+        },
       };
     }
 
@@ -830,11 +848,18 @@ export class AdminService {
         skip: (page - 1) * size,
         take: size,
         include: {
-          category: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
+          productCategories: {
+            orderBy: [{ categoryId: 'asc' }],
+            include: {
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  parentId: true,
+                  isVisible: true,
+                },
+              },
             },
           },
           thumbnails: {
@@ -864,9 +889,13 @@ export class AdminService {
     return {
       items: products.map((product): AdminProductListItemResponse => ({
         id: Number(product.id),
-        categoryId: Number(product.categoryId),
-        categoryName: product.category.name,
-        categorySlug: product.category.slug,
+        categories: product.productCategories.map((link) => ({
+          id: Number(link.category.id),
+          name: link.category.name,
+          slug: link.category.slug,
+          parentId: link.category.parentId ? Number(link.category.parentId) : null,
+          isVisible: link.category.isVisible,
+        })),
         name: product.name,
         slug: product.slug,
         shortDescription: product.shortDescription,
@@ -916,14 +945,14 @@ export class AdminService {
           });
         }
 
-        if (dto.categoryId !== undefined) {
-          await this.assertCategoryExists(tx, BigInt(dto.categoryId));
+        const categoryIds = dto.categoryIds?.map((categoryId) => BigInt(categoryId));
+        if (categoryIds !== undefined) {
+          await this.assertCategoriesExist(tx, categoryIds);
         }
 
         await tx.product.update({
           where: { id: existingProduct.id },
           data: {
-            categoryId: dto.categoryId !== undefined ? BigInt(dto.categoryId) : undefined,
             name: dto.name,
             slug: dto.slug,
             shortDescription:
@@ -942,6 +971,10 @@ export class AdminService {
             consultationRequired: dto.consultationRequired,
           },
         });
+
+        if (categoryIds !== undefined) {
+          await this.replaceProductCategories(tx, existingProduct.id, categoryIds);
+        }
 
         if (dto.images !== undefined) {
           await tx.productThumbnail.deleteMany({
@@ -1033,15 +1066,17 @@ export class AdminService {
           },
         },
       }),
-      this.prisma.product.count({
+      this.prisma.productCategory.count({
         where: {
           categoryId,
         },
       }),
-      this.prisma.product.count({
+      this.prisma.productCategory.count({
         where: {
           categoryId,
-          deletedAt: null,
+          product: {
+            deletedAt: null,
+          },
         },
       }),
       this.prisma.category.findMany({
@@ -1174,13 +1209,13 @@ export class AdminService {
   private mapProductDetail(product: AdminProductDetailRecord): AdminProductDetailResponse {
     return {
       id: Number(product.id),
-      category: {
-        id: Number(product.category.id),
-        name: product.category.name,
-        slug: product.category.slug,
-        parentId: product.category.parentId ? Number(product.category.parentId) : null,
-        isVisible: product.category.isVisible,
-      },
+      categories: product.productCategories.map((link) => ({
+        id: Number(link.category.id),
+        name: link.category.name,
+        slug: link.category.slug,
+        parentId: link.category.parentId ? Number(link.category.parentId) : null,
+        isVisible: link.category.isVisible,
+      })),
       name: product.name,
       slug: product.slug,
       shortDescription: product.shortDescription,
@@ -1262,6 +1297,56 @@ export class AdminService {
           })),
         });
       }
+    }
+  }
+
+  private async replaceProductCategories(
+    tx: Prisma.TransactionClient,
+    productId: bigint,
+    categoryIds: bigint[],
+  ): Promise<void> {
+    await tx.productCategory.deleteMany({
+      where: {
+        productId,
+      },
+    });
+
+    await tx.productCategory.createMany({
+      data: categoryIds.map((categoryId) => ({
+        productId,
+        categoryId,
+      })),
+    });
+  }
+
+  private async assertCategoriesExist(
+    tx: Prisma.TransactionClient,
+    categoryIds: bigint[],
+  ): Promise<void> {
+    const uniqueCategoryIds = [...new Set(categoryIds.map((categoryId) => categoryId.toString()))].map((categoryId) =>
+      BigInt(categoryId),
+    );
+
+    if (uniqueCategoryIds.length === 0) {
+      throw new BadRequestException({
+        code: 'CATEGORY_REQUIRED',
+        message: '카테고리를 하나 이상 선택해주세요.',
+      });
+    }
+
+    const existingCount = await tx.category.count({
+      where: {
+        id: {
+          in: uniqueCategoryIds,
+        },
+      },
+    });
+
+    if (existingCount !== uniqueCategoryIds.length) {
+      throw new NotFoundException({
+        code: 'CATEGORY_NOT_FOUND',
+        message: '카테고리를 찾을 수 없습니다.',
+      });
     }
   }
 

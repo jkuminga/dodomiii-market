@@ -5,6 +5,8 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  ArrayNotEmpty,
+  ArrayUnique,
   MaxLength,
   Max,
   Min,
@@ -17,9 +19,12 @@ import { AdminProductContentDto } from './admin-product-content.dto';
 
 export class UpdateAdminProductDto {
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  categoryId?: number;
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayUnique()
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  categoryIds?: number[];
 
   @IsOptional()
   @IsString()

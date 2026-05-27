@@ -42,7 +42,7 @@ describe('AdminService product integration', () => {
     const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     const result = await service.createProduct({
-      categoryId: Number(category.id),
+      categoryIds: [Number(category.id)],
       name: `${TEST_PREFIX} product ${suffix}`,
       slug: `test-admin-product-${suffix}`,
       shortDescription: '통합 테스트 상품 요약',
@@ -97,13 +97,15 @@ describe('AdminService product integration', () => {
     createdProductIds.push(BigInt(result.id));
 
     expect(result).toMatchObject({
-      category: {
-        id: Number(category.id),
-        name: category.name,
-        slug: category.slug,
-        parentId: null,
-        isVisible: true,
-      },
+      categories: [
+        {
+          id: Number(category.id),
+          name: category.name,
+          slug: category.slug,
+          parentId: null,
+          isVisible: true,
+        },
+      ],
       shortDescription: '통합 테스트 상품 요약',
       description: '통합 테스트 상품 설명',
       basePrice: 15000,
@@ -182,11 +184,15 @@ describe('AdminService product integration', () => {
             },
           },
         },
+        productCategories: {
+          include: {
+            category: true,
+          },
+        },
       },
     });
 
     expect(product).toMatchObject({
-      categoryId: category.id,
       name: result.name,
       slug: result.slug,
       basePrice: 15000,
@@ -195,6 +201,11 @@ describe('AdminService product integration', () => {
       isSoldOut: false,
       consultationRequired: false,
     });
+    expect(product?.productCategories).toMatchObject([
+      {
+        categoryId: category.id,
+      },
+    ]);
     expect(product?.thumbnails).toMatchObject([
       {
         imageUrl: 'https://example.test/thumb-a.jpg',

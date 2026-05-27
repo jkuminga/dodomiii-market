@@ -5,6 +5,8 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  ArrayNotEmpty,
+  ArrayUnique,
   MaxLength,
   Max,
   Min,
@@ -16,9 +18,12 @@ import { AdminProductOptionGroupDto } from './admin-product-option.dto';
 import { AdminProductContentDto } from './admin-product-content.dto';
 
 export class CreateAdminProductDto {
-  @IsInt()
-  @Min(1)
-  categoryId!: number;
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayUnique()
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  categoryIds!: number[];
 
   @IsString()
   @MaxLength(200)

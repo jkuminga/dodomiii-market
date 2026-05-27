@@ -47,7 +47,7 @@ type ProductOptionDraft = {
 };
 
 type ProductFormState = {
-  categoryId: string;
+  categoryIds: string[];
   name: string;
   slug: string;
   shortDescription: string;
@@ -96,7 +96,7 @@ function createOptionDraft(sortOrder = '0'): ProductOptionDraft {
 
 function createEmptyForm(): ProductFormState {
   return {
-    categoryId: '',
+    categoryIds: [],
     name: '',
     slug: '',
     shortDescription: '',
@@ -126,7 +126,7 @@ function formatFileSize(bytes: number): string {
 
 function formFromProduct(product: AdminProductDetail): ProductFormState {
   return {
-    categoryId: String(product.category.id),
+    categoryIds: product.categories.map((category) => String(category.id)),
     name: product.name,
     slug: product.slug,
     shortDescription: product.shortDescription ?? '',
@@ -169,7 +169,7 @@ function formFromProduct(product: AdminProductDetail): ProductFormState {
 
 function serializeFormState(form: ProductFormState): string {
   return JSON.stringify({
-    categoryId: form.categoryId,
+    categoryIds: form.categoryIds,
     name: form.name,
     slug: form.slug,
     shortDescription: form.shortDescription,
@@ -489,14 +489,14 @@ function buildOrderSignature(items: Array<{ key: string; sortOrder: string }>): 
 }
 
 function buildPayload(form: ProductFormState): AdminProductPayload {
-  const categoryId = Number(form.categoryId);
+  const categoryIds = form.categoryIds.map((categoryId) => Number(categoryId));
   const basePrice = Number(form.basePrice);
   const discountRateText = form.discountRate.trim();
   const trimmedName = form.name.trim();
   const trimmedSlug = form.slug.trim();
 
-  if (!Number.isFinite(categoryId)) {
-    throw new Error('카테고리를 선택해주세요.');
+  if (categoryIds.length === 0 || categoryIds.some((categoryId) => !Number.isFinite(categoryId))) {
+    throw new Error('카테고리를 하나 이상 선택해주세요.');
   }
 
   if (!trimmedName) {
@@ -528,7 +528,7 @@ function buildPayload(form: ProductFormState): AdminProductPayload {
   }
 
   return {
-    categoryId,
+    categoryIds,
     name: trimmedName,
     slug: trimmedSlug,
     shortDescription: form.shortDescription.trim() || null,
@@ -578,6 +578,7 @@ export function AdminProductEditorPage() {
   const [selectedNewImageFile, setSelectedNewImageFile] = useState<File | null>(null);
   const [uploadingImageKey, setUploadingImageKey] = useState<string | null>(null);
   const [isNewImageDragOver, setIsNewImageDragOver] = useState(false);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const allowNavigationRef = useRef(false);
 
   const resetEditorPanels = (nextForm: ProductFormState) => {
@@ -634,8 +635,10 @@ export function AdminProductEditorPage() {
   }, [isCreateMode, productId]);
 
   const categoryOptions = useMemo(() => buildAdminCategoryOptions(categories), [categories]);
-  const previewCategoryId = form.categoryId ? Number(form.categoryId) : product?.category.id;
-  const previewCategoryLabel = Number.isFinite(previewCategoryId) ? getAdminCategoryLabel(previewCategoryId, categories) : '카테고리 미선택';
+  const previewCategoryLabel =
+    form.categoryIds.length > 0
+      ? form.categoryIds.map((categoryId) => getAdminCategoryLabel(Number(categoryId), categories)).join(' / ')
+      : '카테고리 미선택';
   const previewBasePrice = Number(form.basePrice);
   const previewDiscountRate = Number(form.discountRate || '0');
   const previewDiscountedPrice =
@@ -1352,19 +1355,48 @@ export function AdminProductEditorPage() {
 
           <section className="admin-form-section">
             <div className="admin-field-grid">
-              <label className="field">
+              <section className="field admin-field-span-2">
                 <span>카테고리</span>
-                <select value={form.categoryId} onChange={(event) => setForm((current) => ({ ...current, categoryId: event.target.value }))}>
-                  <option value="">선택</option>
-                  {categoryOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                <div className="admin-category-details-dropdown">
+                  <button
+                    type="button"
+                    className={`admin-category-dropdown-summary ${isCategoryDropdownOpen ? 'is-open' : ''}`}
+                    onClick={() => setIsCategoryDropdownOpen((prev) => !prev)}
+                  >
+                    <span>{previewCategoryLabel}</span>
+                    <span className="admin-category-dropdown-icon">▼</span>
+                  </button>
+                  {isCategoryDropdownOpen && (
+                    <div className="admin-product-category-check-list">
+                      {categoryOptions.map((option) => (
+                        <label
+                          className={`admin-product-category-check ${form.categoryIds.includes(String(option.value)) ? 'is-active' : ''}`}
+                          key={option.value}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={form.categoryIds.includes(String(option.value))}
+                            onChange={(event) =>
+                              setForm((current) => {
+                                const value = String(option.value);
+                                return {
+                                  ...current,
+                                  categoryIds: event.target.checked
+                                    ? [...current.categoryIds, value]
+                                    : current.categoryIds.filter((categoryId) => categoryId !== value),
+                                };
+                              })
+                            }
+                          />
+                          <span>{option.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
 
-              <label className="field">
+              <label className="field admin-field-span-2">
                 <span>상품명</span>
                 <input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
               </label>

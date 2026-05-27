@@ -208,7 +208,6 @@ describe('StoreService integration', () => {
 
     const product = await prisma.product.create({
       data: {
-        categoryId: category.id,
         name: `${TEST_PREFIX} product ${suffix}`,
         slug: `test-store-integration-product-${suffix}`,
         shortDescription: '통합 테스트 상품',
@@ -218,6 +217,11 @@ describe('StoreService integration', () => {
         isVisible: true,
         isSoldOut: false,
         consultationRequired: false,
+        productCategories: {
+          create: {
+            categoryId: category.id,
+          },
+        },
       },
     });
     createdProductIds.push(product.id);

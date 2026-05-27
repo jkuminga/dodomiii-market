@@ -59,6 +59,14 @@ export type AdminProductOptionGroupResponse = {
   options: AdminProductOptionResponse[];
 };
 
+export type AdminProductCategoryResponse = {
+  id: number;
+  name: string;
+  slug: string;
+  parentId: number | null;
+  isVisible: boolean;
+};
+
 export type ProductContentBlockResponse =
   | {
       type: 'paragraph';
@@ -103,9 +111,7 @@ export type ProductContentResponse = {
 
 export type AdminProductListItemResponse = {
   id: number;
-  categoryId: number;
-  categoryName: string;
-  categorySlug: string;
+  categories: AdminProductCategoryResponse[];
   name: string;
   slug: string;
   shortDescription: string | null;
@@ -125,13 +131,7 @@ export type AdminProductListItemResponse = {
 
 export type AdminProductDetailResponse = {
   id: number;
-  category: {
-    id: number;
-    name: string;
-    slug: string;
-    parentId: number | null;
-    isVisible: boolean;
-  };
+  categories: AdminProductCategoryResponse[];
   name: string;
   slug: string;
   shortDescription: string | null;
