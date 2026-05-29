@@ -469,7 +469,7 @@ export function ProductDetailPage() {
             <div className="order-option-group-list">
               {optionGroups.map((group) => (
                 <div
-                  className="field order-option-group-field"
+                  className={`field order-option-group-field ${(expandedOptionGroups[String(group.id)] ?? false) ? 'is-expanded' : ''}`}
                   key={group.id}
                   ref={(node) => {
                     optionGroupRefs.current[String(group.id)] = node;
@@ -559,29 +559,37 @@ export function ProductDetailPage() {
                               >
                                 -
                               </button>
-                              <input
-                                className="quantity-input"
-                                type="number"
-                                min={0}
-                                max={option.maxQuantity ?? undefined}
-                                step={1}
-                                inputMode="numeric"
-                                value={quantityValue}
-                                onChange={(event) => {
-                                  const nextValue = Math.max(0, Number(event.target.value) || 0);
-                                  const boundedValue =
-                                    option.maxQuantity === null || option.maxQuantity === undefined
-                                      ? nextValue
-                                      : Math.min(option.maxQuantity, nextValue);
-                                  setSelectedQuantityByOption((current) => ({
-                                    ...current,
-                                    [String(option.id)]: boundedValue,
-                                  }));
-                                  setInvalidRequiredGroupIds((current) =>
-                                    current.filter((groupId) => groupId !== String(group.id)),
-                                  );
-                                }}
-                              />
+                              <div className="quantity-value-wrap">
+                                <input
+                                  className="quantity-input"
+                                  type="text"
+                                  pattern="[0-9]*"
+                                  role="spinbutton"
+                                  aria-label={`${option.name} 수량`}
+                                  aria-valuemin={0}
+                                  aria-valuemax={option.maxQuantity ?? undefined}
+                                  aria-valuenow={quantityValue}
+                                  inputMode="numeric"
+                                  value={quantityValue}
+                                  onChange={(event) => {
+                                    const nextValue = Math.max(0, Number(event.target.value) || 0);
+                                    const boundedValue =
+                                      option.maxQuantity === null || option.maxQuantity === undefined
+                                        ? nextValue
+                                        : Math.min(option.maxQuantity, nextValue);
+                                    setSelectedQuantityByOption((current) => ({
+                                      ...current,
+                                      [String(option.id)]: boundedValue,
+                                    }));
+                                    setInvalidRequiredGroupIds((current) =>
+                                      current.filter((groupId) => groupId !== String(group.id)),
+                                    );
+                                  }}
+                                />
+                                <span className="quantity-input-display" aria-hidden="true">
+                                  {quantityValue}
+                                </span>
+                              </div>
                               <button
                                 className="quantity-button"
                                 type="button"

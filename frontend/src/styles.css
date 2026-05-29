@@ -4571,6 +4571,15 @@ img {
 
 .order-option-group-field {
   gap: 8px;
+  margin-bottom: 40px;
+}
+
+.detail-page .order-option-group-field {
+  margin-bottom: 0;
+}
+
+.detail-page .order-option-group-field.is-expanded {
+  margin-bottom: 40px;
 }
 
 .order-option-group-head {
@@ -4881,12 +4890,18 @@ img {
   border-radius: 999px;
   height: 32px;
   padding: 2px;
+  box-sizing: border-box;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  flex: 0 0 88px;
+  width: 88px;
+  max-width: 88px;
+  justify-content: center;
 }
 
 .order-option-multi-item .quantity-button {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4916,22 +4931,55 @@ img {
   cursor: not-allowed;
 }
 
-.order-option-multi-item .quantity-input {
+.order-option-multi-item .quantity-value-wrap {
+  position: relative;
+  flex: 0 0 32px;
   width: 32px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+}
+
+.order-option-multi-item .quantity-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  line-height: 26px;
+  box-sizing: border-box;
   border: 0;
   background: transparent;
   text-align: center;
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   font-size: 0.88rem;
   font-weight: 700;
   color: var(--primary-deep);
+  -webkit-text-fill-color: var(--primary-deep);
   padding: 0;
   margin: 0;
+  appearance: textfield;
+  -moz-appearance: textfield;
+  -webkit-appearance: none;
+  opacity: 0;
+}
+
+.order-option-multi-item .quantity-input-display {
+  min-width: 0;
+  color: var(--primary-deep);
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 26px;
+  pointer-events: none;
 }
 
 .order-option-multi-item .quantity-input::-webkit-inner-spin-button,
 .order-option-multi-item .quantity-input::-webkit-outer-spin-button {
   -webkit-appearance: none;
+  appearance: none;
   margin: 0;
+  display: none;
 }
 
 .quantity-input:focus-visible,
@@ -10547,6 +10595,12 @@ button.admin-list-card {
   .product-content-quote
 ) {
   font-weight: var(--store-font-weight-regular);
+}
+
+.app-shell.is-store .order-option-multi-item .quantity-input {
+  height: 100%;
+  min-height: 0;
+  line-height: 26px;
 }
 
 .app-shell.is-store :where(
