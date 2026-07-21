@@ -3,8 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { LoadingScreen } from '../../components/common/LoadingScreen';
 import { ProductArtwork } from '../../components/store/ProductArtwork';
+import { ProductTile } from '../../components/store/ProductTile';
 import { apiClient, CategoryTreeNode, ProductListItem } from '../../lib/api';
-import { calculateDiscountedPrice, formatDiscountRate } from '../../lib/productPricing';
 import logoMainImage from '../../assets/images/logo_main3.jpg';
 
 function findCategoryNameBySlug(nodes: CategoryTreeNode[], slug: string): string | null {
@@ -45,10 +45,6 @@ function categoryTreeContainsSlug(node: CategoryTreeNode, slug: string): boolean
   }
 
   return node.children.some((child) => categoryTreeContainsSlug(child, slug));
-}
-
-function formatCurrency(value: number): string {
-  return `${value.toLocaleString('ko-KR')}원`;
 }
 
 export function CatalogPage() {
@@ -211,39 +207,9 @@ export function CatalogPage() {
               </Link>
             ) : null}
 
-            {products.map((product) => {
-              const discountedPrice = calculateDiscountedPrice(product.basePrice, product.discountRate);
-              const hasDiscount = product.discountRate > 0 && discountedPrice < product.basePrice;
-
-              return (
-              <Link className="product-tile" key={product.id} to={`/products/${product.id}`}>
-                <div className="product-media">
-                  <ProductArtwork src={product.thumbnailImageUrl} name={product.name} category={product.categoryName} />
-                  {product.isSoldOut ? <span className="status-pill is-muted">품절</span> : null}
-                </div>
-
-                <div className="product-body">
-                  {/* <p className="section-kicker-category">{product.categoryName}</p> */}
-                  <h2 className="product-name">{product.name}</h2>
-                  <p className="product-description">{product.shortDescription ?? '상품 설명이 준비 중입니다.'}</p>
-
-                  <div className="product-meta-row">
-                    <div className="product-price-stack">
-                      {hasDiscount ? (
-                        <>
-                        <strong className="price-text">{formatCurrency(discountedPrice)}</strong>
-                        <span className="product-original-price">{formatCurrency(product.basePrice)}</span>
-                        </>
-                      ) : (
-                        <strong className="price-text">{formatCurrency(product.basePrice)}</strong>
-                      )}
-                    </div>
-                    {hasDiscount ? <span className="product-discount-rate">{formatDiscountRate(product.discountRate)}</span> : null}
-                  </div>
-                </div>
-              </Link>
-              );
-            })}
+            {products.map((product) => (
+              <ProductTile key={product.id} product={product} />
+            ))}
           </div>
 
           {products.length > 0 ? (

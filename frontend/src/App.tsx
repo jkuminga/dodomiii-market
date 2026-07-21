@@ -46,6 +46,7 @@ import { CartOrderPage } from './pages/store/CartOrderPage';
 import { CustomCheckoutPage } from './pages/store/CustomCheckoutPage';
 import { CustomOrderProductPage } from './pages/store/CustomOrderProductPage';
 import { DepositRequestCompletePage } from './pages/store/DepositRequestCompletePage';
+import { NewHomePage, type HomePageComponentProps } from './pages/store/NewHomePage';
 import { NoticeDetailPage } from './pages/store/NoticeDetailPage';
 import { NoticeListPage } from './pages/store/NoticeListPage';
 import { OrderLookupPage } from './pages/store/OrderLookupPage';
@@ -128,7 +129,9 @@ function collectLandingCategories(nodes: CategoryTreeNode[]): LandingCategory[] 
   return result;
 }
 
-function HomePage() {
+type HomePageProps = HomePageComponentProps;
+
+function HomePage({ categorySectionReplacement, heroLayout = 'default' }: HomePageProps) {
   const location = useLocation();
   const HOME_POPUP_HIDE_UNTIL_PREFIX = 'dodomi.home.popup.hideUntil.';
   const [landingCategories, setLandingCategories] = useState<LandingCategory[]>([]);
@@ -142,6 +145,9 @@ function HomePage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [heroReveal, setHeroReveal] = useState(false);
   const forceLoading = new URLSearchParams(location.search).get('debugLoading') === '1';
+  const isFullWidthHero = heroLayout === 'fullWidthContain';
+  const homePageClassName = `m-page home-page${isFullWidthHero ? ' home-page-full-hero' : ''}`;
+  const heroStageClassName = `surface-hero hero-stage hero-stage-landing${isFullWidthHero ? ' hero-stage-landing-full' : ''} ${heroReveal ? 'is-hero-reveal' : ''}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -413,7 +419,7 @@ function HomePage() {
 
   if (loading || forceLoading) {
     return (
-      <main className="m-page home-page">
+      <main className={homePageClassName}>
         <LoadingScreen
           title="도도미 마켓 준비 중"
           message={forceLoading ? '디버그 로딩 프리뷰 모드입니다.' : '잠시만 기다려 주세요.'}
@@ -424,10 +430,10 @@ function HomePage() {
   }
 
   return (
-    <main className="m-page home-page">
+    <main className={homePageClassName}>
       {homePopupLayer}
 
-      <section className={`surface-hero hero-stage hero-stage-landing ${heroReveal ? 'is-hero-reveal' : ''}`}>
+      <section className={heroStageClassName}>
         <div className="hero-landing-media" aria-hidden="true">
           <img className="hero-landing-bg" src={homeHero?.imageUrl || logoMain} alt="" />
           <div className="hero-landing-gradient" />
@@ -453,52 +459,56 @@ function HomePage() {
       </section>
 
 
-      <div className="landing-category-block">
-        {error ? (
-          <p className="feedback-copy is-error" role="alert">
-            카테고리 데이터를 불러오지 못해 기본 카드로 표시합니다.
-          </p>
-        ) : null}
-        <div className="landing-category-grid">
-          {[0, 1, 2].map((index) => {
-            const category = landingCategories[index] ?? null;
-            if (!category) {
-              return (
-                <div key={`empty-${index}`} className="landing-category-card is-empty" aria-hidden="true">
-                  <div className="landing-category-content">
-                    <span>준비 중</span>
+      {categorySectionReplacement === undefined ? (
+        <div className="landing-category-block">
+          {error ? (
+            <p className="feedback-copy is-error" role="alert">
+              카테고리 데이터를 불러오지 못해 기본 카드로 표시합니다.
+            </p>
+          ) : null}
+          <div className="landing-category-grid">
+            {[0, 1, 2].map((index) => {
+              const category = landingCategories[index] ?? null;
+              if (!category) {
+                return (
+                  <div key={`empty-${index}`} className="landing-category-card is-empty" aria-hidden="true">
+                    <div className="landing-category-content">
+                      <span>준비 중</span>
+                    </div>
                   </div>
-                </div>
-              );
-            }
-
-            const cardStyle = category.imageUrl
-              ? {
-                backgroundImage: `linear-gradient(180deg, rgba(18, 46, 26, 0.18), rgba(12, 34, 20, 0.72)), url(${category.imageUrl})`,
+                );
               }
-              : undefined;
 
-            return (
-              <Link
-                key={category.slug}
-                className={`landing-category-card ${category.imageUrl ? 'has-image' : 'has-theme'}`}
-                to={`/products?categorySlug=${category.slug}`}
-                style={cardStyle}
-              >
-                <div className="landing-category-content">
-                  <span>{category.name}</span>
-                </div>
-              </Link>
-            );
-          })}
+              const cardStyle = category.imageUrl
+                ? {
+                  backgroundImage: `linear-gradient(180deg, rgba(18, 46, 26, 0.18), rgba(12, 34, 20, 0.72)), url(${category.imageUrl})`,
+                }
+                : undefined;
 
-          <Link className="landing-category-card landing-category-card-all has-theme" to="/products">
-            <div className="landing-category-content">
-              <span>모든 상품 보기</span>
-            </div>
-          </Link>
+              return (
+                <Link
+                  key={category.slug}
+                  className={`landing-category-card ${category.imageUrl ? 'has-image' : 'has-theme'}`}
+                  to={`/products?categorySlug=${category.slug}`}
+                  style={cardStyle}
+                >
+                  <div className="landing-category-content">
+                    <span>{category.name}</span>
+                  </div>
+                </Link>
+              );
+            })}
+
+            <Link className="landing-category-card landing-category-card-all has-theme" to="/products">
+              <div className="landing-category-content">
+                <span>모든 상품 보기</span>
+              </div>
+            </Link>
+          </div>
         </div>
-      </div>
+      ) : (
+        categorySectionReplacement
+      )}
 
       <footer className="landing-footer landing-footer-desktop" aria-labelledby="landing-footer-title">
         <div className="landing-footer-inner">
@@ -602,23 +612,12 @@ function HomePage() {
                   <dd>139-30-35084</dd>
                 </div>
                 <div>
-                  <dt>통신판매업신고번호</dt>
-                  <dd>확인 중</dd>
-                </div>
-                <div>
                   <dt>호스팅서비스제공자</dt>
-                  <dd>확인 필요</dd>
+                  <dd>Vercel Inc.</dd>
                 </div>
                 <div>
                   <dt>사업장주소</dt>
                   <dd>울산광역시 남구 은월로2번길 23 (44644)</dd>
-                </div>
-                <div>
-                  <dt>개인정보처리방침</dt>
-                  <dd>
-                    주문 시 제공해주시는 개인정보는 배송 및 고객응대를 위해서만 사용되며, 관련 법령에 따라 안전하게
-                    사용됩니다.
-                  </dd>
                 </div>
               </dl>
             </div>
@@ -1075,6 +1074,7 @@ function AppFrame() {
 
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/new-home" element={<NewHomePage HomePageComponent={HomePage} />} />
         <Route path="/notices" element={<NoticeListPage />} />
         <Route path="/notices/:noticeId" element={<NoticeDetailPage />} />
         <Route path="/inquery" element={<InqueryPage />} />
