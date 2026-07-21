@@ -461,7 +461,9 @@ export function ProductDetailPage() {
             <div>
               <p className="section-kicker">Options</p>
               <h2 className="section-subtitle">옵션 선택</h2>
-              <p className="section-copy section-copy-compact">원하시는 옵션을 선택하세요.</p>
+              {optionGroups.length > 0 ? (
+                <p className="section-copy section-copy-compact">원하시는 옵션을 선택하세요.</p>
+              ) : null}
             </div>
           </div>
 
