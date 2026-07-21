@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
 
 import { AdminSessionGuard } from '../auth/guards/admin-session.guard';
+import { HomePopupIdParamDto } from './dto/home-popup-id-param.dto';
 import { UpdateAdminHomeHeroDto } from './dto/update-admin-home-hero.dto';
 import { UpdateAdminHomePopupDto } from './dto/update-admin-home-popup.dto';
 import { UpdateAdminStorefrontSettingsDto } from './dto/update-admin-storefront-settings.dto';
@@ -21,6 +22,16 @@ export class AdminHomePopupController {
     };
   }
 
+  @Get('list')
+  async getHomePopups() {
+    const data = await this.adminService.getHomePopups();
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
   @Get('hero-image')
   async getHomeHero() {
     const data = await this.adminService.getHomeHero();
@@ -34,6 +45,16 @@ export class AdminHomePopupController {
   @Get('storefront-settings')
   async getStorefrontSettings() {
     const data = await this.adminService.getStorefrontSettings();
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  @Get(':popupId')
+  async getHomePopupById(@Param() params: HomePopupIdParamDto) {
+    const data = await this.adminService.getHomePopupById(params.popupId);
 
     return {
       success: true,

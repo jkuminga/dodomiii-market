@@ -1417,6 +1417,10 @@ export const apiClient = {
 
   getAdminHomePopup: () => request<AdminHomePopup | null>('/admin/home-popup'),
 
+  getAdminHomePopups: () => request<{ items: AdminHomePopup[] }>('/admin/home-popup/list'),
+
+  getAdminHomePopupById: (popupId: number) => request<AdminHomePopup>(`/admin/home-popup/${popupId}`),
+
   getAdminHomeHero: () => request<AdminHomeHero | null>('/admin/home-popup/hero-image'),
 
   getAdminStorefrontSettings: () => request<AdminStorefrontSettings>('/admin/home-popup/storefront-settings'),

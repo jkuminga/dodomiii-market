@@ -50,8 +50,14 @@ const adminPrimaryNavItems: AdminNavItem[] = [
   },
   {
     label: '홈 화면',
-    description: '홈 대표 이미지 및 팝업 관리',
-    to: '/admin/home-popup',
+    description: '홈 대표 이미지 및 표시 설정',
+    to: '/admin/home',
+    icon: HomeScreenIcon,
+  },
+  {
+    label: '홈 팝업',
+    description: '홈 진입 팝업 목록 및 노출 관리',
+    to: '/admin/home-popups',
     icon: HomePopupIcon,
   },
   {
@@ -113,6 +119,16 @@ function HomePopupIcon(props: AdminIconProps) {
       <path d="M8 9.5h8" />
       <path d="M8 13h5.5" />
       <path d="M15.5 6.5h1" />
+    </SidebarIcon>
+  );
+}
+
+function HomeScreenIcon(props: AdminIconProps) {
+  return (
+    <SidebarIcon {...props}>
+      <path d="M5 7.5A2.5 2.5 0 0 1 7.5 5h9A2.5 2.5 0 0 1 19 7.5v8A2.5 2.5 0 0 1 16.5 18h-9A2.5 2.5 0 0 1 5 15.5z" />
+      <path d="M8 14l2.2-2.2 1.5 1.5 2.8-3.1L16 12" />
+      <path d="M8 8.5h4" />
     </SidebarIcon>
   );
 }

@@ -29,7 +29,9 @@ import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
 import { AdminAccountFormPage } from './pages/admin/AdminAccountFormPage';
 import { AdminAccountsPage } from './pages/admin/AdminAccountsPage';
 import { AdminCustomOrdersPage } from './pages/admin/AdminCustomOrdersPage';
-import { AdminHomePopupPage } from './pages/admin/AdminHomePopupPage';
+import { AdminHomePage } from './pages/admin/AdminHomePage';
+import { AdminHomePopupEditorPage } from './pages/admin/AdminHomePopupEditorPage';
+import { AdminHomePopupsPage } from './pages/admin/AdminHomePopupsPage';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { AdminNoticeEditorPage } from './pages/admin/AdminNoticeEditorPage';
@@ -1103,7 +1105,11 @@ function AppFrame() {
           <Route path="notices" element={<AdminNoticesPage />} />
           <Route path="notices/new" element={<AdminNoticeEditorPage />} />
           <Route path="notices/:noticeId" element={<AdminNoticeEditorPage />} />
-          <Route path="home-popup" element={<AdminHomePopupPage />} />
+          <Route path="home" element={<AdminHomePage />} />
+          <Route path="home-popup" element={<Navigate to="/admin/home-popups" replace />} />
+          <Route path="home-popups" element={<AdminHomePopupsPage />} />
+          <Route path="home-popups/new" element={<AdminHomePopupEditorPage />} />
+          <Route path="home-popups/:popupId" element={<AdminHomePopupEditorPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

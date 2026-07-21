@@ -186,6 +186,33 @@ export class AdminService {
     return popup ? this.mapHomePopup(popup) : null;
   }
 
+  async getHomePopups(): Promise<{ items: AdminHomePopupResponse[] }> {
+    const popups = await this.prisma.homePopup.findMany({
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    });
+
+    return {
+      items: popups.map((popup) => this.mapHomePopup(popup)),
+    };
+  }
+
+  async getHomePopupById(popupId: number): Promise<AdminHomePopupResponse> {
+    const popup = await this.prisma.homePopup.findUnique({
+      where: {
+        id: BigInt(popupId),
+      },
+    });
+
+    if (!popup) {
+      throw new NotFoundException({
+        code: 'HOME_POPUP_NOT_FOUND',
+        message: '홈 팝업을 찾을 수 없습니다.',
+      });
+    }
+
+    return this.mapHomePopup(popup);
+  }
+
   async getHomeHero(): Promise<AdminHomeHeroResponse | null> {
     const hero = await this.prisma.homeHeroSetting.findUnique({
       where: { key: 'default' },

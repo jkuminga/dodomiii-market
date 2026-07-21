@@ -7656,6 +7656,104 @@ button.admin-list-card {
   font-size: 0.92rem;
 }
 
+.admin-home-popup-list-panel {
+  gap: 18px;
+}
+
+.admin-home-popup-table thead th,
+.admin-home-popup-table tbody td {
+  text-align: center;
+}
+
+.admin-home-popup-table tbody td:nth-child(1) {
+  width: 15%;
+}
+
+.admin-home-popup-table tbody td:nth-child(2) {
+  width: 40%;
+}
+
+.admin-home-popup-table tbody td:nth-child(3) {
+  width: 15%;
+}
+
+.admin-home-popup-table tbody td:nth-child(4) {
+  width: 30%;
+}
+
+.admin-home-popup-list-thumb {
+  width: 86px;
+  height: 86px;
+  display: inline-flex;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgb(var(--primary-rgb) / 0.1);
+  background: #f8fafc;
+}
+
+.admin-home-popup-list-thumb img,
+.admin-home-popup-mobile-media img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.admin-home-popup-title-cell,
+.admin-home-popup-link-cell {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.admin-home-popup-url-badge {
+  max-width: 100%;
+  display: inline-block;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 28px;
+  vertical-align: middle;
+}
+
+.admin-home-popup-title-cell a {
+  color: inherit;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.admin-home-popup-title-cell a:hover,
+.admin-home-popup-title-cell a:focus-visible {
+  color: var(--primary);
+}
+
+.admin-home-popup-title-cell span,
+.admin-home-popup-link-cell small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.admin-home-popup-link-cell small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-home-popup-mobile-card {
+  gap: 14px;
+}
+
+.admin-home-popup-mobile-media {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgb(var(--primary-rgb) / 0.1);
+  background: #f8fafc;
+}
+
 .admin-meta-row {
   font-size: 0.8rem;
 }
@@ -9162,6 +9260,10 @@ button.admin-list-card {
 
   .admin-stat-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-home-popup-stat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .admin-editor-overview-bar {
