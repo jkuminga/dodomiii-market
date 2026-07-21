@@ -186,7 +186,7 @@ export function MobileHeader() {
           </Link>
 
           <section className="m-menu-category-group" aria-label="카테고리 메뉴">
-            <div className="m-menu-category-title">카테고리</div>
+            <div className="m-menu-category-title">SHOP</div>
             {roots.length === 0 ? (
               <p className="m-menu-category-empty">표시할 카테고리가 없습니다.</p>
             ) : (

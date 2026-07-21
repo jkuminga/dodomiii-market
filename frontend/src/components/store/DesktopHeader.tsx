@@ -16,7 +16,7 @@ function SearchIcon() {
 
 const primaryNavItems = [
   { to: '/', label: '홈' },
-  { to: '/products', label: '카테고리' },
+  { to: '/products', label: 'SHOP' },
   { to: '/notices', label: '공지사항' },
   { to: '/inquery', label: '문의' },
 ];

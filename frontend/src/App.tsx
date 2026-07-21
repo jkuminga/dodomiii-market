@@ -279,7 +279,7 @@ function HomePage() {
 
         <div className="hero-copy hero-copy-polished hero-copy-landing">
           {/* <p className="hero-badge">DODOMiiii MARKET</p> */}
-          <h1 className="section-title hero-title">DODOMiiii MARKET</h1>
+          {/* <h1 className="section-title hero-title">DODOMiiii MARKET</h1> */}
           {/* <p className="section-copy hero-summary">
             시들지 않는 마음을 선물하세요
           </p> */}
@@ -390,12 +390,8 @@ function HomePage() {
                   <dd>139-30-35084</dd>
                 </div>
                 <div>
-                  <dt>통신판매업신고번호</dt>
-                  <dd>확인 중</dd>
-                </div>
-                <div>
                   <dt>호스팅서비스제공자</dt>
-                  <dd>확인 필요</dd>
+                  <dd>Vercel Inc.</dd>
                 </div>
               </dl>
             </section>
@@ -404,7 +400,7 @@ function HomePage() {
               <h3>INFO</h3>
               <nav className="landing-footer-policy-links" aria-label="도도미마켓 정책 문서">
                 <Link to="/legal/terms">이용약관</Link>
-                <Link to="/legal/privacy">개인정보취급방침</Link>
+                <Link to="/legal/privacy">개인정보처리방침</Link>
               </nav>
             </section>
             <section className='landing-footer-section'>
@@ -759,6 +755,44 @@ const STORE_FONT_SIZE_ATTRIBUTE: Record<UserWebFontSize, string> = {
   VERY_LARGE: 'very-large',
 };
 
+const CANONICAL_ORIGIN = 'https://www.dodomiiii-market.store';
+
+function isCanonicalStorePath(pathname: string): boolean {
+  return (
+    pathname === '/'
+    || pathname === '/products'
+    || pathname === '/products/custom-order'
+    || /^\/products\/[^/]+$/.test(pathname)
+    || pathname === '/notices'
+    || /^\/notices\/[^/]+$/.test(pathname)
+    || pathname === '/legal/terms'
+    || pathname === '/legal/privacy'
+  );
+}
+
+function CanonicalUrl() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const existing = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+
+    if (!isCanonicalStorePath(pathname)) {
+      existing?.remove();
+      return;
+    }
+
+    const canonical = existing ?? document.createElement('link');
+    canonical.rel = 'canonical';
+    canonical.href = new URL(pathname, CANONICAL_ORIGIN).toString();
+
+    if (!existing) {
+      document.head.append(canonical);
+    }
+  }, [pathname]);
+
+  return null;
+}
+
 function AppFrame() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -872,6 +906,7 @@ function AppFrame() {
 
   return (
     <div className={shellClassName}>
+      <CanonicalUrl />
       {isAdminRoute
         ? null
         : isDesktopStoreRoute
