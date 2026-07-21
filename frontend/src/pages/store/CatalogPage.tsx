@@ -219,13 +219,11 @@ export function CatalogPage() {
               <Link className="product-tile" key={product.id} to={`/products/${product.id}`}>
                 <div className="product-media">
                   <ProductArtwork src={product.thumbnailImageUrl} name={product.name} category={product.categoryName} />
-                  <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`}>
-                    {product.isSoldOut ? '품절' : '판매 중'}
-                  </span>
+                  {product.isSoldOut ? <span className="status-pill is-muted">품절</span> : null}
                 </div>
 
                 <div className="product-body">
-                  <p className="section-kicker-category">{product.categoryName}</p>
+                  {/* <p className="section-kicker-category">{product.categoryName}</p> */}
                   <h2 className="product-name">{product.name}</h2>
                   <p className="product-description">{product.shortDescription ?? '상품 설명이 준비 중입니다.'}</p>
 
