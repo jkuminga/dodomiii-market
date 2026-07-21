@@ -306,7 +306,7 @@ export function OrderPage() {
   const estimatedUnitPrice = product
     ? discountedBasePrice + selectedOptionExtraTotal
     : 0;
-  const estimatedSubtotal = estimatedUnitPrice * quantity;
+  const estimatedSubtotal = estimatedUnitPrice * quantity + 3000;
   const requiresOptionSelection =
     optionGroups.length > 0 &&
     optionGroups.some((group) => {
@@ -546,17 +546,25 @@ export function OrderPage() {
         </div>
 
         <div className="order-product-summary">
-          <div className="order-summary-row">
+          <div className="order-summary-row" style={{ alignItems: 'flex-start' }}>
             <span>기본가</span>
             <div className="detail-price-stack">
-              <strong>{formatCurrency(discountedBasePrice)}</strong>
               {hasDiscount ? (
-                <span className="detail-price-meta">
+                <>
                   <span className="detail-original-price">{formatCurrency(product.basePrice)}</span>
-                  <span className="detail-discount-rate">{formatDiscountRate(product.discountRate)}</span>
-                </span>
-              ) : null}
+                  <span className="detail-price-meta">
+                    <span className="detail-discount-rate">{formatDiscountRate(product.discountRate)}</span>
+                    <strong>{formatCurrency(discountedBasePrice)}</strong>
+                  </span>
+                </>
+              ) : (
+                <strong>{formatCurrency(discountedBasePrice)}</strong>
+              )}
             </div>
+          </div>
+          <div className="order-summary-row">
+            <span>배송비</span>
+            <strong>{formatCurrency(3000)}</strong>
           </div>
           {selectedOptions.length > 0 ? (
             <div className="order-summary-row" style={{ alignItems: 'flex-start' }}>
@@ -740,10 +748,10 @@ export function OrderPage() {
                 ))}
               </div>
             ) : (
-              <p className="feedback-copy">추가 옵션이 없는 상품입니다. 수량만 조정해서 바로 주문할 수 있습니다.</p>
+              <p className="feedback-copy">추가 옵션이 없는 상품입니다. </p>
             )}
 
-            <hr className="order-form-divider" />
+            {optionGroups.length > 0  ? <hr className="order-form-divider" />  : null}
             {optionGroups.length > 0 ? (
               <section className="order-option-basket" aria-live="polite">
                 <div className="order-option-basket-head">
@@ -913,12 +921,12 @@ export function OrderPage() {
 
             <label className="field">
               <span>우편번호</span>
-              <input value={contact.zipcode} placeholder="주소 검색으로 자동 입력" inputMode="numeric" disabled required />
+              <input value={contact.zipcode} placeholder="-" inputMode="numeric" disabled required />
             </label>
 
             <label className="field">
               <span>기본 주소</span>
-              <input value={contact.address1} placeholder="주소 검색으로 자동 입력" disabled required />
+              <input value={contact.address1} placeholder="-" disabled required />
             </label>
 
             <label className="field">
@@ -926,7 +934,7 @@ export function OrderPage() {
               <input
                 value={contact.address2}
                 onChange={onContactChange('address2')}
-                placeholder={hasSelectedAddress ? '상세 주소를 입력해 주세요' : '주소 검색 완료 후 입력 가능'}
+                placeholder={hasSelectedAddress ? '상세 주소를 입력해 주세요' : '-'}
                 disabled={!hasSelectedAddress}
               />
             </label>

@@ -240,7 +240,7 @@ export function ProductDetailPage() {
   );
   const discountedBasePrice = calculateDiscountedPrice(product.basePrice, product.discountRate);
   const hasDiscount = product.discountRate > 0 && discountedBasePrice < product.basePrice;
-  const selectedTotalPrice = discountedBasePrice + selectedOptionExtraTotal;
+  const selectedTotalPrice = discountedBasePrice + selectedOptionExtraTotal + 3000;
   const missingRequiredGroupIds = optionGroups
     .filter((group) => {
       if (!group.isRequired) {
@@ -439,21 +439,21 @@ export function ProductDetailPage() {
           <h1 className="section-title">{product.name}</h1>
           <p className="section-copy">{product.shortDescription ?? product.description ?? '상품 소개 문구가 준비 중입니다.'}</p>
 
-          <div className="detail-price-row">
+          {/* <div className="detail-price-row">
             <div className="detail-price-stack">
               {hasDiscount ? (
                 <>
-                  <strong className="detail-price">{formatCurrency(discountedBasePrice)}</strong>
+                  <span className="detail-original-price">{formatCurrency(product.basePrice)}</span>
                   <span className="detail-price-meta">
-                    <span className="detail-original-price">{formatCurrency(product.basePrice)}</span>
                     <span className="detail-discount-rate">{formatDiscountRate(product.discountRate)}</span>
+                    <strong>{formatCurrency(discountedBasePrice)}</strong>
                   </span>
                 </>
               ) : (
-                <strong className="detail-price">{formatCurrency(product.basePrice)}</strong>
+                <strong>{formatCurrency(product.basePrice)}</strong>
               )}
             </div>
-          </div>
+          </div> */}
         </section>
 
         <section className="surface-card detail-order-card">
@@ -674,17 +674,25 @@ export function ProductDetailPage() {
 
             <div className="price-breakdown-layer">
               <div className="price-breakdown-content">
-                <div className="breakdown-row">
+                <div className="breakdown-row" style={{ alignItems: 'flex-start' }}>
                   <span>기본가</span>
                   <div className="detail-price-stack">
-                    <strong>{formatCurrency(discountedBasePrice)}</strong>
                     {hasDiscount ? (
-                      <span className="detail-price-meta">
+                      <>
                         <span className="detail-original-price">{formatCurrency(product.basePrice)}</span>
-                        <span className="detail-discount-rate">{formatDiscountRate(product.discountRate)}</span>
-                      </span>
-                    ) : null}
+                        <span className="detail-price-meta">
+                          <span className="detail-discount-rate">{formatDiscountRate(product.discountRate)}</span>
+                          <strong>{formatCurrency(discountedBasePrice)}</strong>
+                        </span>
+                      </>
+                    ) : (
+                      <strong>{formatCurrency(discountedBasePrice)}</strong>
+                    )}
                   </div>
+                </div>
+                <div className="breakdown-row">
+                  <span>배송비</span>
+                  <strong style={{color:'black'}}>{formatCurrency(3000)}</strong>
                 </div>
                 {selectedOptions.map((entry) => (
                   <div className="breakdown-row" key={`${entry.group.id}-${entry.option.id}`}>

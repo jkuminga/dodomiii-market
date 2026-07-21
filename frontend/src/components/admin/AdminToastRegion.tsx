@@ -16,7 +16,7 @@ export function AdminToastRegion({ toasts, onDismiss }: AdminToastRegionProps) {
         <div key={toast.id} className={`admin-toast is-${toast.tone}`} role="status">
           <p>{toast.message}</p>
           <button type="button" className="admin-toast-close" onClick={() => onDismiss(toast.id)} aria-label="알림 닫기">
-            닫기
+            x
           </button>
         </div>
       ))}

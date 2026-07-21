@@ -71,8 +71,8 @@ export function RefundPolicyConsentDialog({
               color: 'var(--muted)'
             }}
           >
-            단, 제품에 하자(불량)이 있거나 오배송 된 경우에는 수령 후 7일 이내에 교환이 가능합니다.
-            {/* <br /> */}
+            단, 제품에 하자(불량)이 있거나 오배송 된 경우에는 제품 수령일로부터 7일 이내에 교환 또는 환불 가능합니다.
+            <br />
             (자세한 내용은 이용약관 명시)
           </p>
         </div>
@@ -86,7 +86,7 @@ export function RefundPolicyConsentDialog({
             onChange={(event) => setChecked(event.target.checked)}
           />
           <span style={{ wordBreak: 'keep-all' }}>
-            (필수) 위 내용을 확인하였으며, 이에 동의합니다.
+            (필수) 주문제작 안내 및 개인정보 수집·이용에 동의합니다.
           </span>
         </label>
 

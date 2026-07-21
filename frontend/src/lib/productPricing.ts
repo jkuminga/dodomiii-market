@@ -9,5 +9,5 @@ export function calculateDiscountAmount(basePrice: number, discountRate: number)
 
 export function formatDiscountRate(discountRate: number): string {
   const normalizedRate = Math.max(0, Math.min(100, discountRate));
-  return `${normalizedRate}%`;
+  return `${normalizedRate}% OFF`;
 }

@@ -3419,11 +3419,17 @@ img {
 }
 
 .product-price-stack,
-.detail-price-stack,
 .admin-price-stack {
   display: grid;
   gap: 2px;
   min-width: 0;
+}
+
+.detail-price-stack {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  justify-items: end;
 }
 
 .detail-price-meta {
@@ -9177,11 +9183,21 @@ button.admin-list-card {
 }
 
 .home-popup-controls {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 24px;
+  min-height: 28px;
   gap: 10px;
+  padding: 4px 14px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
 }
 
 .home-popup-indicators {
@@ -9226,7 +9242,7 @@ button.admin-list-card {
 
 .home-popup-actions {
   display: grid;
-  grid-template-columns: 1.35fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 

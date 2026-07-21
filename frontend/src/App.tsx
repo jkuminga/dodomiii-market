@@ -374,30 +374,30 @@ function HomePage() {
                   >
                     <ChevronRightIcon />
                   </button>
+
+                  <div className="home-popup-controls" aria-label="팝업 순서">
+                    <div className="home-popup-indicators">
+                      {homePopups.map((popup, index) => (
+                        <button
+                          className={`home-popup-dot${index === selectedHomePopupIndexSafe ? ' is-active' : ''}`}
+                          key={popup.id}
+                          type="button"
+                          onClick={() => setSelectedHomePopupIndex(index)}
+                          aria-label={`${index + 1}번째 팝업 보기`}
+                          aria-current={index === selectedHomePopupIndexSafe ? 'true' : undefined}
+                        />
+                      ))}
+                    </div>
+                    <span className="home-popup-counter" aria-hidden="true">
+                      {selectedHomePopupIndexSafe + 1} / {homePopupCount}
+                    </span>
+                  </div>
                 </>
               ) : null}
             </div>
           </div>
 
-          {hasMultipleHomePopups ? (
-            <div className="home-popup-controls" aria-label="팝업 순서">
-              <div className="home-popup-indicators">
-                {homePopups.map((popup, index) => (
-                  <button
-                    className={`home-popup-dot${index === selectedHomePopupIndexSafe ? ' is-active' : ''}`}
-                    key={popup.id}
-                    type="button"
-                    onClick={() => setSelectedHomePopupIndex(index)}
-                    aria-label={`${index + 1}번째 팝업 보기`}
-                    aria-current={index === selectedHomePopupIndexSafe ? 'true' : undefined}
-                  />
-                ))}
-              </div>
-              <span className="home-popup-counter" aria-hidden="true">
-                {selectedHomePopupIndexSafe + 1} / {homePopupCount}
-              </span>
-            </div>
-          ) : null}
+
 
           <div className="home-popup-actions">
             <button className="button button-ghost home-popup-dismiss" type="button" onClick={hidePopupForOneDay}>
