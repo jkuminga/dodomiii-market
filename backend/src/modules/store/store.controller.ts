@@ -26,7 +26,7 @@ export class StoreController {
 
   @Get('home-popup')
   async getHomePopup() {
-    const data = await this.storeService.getActiveHomePopup();
+    const data = await this.storeService.getActiveHomePopups();
 
     return {
       success: true,

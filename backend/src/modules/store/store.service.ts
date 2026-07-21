@@ -25,6 +25,7 @@ import {
   StoreCustomCheckoutResponse,
   StoreDepositRequestResponse,
   StoreHomeHeroResponse,
+  StoreHomePopupListResponse,
   StoreHomePopupResponse,
   StorefrontSettingsResponse,
   StoreNoticeContentBlock,
@@ -376,27 +377,17 @@ export class StoreService {
     });
   }
 
-  async getActiveHomePopup(): Promise<StoreHomePopupResponse | null> {
-    return this.storeCache.getOrSet('store:home-popup:v1', STORE_HOME_POPUP_CACHE_TTL_MS, async () => {
-      const popup = await this.prisma.homePopup.findFirst({
+  async getActiveHomePopups(): Promise<StoreHomePopupListResponse> {
+    return this.storeCache.getOrSet('store:home-popup:v2', STORE_HOME_POPUP_CACHE_TTL_MS, async () => {
+      const popups = await this.prisma.homePopup.findMany({
         where: {
           isActive: true,
         },
         orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
       });
 
-      if (!popup) {
-        return null;
-      }
-
       return {
-        id: Number(popup.id),
-        title: popup.title,
-        imageUrl: popup.imageUrl,
-        linkUrl: popup.linkUrl,
-        isActive: popup.isActive,
-        createdAt: popup.createdAt.toISOString(),
-        updatedAt: popup.updatedAt.toISOString(),
+        items: popups.map((popup) => this.mapStoreHomePopup(popup)),
       };
     });
   }
@@ -433,6 +424,26 @@ export class StoreService {
         updatedAt: settings.updatedAt.toISOString(),
       };
     });
+  }
+
+  private mapStoreHomePopup(popup: {
+    id: bigint;
+    title: string | null;
+    imageUrl: string;
+    linkUrl: string | null;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }): StoreHomePopupResponse {
+    return {
+      id: Number(popup.id),
+      title: popup.title,
+      imageUrl: popup.imageUrl,
+      linkUrl: popup.linkUrl,
+      isActive: popup.isActive,
+      createdAt: popup.createdAt.toISOString(),
+      updatedAt: popup.updatedAt.toISOString(),
+    };
   }
 
   async getVisibleNotices(): Promise<{ items: StoreNoticeListItemResponse[] }> {

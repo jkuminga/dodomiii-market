@@ -531,6 +531,10 @@ export type StoreHomePopup = {
   updatedAt: string;
 };
 
+export type StoreHomePopupList = {
+  items: StoreHomePopup[];
+};
+
 export type StoreHomeHero = {
   imageUrl: string;
   updatedAt: string;
@@ -1336,7 +1340,15 @@ export const apiClient = {
 
   getCategories: () => request<{ items: CategoryTreeNode[] }>('/store/categories'),
 
-  getHomePopup: () => request<StoreHomePopup | null>('/store/home-popup'),
+  getHomePopups: async () => {
+    const data = await request<StoreHomePopupList | StoreHomePopup | null>('/store/home-popup');
+
+    if (!data) {
+      return { items: [] };
+    }
+
+    return 'items' in data ? data : { items: [data] };
+  },
 
   getHomeHero: () => request<StoreHomeHero | null>('/store/home-hero'),
 

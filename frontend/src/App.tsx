@@ -74,6 +74,22 @@ function CloseIcon() {
   );
 }
 
+function ChevronLeftIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m9 6 6 6-6 6" />
+    </svg>
+  );
+}
+
 type LandingCategory = {
   slug: string;
   name: string;
@@ -115,9 +131,10 @@ function HomePage() {
   const HOME_POPUP_HIDE_UNTIL_PREFIX = 'dodomi.home.popup.hideUntil.';
   const [landingCategories, setLandingCategories] = useState<LandingCategory[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<ProductListItem[]>([]);
-  const [homePopup, setHomePopup] = useState<StoreHomePopup | null>(null);
+  const [homePopups, setHomePopups] = useState<StoreHomePopup[]>([]);
   const [homeHero, setHomeHero] = useState<StoreHomeHero | null>(null);
   const [showHomePopup, setShowHomePopup] = useState(false);
+  const [selectedHomePopupIndex, setSelectedHomePopupIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
@@ -169,24 +186,32 @@ function HomePage() {
 
     const loadPopup = async () => {
       try {
-        const homePopupResult = await apiClient.getHomePopup();
+        const homePopupResult = await apiClient.getHomePopups();
         if (cancelled) {
           return;
         }
 
-        setHomePopup(homePopupResult);
-        if (!homePopupResult || !homePopupResult.isActive) {
+        const visiblePopups = homePopupResult.items.filter((popup) => {
+          if (!popup.isActive) {
+            return false;
+          }
+
+          const storageKey = `${HOME_POPUP_HIDE_UNTIL_PREFIX}${popup.id}`;
+          const hideUntil = Number(window.localStorage.getItem(storageKey) ?? '0');
+          return !Number.isFinite(hideUntil) || hideUntil <= Date.now();
+        });
+
+        setHomePopups(visiblePopups);
+        setSelectedHomePopupIndex(0);
+        if (visiblePopups.length === 0) {
           setShowHomePopup(false);
           return;
         }
 
-        const storageKey = `${HOME_POPUP_HIDE_UNTIL_PREFIX}${homePopupResult.id}`;
-        const hideUntil = Number(window.localStorage.getItem(storageKey) ?? '0');
-        const shouldShow = !Number.isFinite(hideUntil) || hideUntil <= Date.now();
-        setShowHomePopup(shouldShow);
+        setShowHomePopup(true);
       } catch {
         if (!cancelled) {
-          setHomePopup(null);
+          setHomePopups([]);
           setShowHomePopup(false);
         }
       }
@@ -200,15 +225,80 @@ function HomePage() {
   }, [reloadKey]);
 
   const hidePopupForOneDay = () => {
-    if (!homePopup) {
+    if (homePopups.length === 0) {
       return;
     }
 
-    const storageKey = `${HOME_POPUP_HIDE_UNTIL_PREFIX}${homePopup.id}`;
     const hideUntil = Date.now() + 24 * 60 * 60 * 1000;
-    window.localStorage.setItem(storageKey, String(hideUntil));
+    homePopups.forEach((popup) => {
+      const storageKey = `${HOME_POPUP_HIDE_UNTIL_PREFIX}${popup.id}`;
+      window.localStorage.setItem(storageKey, String(hideUntil));
+    });
     setShowHomePopup(false);
   };
+
+  const homePopupCount = homePopups.length;
+  const selectedHomePopupIndexSafe = homePopupCount === 0 ? 0 : Math.min(selectedHomePopupIndex, homePopupCount - 1);
+  const selectedHomePopup = homePopups[selectedHomePopupIndexSafe] ?? null;
+  const hasMultipleHomePopups = homePopupCount > 1;
+
+  const showPreviousHomePopup = () => {
+    if (homePopupCount <= 1) {
+      return;
+    }
+
+    setSelectedHomePopupIndex((current) => (current - 1 + homePopupCount) % homePopupCount);
+  };
+
+  const showNextHomePopup = () => {
+    if (homePopupCount <= 1) {
+      return;
+    }
+
+    setSelectedHomePopupIndex((current) => (current + 1) % homePopupCount);
+  };
+
+  useEffect(() => {
+    if (homePopupCount === 0) {
+      setSelectedHomePopupIndex(0);
+      return;
+    }
+
+    if (selectedHomePopupIndex >= homePopupCount) {
+      setSelectedHomePopupIndex(homePopupCount - 1);
+    }
+  }, [homePopupCount, selectedHomePopupIndex]);
+
+  useEffect(() => {
+    if (!showHomePopup) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowHomePopup(false);
+        return;
+      }
+
+      if (homePopupCount <= 1) {
+        return;
+      }
+
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setSelectedHomePopupIndex((current) => (current - 1 + homePopupCount) % homePopupCount);
+        return;
+      }
+
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setSelectedHomePopupIndex((current) => (current + 1) % homePopupCount);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [homePopupCount, showHomePopup]);
 
   useEffect(() => {
     if (loading) {
@@ -220,24 +310,92 @@ function HomePage() {
   }, [loading]);
 
   const homePopupLayer =
-    showHomePopup && homePopup ? (
+    showHomePopup && selectedHomePopup ? (
       <div
         className="home-popup-overlay"
         role="dialog"
         aria-modal="true"
-        aria-label="홈 팝업"
+        aria-label={`홈 팝업 ${selectedHomePopupIndexSafe + 1} / ${homePopupCount}`}
         onClick={() => setShowHomePopup(false)}
       >
         <div className="home-popup-card" onClick={(event) => event.stopPropagation()}>
           <div className="home-popup-body">
-            {homePopup.linkUrl ? (
-              <a className="home-popup-image-link" href={homePopup.linkUrl} target="_blank" rel="noreferrer">
-                <img className="home-popup-image" src={homePopup.imageUrl} alt={homePopup.title || '홈 팝업 이미지'} />
-              </a>
-            ) : (
-              <img className="home-popup-image" src={homePopup.imageUrl} alt={homePopup.title || '홈 팝업 이미지'} />
-            )}
+            <div className="home-popup-viewport">
+              <div
+                className="home-popup-track"
+                style={{ transform: `translateX(-${selectedHomePopupIndexSafe * 100}%)` }}
+              >
+                {homePopups.map((popup, index) => {
+                  const image = (
+                    <img className="home-popup-image" src={popup.imageUrl} alt={popup.title || '홈 팝업 이미지'} />
+                  );
+
+                  return (
+                    <div
+                      className="home-popup-slide"
+                      key={popup.id}
+                      aria-hidden={index !== selectedHomePopupIndexSafe}
+                    >
+                      {popup.linkUrl ? (
+                        <a
+                          className="home-popup-image-link"
+                          href={popup.linkUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          tabIndex={index === selectedHomePopupIndexSafe ? 0 : -1}
+                        >
+                          {image}
+                        </a>
+                      ) : (
+                        image
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {hasMultipleHomePopups ? (
+                <>
+                  <button
+                    className="home-popup-nav is-prev"
+                    type="button"
+                    onClick={showPreviousHomePopup}
+                    aria-label="이전 팝업"
+                  >
+                    <ChevronLeftIcon />
+                  </button>
+                  <button
+                    className="home-popup-nav is-next"
+                    type="button"
+                    onClick={showNextHomePopup}
+                    aria-label="다음 팝업"
+                  >
+                    <ChevronRightIcon />
+                  </button>
+                </>
+              ) : null}
+            </div>
           </div>
+
+          {hasMultipleHomePopups ? (
+            <div className="home-popup-controls" aria-label="팝업 순서">
+              <div className="home-popup-indicators">
+                {homePopups.map((popup, index) => (
+                  <button
+                    className={`home-popup-dot${index === selectedHomePopupIndexSafe ? ' is-active' : ''}`}
+                    key={popup.id}
+                    type="button"
+                    onClick={() => setSelectedHomePopupIndex(index)}
+                    aria-label={`${index + 1}번째 팝업 보기`}
+                    aria-current={index === selectedHomePopupIndexSafe ? 'true' : undefined}
+                  />
+                ))}
+              </div>
+              <span className="home-popup-counter" aria-hidden="true">
+                {selectedHomePopupIndexSafe + 1} / {homePopupCount}
+              </span>
+            </div>
+          ) : null}
 
           <div className="home-popup-actions">
             <button className="button button-ghost home-popup-dismiss" type="button" onClick={hidePopupForOneDay}>

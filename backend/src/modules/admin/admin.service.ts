@@ -210,24 +210,6 @@ export class AdminService {
     const result = await this.prisma.$transaction(async (tx) => {
       const isActive = dto.isActive ?? true;
 
-      if (isActive) {
-        await tx.homePopup.updateMany({
-          where: popupId
-            ? {
-                isActive: true,
-                id: {
-                  not: popupId,
-                },
-              }
-            : {
-                isActive: true,
-              },
-          data: {
-            isActive: false,
-          },
-        });
-      }
-
       if (popupId) {
         const existing = await tx.homePopup.findUnique({
           where: { id: popupId },

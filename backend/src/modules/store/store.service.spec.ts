@@ -2,6 +2,80 @@ import { DepositStatus, ShipmentStatus } from '@prisma/client';
 
 import { StoreService } from './store.service';
 
+describe('StoreService home popups', () => {
+  it('returns every active popup in newest-first order', async () => {
+    const createdAt = new Date('2026-04-03T10:00:00.000Z');
+    const firstUpdatedAt = new Date('2026-04-04T10:00:00.000Z');
+    const secondUpdatedAt = new Date('2026-04-04T09:00:00.000Z');
+    const popups = [
+      {
+        id: BigInt(2),
+        title: '두 번째 팝업',
+        imageUrl: 'https://example.com/popup-2.jpg',
+        linkUrl: 'https://example.com/event-2',
+        isActive: true,
+        createdAt,
+        updatedAt: firstUpdatedAt,
+      },
+      {
+        id: BigInt(1),
+        title: null,
+        imageUrl: 'https://example.com/popup-1.jpg',
+        linkUrl: null,
+        isActive: true,
+        createdAt,
+        updatedAt: secondUpdatedAt,
+      },
+    ];
+    const prisma = {
+      homePopup: {
+        findMany: jest.fn().mockResolvedValue(popups),
+      },
+    };
+    const storeCache = {
+      getOrSet: jest.fn(async (_key: string, _ttlMs: number, factory: () => Promise<unknown>) => factory()),
+    };
+    const service = new StoreService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      storeCache as never,
+    );
+
+    const result = await service.getActiveHomePopups();
+
+    expect(storeCache.getOrSet).toHaveBeenCalledWith('store:home-popup:v2', expect.any(Number), expect.any(Function));
+    expect(prisma.homePopup.findMany).toHaveBeenCalledWith({
+      where: {
+        isActive: true,
+      },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    });
+    expect(result).toEqual({
+      items: [
+        {
+          id: 2,
+          title: '두 번째 팝업',
+          imageUrl: 'https://example.com/popup-2.jpg',
+          linkUrl: 'https://example.com/event-2',
+          isActive: true,
+          createdAt: createdAt.toISOString(),
+          updatedAt: firstUpdatedAt.toISOString(),
+        },
+        {
+          id: 1,
+          title: null,
+          imageUrl: 'https://example.com/popup-1.jpg',
+          linkUrl: null,
+          isActive: true,
+          createdAt: createdAt.toISOString(),
+          updatedAt: secondUpdatedAt.toISOString(),
+        },
+      ],
+    });
+  });
+});
+
 describe('StoreService public order lookup access', () => {
   it('rejects order detail lookup when contact phone is missing', async () => {
     const { service } = createStoreServiceWithOrderDetail();

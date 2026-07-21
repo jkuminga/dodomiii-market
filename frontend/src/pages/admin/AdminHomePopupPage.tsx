@@ -160,6 +160,17 @@ export function AdminHomePopupPage() {
     }
   };
 
+  const startNewPopup = () => {
+    setPopup(null);
+    setForm(toFormState(null));
+    setSelectedFile(null);
+    setSaveSuccess(false);
+
+    if (error !== '') {
+      setError('');
+    }
+  };
+
   const updateHeroField = <Key extends keyof HeroFormState>(key: Key, value: HeroFormState[Key]) => {
     setHeroForm((current) => ({ ...current, [key]: value }));
 
@@ -631,9 +642,16 @@ export function AdminHomePopupPage() {
                 홈 진입 팝업의 노출 상태, 연결 링크, 이미지 자산을 한 번에 관리합니다.
               </p> */}
             </div>
-            <button className="button" type="submit" disabled={saving || loading}>
-              {saving ? '저장 중...' : '저장'}
-            </button>
+            <div className="inline-actions">
+              {hasExistingPopup ? (
+                <button className="button button-ghost" type="button" onClick={startNewPopup} disabled={saving || loading || uploading}>
+                  새 팝업 작성
+                </button>
+              ) : null}
+              <button className="button" type="submit" disabled={saving || loading}>
+                {saving ? '저장 중...' : '저장'}
+              </button>
+            </div>
           </div>
 
           {loading ? <LoadingScreen mode="inline" title="팝업 설정 로딩 중" message="기존 팝업 설정을 불러오고 있습니다." /> : null}

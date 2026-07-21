@@ -8996,20 +8996,134 @@ button.admin-list-card {
 }
 
 .home-popup-body {
+  position: relative;
   border-radius: 16px;
   overflow: hidden;
   background: #f8fafc;
   border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
+.home-popup-viewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.home-popup-track {
+  display: flex;
+  width: 100%;
+  transition: transform 220ms ease;
+  will-change: transform;
+}
+
+.home-popup-slide {
+  flex: 0 0 100%;
+  min-width: 0;
+  display: grid;
+  align-items: center;
+  background: #f8fafc;
+}
+
 .home-popup-image-link {
   display: block;
+  width: 100%;
 }
 
 .home-popup-image {
   width: 100%;
+  max-height: min(68svh, 680px);
   display: block;
-  object-fit: cover;
+  object-fit: contain;
+}
+
+.home-popup-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.54);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.48);
+  color: #ffffff;
+  cursor: pointer;
+  transform: translateY(-50%);
+  backdrop-filter: blur(8px);
+}
+
+.home-popup-nav.is-prev {
+  left: 10px;
+}
+
+.home-popup-nav.is-next {
+  right: 10px;
+}
+
+.home-popup-nav:hover,
+.home-popup-nav:focus-visible {
+  background: rgba(15, 23, 42, 0.68);
+}
+
+.home-popup-nav svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.home-popup-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  gap: 10px;
+}
+
+.home-popup-indicators {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.home-popup-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #cbd5e1;
+  cursor: pointer;
+  transition:
+    width 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.home-popup-dot:hover,
+.home-popup-dot:focus-visible {
+  background: #94a3b8;
+}
+
+.home-popup-dot.is-active {
+  width: 24px;
+  background: #1f2937;
+}
+
+.home-popup-counter {
+  min-width: 36px;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
 }
 
 .home-popup-actions {
@@ -9025,7 +9139,7 @@ button.admin-list-card {
   font-size: 0.82rem;
   font-weight: 700;
   white-space: nowrap;
-  letter-spacing: -0.015em;
+  letter-spacing: 0;
 }
 
 @keyframes home-popup-rise {
