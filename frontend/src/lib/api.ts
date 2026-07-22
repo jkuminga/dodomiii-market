@@ -350,6 +350,25 @@ export type AdminHomePopup = {
   updatedAt: string;
 };
 
+export type HomeItemSection = 'NEW_ARRIVAL' | 'BEST';
+
+export type AdminHomeItem = {
+  id: number;
+  section: HomeItemSection;
+  title: string | null;
+  imageUrl: string | null;
+  productId: number;
+  productName: string;
+  productSlug: string;
+  productThumbnailImageUrl: string | null;
+  productIsVisible: boolean;
+  productDeletedAt: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AdminHomeHero = {
   key: string;
   imageUrl: string;
@@ -382,6 +401,16 @@ export type AdminHomePopupPayload = {
   title?: string | null;
   imageUrl: string;
   linkUrl?: string | null;
+  isActive?: boolean;
+};
+
+export type AdminHomeItemPayload = {
+  itemId?: number;
+  section: HomeItemSection;
+  productId: number;
+  title?: string | null;
+  imageUrl?: string | null;
+  sortOrder?: number;
   isActive?: boolean;
 };
 
@@ -466,7 +495,15 @@ export type StoreNoticeDetail = {
   updatedAt: string;
 };
 
-export type AdminMediaUsage = 'HOME_POPUP' | 'HOME_HERO' | 'CATEGORY_IMAGE' | 'PRODUCT_THUMBNAIL' | 'PRODUCT_DETAIL' | 'NOTICE_CONTENT';
+export type AdminMediaUsage =
+  | 'HOME_POPUP'
+  | 'HOME_HERO'
+  | 'HOME_ITEM'
+  | 'NEW_ARRIVAL'
+  | 'CATEGORY_IMAGE'
+  | 'PRODUCT_THUMBNAIL'
+  | 'PRODUCT_DETAIL'
+  | 'NOTICE_CONTENT';
 
 export type AdminMediaSignUploadPayload = {
   usage: AdminMediaUsage;
@@ -533,6 +570,22 @@ export type StoreHomePopup = {
 
 export type StoreHomePopupList = {
   items: StoreHomePopup[];
+};
+
+export type StoreHomeItem = {
+  id: number;
+  section: HomeItemSection;
+  title: string | null;
+  imageUrl: string | null;
+  productId: number;
+  productName: string;
+  productSlug: string;
+  sortOrder: number;
+  product: ProductListItem;
+};
+
+export type StoreHomeItemList = {
+  items: StoreHomeItem[];
 };
 
 export type StoreHomeHero = {
@@ -610,6 +663,8 @@ export type AdminProductListQuery = {
   q?: string;
   isVisible?: boolean;
   isSoldOut?: boolean;
+  deletedStatus?: 'active' | 'deleted' | 'all';
+  sort?: 'latest' | 'oldest' | 'updated_desc' | 'price_asc' | 'price_desc';
   page?: number;
   size?: number;
 };
@@ -1350,6 +1405,8 @@ export const apiClient = {
     return 'items' in data ? data : { items: [data] };
   },
 
+  getHomeItems: (section: HomeItemSection) => request<StoreHomeItemList>(`/store/home-items/${section}`),
+
   getHomeHero: () => request<StoreHomeHero | null>('/store/home-hero'),
 
   getStorefrontSettings: () => request<StorefrontSettings>('/store/settings'),
@@ -1410,6 +1467,8 @@ export const apiClient = {
         q: query.q,
         isVisible: query.isVisible,
         isSoldOut: query.isSoldOut,
+        deletedStatus: query.deletedStatus,
+        sort: query.sort,
         page: query.page,
         size: query.size,
       })}`,
@@ -1421,12 +1480,22 @@ export const apiClient = {
 
   getAdminHomePopupById: (popupId: number) => request<AdminHomePopup>(`/admin/home-popup/${popupId}`),
 
+  getAdminHomeItems: () => request<{ items: AdminHomeItem[] }>('/admin/home-items'),
+
+  getAdminHomeItemById: (itemId: number) => request<AdminHomeItem>(`/admin/home-items/${itemId}`),
+
   getAdminHomeHero: () => request<AdminHomeHero | null>('/admin/home-popup/hero-image'),
 
   getAdminStorefrontSettings: () => request<AdminStorefrontSettings>('/admin/home-popup/storefront-settings'),
 
   upsertAdminHomePopup: (payload: AdminHomePopupPayload) =>
     request<AdminHomePopup>('/admin/home-popup', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  upsertAdminHomeItem: (payload: AdminHomeItemPayload) =>
+    request<AdminHomeItem>('/admin/home-items', {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),

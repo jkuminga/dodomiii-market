@@ -1,4 +1,4 @@
-import { DepositStatus, ShipmentStatus } from '@prisma/client';
+import { DepositStatus, HomeItemSection, ShipmentStatus } from '@prisma/client';
 
 import { StoreService } from './store.service';
 
@@ -70,6 +70,123 @@ describe('StoreService home popups', () => {
           isActive: true,
           createdAt: createdAt.toISOString(),
           updatedAt: secondUpdatedAt.toISOString(),
+        },
+      ],
+    });
+  });
+});
+
+describe('StoreService home items', () => {
+  it('returns active home items linked to visible products by section', async () => {
+    const items = [
+      {
+        id: BigInt(3),
+        section: HomeItemSection.NEW_ARRIVAL,
+        title: '신상 꽃다발',
+        imageUrl: 'https://example.com/new-arrival.jpg',
+        sortOrder: 1,
+        product: {
+          id: BigInt(7),
+          productCategories: [
+            {
+              category: {
+                id: BigInt(2),
+                name: '패브릭',
+                slug: 'fabric',
+              },
+            },
+          ],
+          name: '포근포근 뜨개 꽃다발',
+          slug: 'warm-flower',
+          shortDescription: '포근한 신상품',
+          basePrice: 12000,
+          discountRate: 10,
+          isSoldOut: false,
+          consultationRequired: false,
+          thumbnails: [{ imageUrl: 'https://example.com/thumb.jpg' }],
+        },
+      },
+    ];
+    const prisma = {
+      homeItem: {
+        findMany: jest.fn().mockResolvedValue(items),
+      },
+    };
+    const storeCache = {
+      getOrSet: jest.fn(async (_key: string, _ttlMs: number, factory: () => Promise<unknown>) => factory()),
+    };
+    const service = new StoreService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      storeCache as never,
+    );
+
+    const result = await service.getActiveHomeItems(HomeItemSection.NEW_ARRIVAL);
+
+    expect(storeCache.getOrSet).toHaveBeenCalledWith('store:home-items:v1:NEW_ARRIVAL', expect.any(Number), expect.any(Function));
+    expect(prisma.homeItem.findMany).toHaveBeenCalledWith({
+      where: {
+        section: HomeItemSection.NEW_ARRIVAL,
+        isActive: true,
+        product: {
+          isVisible: true,
+          deletedAt: null,
+        },
+      },
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+      take: 1,
+      include: {
+        product: {
+          include: {
+            productCategories: {
+              orderBy: [{ categoryId: 'asc' }],
+              include: {
+                category: {
+                  select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                  },
+                },
+              },
+            },
+            thumbnails: {
+              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+              take: 1,
+              select: {
+                imageUrl: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    expect(result).toEqual({
+      items: [
+        {
+          id: 3,
+          section: HomeItemSection.NEW_ARRIVAL,
+          title: '신상 꽃다발',
+          imageUrl: 'https://example.com/new-arrival.jpg',
+          productId: 7,
+          productName: '포근포근 뜨개 꽃다발',
+          productSlug: 'warm-flower',
+          sortOrder: 1,
+          product: {
+            id: 7,
+            categoryId: 2,
+            categoryName: '패브릭',
+            categories: [{ id: 2, name: '패브릭', slug: 'fabric' }],
+            name: '포근포근 뜨개 꽃다발',
+            slug: 'warm-flower',
+            shortDescription: '포근한 신상품',
+            basePrice: 12000,
+            discountRate: 10,
+            isSoldOut: false,
+            consultationRequired: false,
+            thumbnailImageUrl: 'https://example.com/thumb.jpg',
+          },
         },
       ],
     });

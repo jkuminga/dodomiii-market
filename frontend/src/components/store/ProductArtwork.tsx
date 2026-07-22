@@ -41,8 +41,8 @@ export function ProductArtwork({ src, name, category, className = '' }: ProductA
       <span className="product-artwork-orb product-artwork-orb-b" aria-hidden="true" />
       <span className="product-artwork-orb product-artwork-orb-c" aria-hidden="true" />
       <div className="product-artwork-copy">
-        <strong>{getInitials(name)}</strong>
-        <span>{category ?? 'HANDMADE OBJECT'}</span>
+        {/* <strong>{getInitials(name)}</strong> */}
+        {/* <span>{category ?? 'HANDMADE OBJECT'}</span> */}
       </div>
     </div>
   );

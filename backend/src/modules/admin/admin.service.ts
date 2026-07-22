@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, UserWebFontSize } from '@prisma/client';
+import { HomeItemSection, Prisma, UserWebFontSize } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StoreCacheService } from '../store/store-cache.service';
@@ -15,6 +15,7 @@ import {
 import type {
   AdminCategoryResponse,
   AdminHomeHeroResponse,
+  AdminHomeItemResponse,
   AdminHomePopupResponse,
   AdminStorefrontSettingsResponse,
   AdminNoticeDetailResponse,
@@ -32,6 +33,7 @@ import { CreateAdminNoticeDto } from './dto/create-admin-notice.dto';
 import { UpdateAdminHomeHeroDto } from './dto/update-admin-home-hero.dto';
 import { CreateAdminCategoryDto } from './dto/create-admin-category.dto';
 import { GetAdminNoticesQueryDto } from './dto/get-admin-notices.query.dto';
+import { UpdateAdminHomeItemDto } from './dto/update-admin-home-item.dto';
 import { UpdateAdminHomePopupDto } from './dto/update-admin-home-popup.dto';
 import { UpdateAdminStorefrontSettingsDto } from './dto/update-admin-storefront-settings.dto';
 import { CreateAdminProductDto } from './dto/create-admin-product.dto';
@@ -92,6 +94,29 @@ const adminProductDetailArgs = Prisma.validator<Prisma.ProductDefaultArgs>()({
 });
 
 type AdminProductDetailRecord = Prisma.ProductGetPayload<typeof adminProductDetailArgs>;
+
+const adminHomeItemArgs = Prisma.validator<Prisma.HomeItemDefaultArgs>()({
+  include: {
+    product: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        isVisible: true,
+        deletedAt: true,
+        thumbnails: {
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+          take: 1,
+          select: {
+            imageUrl: true,
+          },
+        },
+      },
+    },
+  },
+});
+
+type AdminHomeItemRecord = Prisma.HomeItemGetPayload<typeof adminHomeItemArgs>;
 
 type CategoryNode = {
   id: bigint;
@@ -213,6 +238,35 @@ export class AdminService {
     return this.mapHomePopup(popup);
   }
 
+  async getHomeItems(): Promise<{ items: AdminHomeItemResponse[] }> {
+    const items = await this.prisma.homeItem.findMany({
+      ...adminHomeItemArgs,
+      orderBy: [{ section: 'asc' }, { sortOrder: 'asc' }, { id: 'asc' }],
+    });
+
+    return {
+      items: items.map((item) => this.mapHomeItem(item)),
+    };
+  }
+
+  async getHomeItemById(itemId: number): Promise<AdminHomeItemResponse> {
+    const item = await this.prisma.homeItem.findUnique({
+      ...adminHomeItemArgs,
+      where: {
+        id: BigInt(itemId),
+      },
+    });
+
+    if (!item) {
+      throw new NotFoundException({
+        code: 'HOME_ITEM_NOT_FOUND',
+        message: '홈 아이템을 찾을 수 없습니다.',
+      });
+    }
+
+    return this.mapHomeItem(item);
+  }
+
   async getHomeHero(): Promise<AdminHomeHeroResponse | null> {
     const hero = await this.prisma.homeHeroSetting.findUnique({
       where: { key: 'default' },
@@ -276,6 +330,85 @@ export class AdminService {
     });
 
     this.storeCache.invalidateByPrefix('store:home-popup:');
+    return result;
+  }
+
+  async upsertHomeItem(dto: UpdateAdminHomeItemDto): Promise<AdminHomeItemResponse> {
+    const itemId = dto.itemId ? BigInt(dto.itemId) : null;
+    const productId = BigInt(dto.productId);
+    const imageUrl = dto.imageUrl?.trim() || null;
+
+    if (dto.section === HomeItemSection.NEW_ARRIVAL && !imageUrl) {
+      throw new BadRequestException({
+        code: 'HOME_ITEM_IMAGE_REQUIRED',
+        message: 'New Arrival 이미지를 입력해주세요.',
+      });
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const product = await tx.product.findFirst({
+        where: {
+          id: productId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!product) {
+        throw new NotFoundException({
+          code: 'PRODUCT_NOT_FOUND',
+          message: '연결할 상품을 찾을 수 없습니다.',
+        });
+      }
+
+      const isActive = dto.isActive ?? true;
+      const commonData = {
+        section: dto.section,
+        productId,
+        title: dto.title?.trim() || null,
+        imageUrl,
+        isActive,
+      };
+
+      if (itemId) {
+        const existing = await tx.homeItem.findUnique({
+          where: { id: itemId },
+          select: { id: true },
+        });
+
+        if (!existing) {
+          throw new NotFoundException({
+            code: 'HOME_ITEM_NOT_FOUND',
+            message: '홈 아이템을 찾을 수 없습니다.',
+          });
+        }
+
+        const updated = await tx.homeItem.update({
+          ...adminHomeItemArgs,
+          where: { id: itemId },
+          data: {
+            ...commonData,
+            ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
+          },
+        });
+
+        return this.mapHomeItem(updated);
+      }
+
+      const created = await tx.homeItem.create({
+        ...adminHomeItemArgs,
+        data: {
+          ...commonData,
+          sortOrder: dto.sortOrder ?? 0,
+        },
+      });
+
+      return this.mapHomeItem(created);
+    });
+
+    this.storeCache.invalidateByPrefix('store:home-items:');
     return result;
   }
 
@@ -1827,6 +1960,25 @@ export class AdminService {
       isActive: popup.isActive,
       createdAt: popup.createdAt.toISOString(),
       updatedAt: popup.updatedAt.toISOString(),
+    };
+  }
+
+  private mapHomeItem(item: AdminHomeItemRecord): AdminHomeItemResponse {
+    return {
+      id: Number(item.id),
+      section: item.section,
+      title: item.title,
+      imageUrl: item.imageUrl,
+      productId: Number(item.product.id),
+      productName: item.product.name,
+      productSlug: item.product.slug,
+      productThumbnailImageUrl: item.product.thumbnails[0]?.imageUrl ?? null,
+      productIsVisible: item.product.isVisible,
+      productDeletedAt: item.product.deletedAt?.toISOString() ?? null,
+      sortOrder: item.sortOrder,
+      isActive: item.isActive,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
     };
   }
 

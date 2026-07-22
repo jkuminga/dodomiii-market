@@ -3,6 +3,8 @@ import { IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-
 export const ADMIN_MEDIA_USAGES = [
   'HOME_POPUP',
   'HOME_HERO',
+  'HOME_ITEM',
+  'NEW_ARRIVAL',
   'CATEGORY_IMAGE',
   'PRODUCT_THUMBNAIL',
   'PRODUCT_DETAIL',

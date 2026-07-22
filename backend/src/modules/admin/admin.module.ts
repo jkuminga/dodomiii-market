@@ -8,6 +8,7 @@ import { AdminCategoriesController } from './admin-categories.controller';
 import { AdminMediaController } from './admin-media.controller';
 import { AdminNoticesController } from './admin-notices.controller';
 import { AdminMediaService } from './admin-media.service';
+import { AdminHomeItemsController } from './admin-home-items.controller';
 import { AdminHomePopupController } from './admin-home-popup.controller';
 import { AdminCustomOrdersController } from './admin-custom-orders.controller';
 import { AdminOrderNotificationsService } from './admin-order-notifications.service';
@@ -24,6 +25,7 @@ import { AdminService } from './admin.service';
     AdminProductsController,
     AdminOrdersController,
     AdminCustomOrdersController,
+    AdminHomeItemsController,
     AdminHomePopupController,
     AdminMediaController,
     AdminNoticesController,

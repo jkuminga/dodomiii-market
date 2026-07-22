@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
-import { DepositStatus, Prisma } from '@prisma/client';
+import { DepositStatus, HomeItemSection, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OrderNotificationsService } from '../notifications/order-notifications.service';
@@ -24,6 +24,7 @@ import { GetProductsQueryDto } from './dto/get-products.query.dto';
 import {
   StoreCustomCheckoutResponse,
   StoreDepositRequestResponse,
+  StoreHomeItemListResponse,
   StoreHomeHeroResponse,
   StoreHomePopupListResponse,
   StoreHomePopupResponse,
@@ -171,9 +172,13 @@ const CUSTOM_ORDER_TOKEN_PREFIX = 'cus_';
 const CUSTOM_ORDER_TOKEN_BYTES = 24;
 const STORE_CATEGORIES_CACHE_TTL_MS = 5 * 60 * 1000;
 const STORE_HOME_POPUP_CACHE_TTL_MS = 30 * 1000;
+const STORE_HOME_ITEM_CACHE_TTL_MS = 30 * 1000;
 const STORE_PRODUCTS_CACHE_TTL_MS = 20 * 1000;
 const STORE_PRODUCT_DETAIL_CACHE_TTL_MS = 20 * 1000;
 const STORE_NOTICE_CACHE_TTL_MS = 60 * 1000;
+const STORE_HOME_ITEM_SECTION_TAKE: Partial<Record<HomeItemSection, number>> = {
+  [HomeItemSection.NEW_ARRIVAL]: 1,
+};
 const REFUND_POLICY_CONSENT_VERSION = 'custom_order_refund_policy_v1';
 const REFUND_POLICY_CONSENT_MESSAGE =
   '주문제작 상품은 결제 후 단순 변심에 의한 취소/환불/교환이 어려워요.';
@@ -388,6 +393,85 @@ export class StoreService {
 
       return {
         items: popups.map((popup) => this.mapStoreHomePopup(popup)),
+      };
+    });
+  }
+
+  async getActiveHomeItems(section: HomeItemSection): Promise<StoreHomeItemListResponse> {
+    return this.storeCache.getOrSet(`store:home-items:v1:${section}`, STORE_HOME_ITEM_CACHE_TTL_MS, async () => {
+      const take = STORE_HOME_ITEM_SECTION_TAKE[section];
+      const items = await this.prisma.homeItem.findMany({
+        where: {
+          section,
+          isActive: true,
+          product: {
+            isVisible: true,
+            deletedAt: null,
+          },
+        },
+        orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        ...(take ? { take } : {}),
+        include: {
+          product: {
+            include: {
+              productCategories: {
+                orderBy: [{ categoryId: 'asc' }],
+                include: {
+                  category: {
+                    select: {
+                      id: true,
+                      name: true,
+                      slug: true,
+                    },
+                  },
+                },
+              },
+              thumbnails: {
+                orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+                take: 1,
+                select: {
+                  imageUrl: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return {
+        items: items.map((item) => {
+          const categories = item.product.productCategories.map((link) => ({
+            id: Number(link.category.id),
+            name: link.category.name,
+            slug: link.category.slug,
+          }));
+          const product = {
+            id: Number(item.product.id),
+            categoryId: categories[0]?.id ?? 0,
+            categoryName: categories.map((category) => category.name).join(' / '),
+            categories,
+            name: item.product.name,
+            slug: item.product.slug,
+            shortDescription: item.product.shortDescription,
+            basePrice: item.product.basePrice,
+            discountRate: item.product.discountRate,
+            isSoldOut: item.product.isSoldOut,
+            consultationRequired: item.product.consultationRequired,
+            thumbnailImageUrl: item.product.thumbnails[0]?.imageUrl ?? null,
+          };
+
+          return {
+            id: Number(item.id),
+            section: item.section,
+            title: item.title,
+            imageUrl: item.imageUrl,
+            productId: product.id,
+            productName: product.name,
+            productSlug: product.slug,
+            sortOrder: item.sortOrder,
+            product,
+          };
+        }),
       };
     });
   }

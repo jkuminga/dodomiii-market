@@ -208,7 +208,13 @@ export function CatalogPage() {
             ) : null}
 
             {products.map((product) => (
-              <ProductTile key={product.id} product={product} />
+              <ProductTile
+                key={product.id}
+                product={{
+                  ...product,
+                  thumbnailImageUrl: product.thumbnailImageUrl?.trim() || logoMainImage,
+                }}
+              />
             ))}
           </div>
 

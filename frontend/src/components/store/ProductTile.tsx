@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 
+import logoMainImage from '../../assets/images/logo_main3.jpg';
 import type { ProductListItem } from '../../lib/api';
 import { calculateDiscountedPrice, formatDiscountRate } from '../../lib/productPricing';
 import { ProductArtwork } from './ProductArtwork';
@@ -26,11 +27,12 @@ export function ProductTile({ product, className = '', showCategory = false }: P
   const discountedPrice = calculateDiscountedPrice(product.basePrice, product.discountRate);
   const hasDiscount = product.discountRate > 0 && discountedPrice < product.basePrice;
   const tileClassName = ['product-tile', className].filter(Boolean).join(' ');
+  const thumbnailImageUrl = product.thumbnailImageUrl?.trim() || logoMainImage;
 
   return (
     <Link className={tileClassName} to={`/products/${product.id}`}>
       <div className="product-media">
-        <ProductArtwork src={product.thumbnailImageUrl} name={product.name} category={product.categoryName} />
+        <ProductArtwork src={thumbnailImageUrl} name={product.name} category={product.categoryName} />
         {product.isSoldOut ? <span className="status-pill is-muted">품절</span> : null}
       </div>
 

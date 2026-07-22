@@ -1,6 +1,7 @@
 import type {
   AdminRole,
   DepositStatus,
+  HomeItemSection,
   OrderStatus,
   ProductOptionSelectionType,
   ShipmentStatus,
@@ -299,6 +300,23 @@ export type AdminHomePopupResponse = {
   title: string | null;
   imageUrl: string;
   linkUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminHomeItemResponse = {
+  id: number;
+  section: HomeItemSection;
+  title: string | null;
+  imageUrl: string | null;
+  productId: number;
+  productName: string;
+  productSlug: string;
+  productThumbnailImageUrl: string | null;
+  productIsVisible: boolean;
+  productDeletedAt: string | null;
+  sortOrder: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

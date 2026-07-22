@@ -55,6 +55,12 @@ const adminPrimaryNavItems: AdminNavItem[] = [
     icon: HomeScreenIcon,
   },
   {
+    label: '홈 아이템',
+    description: '홈 NEW/BEST 상품 노출 관리',
+    to: '/admin/home-items',
+    icon: BrandGridIcon,
+  },
+  {
     label: '홈 팝업',
     description: '홈 진입 팝업 목록 및 노출 관리',
     to: '/admin/home-popups',

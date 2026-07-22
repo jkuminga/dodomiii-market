@@ -30,6 +30,8 @@ import { AdminAccountFormPage } from './pages/admin/AdminAccountFormPage';
 import { AdminAccountsPage } from './pages/admin/AdminAccountsPage';
 import { AdminCustomOrdersPage } from './pages/admin/AdminCustomOrdersPage';
 import { AdminHomePage } from './pages/admin/AdminHomePage';
+import { AdminHomeItemEditorPage } from './pages/admin/AdminHomeItemEditorPage';
+import { AdminHomeItemsPage } from './pages/admin/AdminHomeItemsPage';
 import { AdminHomePopupEditorPage } from './pages/admin/AdminHomePopupEditorPage';
 import { AdminHomePopupsPage } from './pages/admin/AdminHomePopupsPage';
 import { AdminLayout } from './pages/admin/AdminLayout';
@@ -1106,6 +1108,9 @@ function AppFrame() {
           <Route path="notices/new" element={<AdminNoticeEditorPage />} />
           <Route path="notices/:noticeId" element={<AdminNoticeEditorPage />} />
           <Route path="home" element={<AdminHomePage />} />
+          <Route path="home-items" element={<AdminHomeItemsPage />} />
+          <Route path="home-items/new" element={<AdminHomeItemEditorPage />} />
+          <Route path="home-items/:itemId" element={<AdminHomeItemEditorPage />} />
           <Route path="home-popup" element={<Navigate to="/admin/home-popups" replace />} />
           <Route path="home-popups" element={<AdminHomePopupsPage />} />
           <Route path="home-popups/new" element={<AdminHomePopupEditorPage />} />

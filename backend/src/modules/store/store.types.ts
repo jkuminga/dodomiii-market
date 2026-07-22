@@ -1,4 +1,4 @@
-import type { DepositStatus, OrderStatus, ShipmentStatus, UserWebFontSize } from '@prisma/client';
+import type { DepositStatus, HomeItemSection, OrderStatus, ShipmentStatus, UserWebFontSize } from '@prisma/client';
 
 import type { StoreWebFontFamily, StoreWebFontWeightPreset } from '../../common/storefront-fonts';
 
@@ -115,6 +115,41 @@ export type StoreHomePopupResponse = {
 
 export type StoreHomePopupListResponse = {
   items: StoreHomePopupResponse[];
+};
+
+export type StoreProductListItemResponse = {
+  id: number;
+  categoryId: number;
+  categoryName: string;
+  categories: Array<{
+    id: number;
+    name: string;
+    slug: string;
+  }>;
+  name: string;
+  slug: string;
+  shortDescription: string | null;
+  basePrice: number;
+  discountRate: number;
+  isSoldOut: boolean;
+  consultationRequired: boolean;
+  thumbnailImageUrl: string | null;
+};
+
+export type StoreHomeItemResponse = {
+  id: number;
+  section: HomeItemSection;
+  title: string | null;
+  imageUrl: string | null;
+  productId: number;
+  productName: string;
+  productSlug: string;
+  sortOrder: number;
+  product: StoreProductListItemResponse;
+};
+
+export type StoreHomeItemListResponse = {
+  items: StoreHomeItemResponse[];
 };
 
 export type StoreHomeHeroResponse = {

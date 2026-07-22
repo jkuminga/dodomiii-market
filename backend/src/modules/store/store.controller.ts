@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { HomeItemSection } from '@prisma/client';
 
 import { CreateDepositRequestDto } from './dto/create-deposit-request.dto';
 import { CreateCustomCheckoutOrderDto } from './dto/create-custom-checkout-order.dto';
@@ -27,6 +28,33 @@ export class StoreController {
   @Get('home-popup')
   async getHomePopup() {
     const data = await this.storeService.getActiveHomePopups();
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  @Get('new-arrivals')
+  async getHomeNewArrivals() {
+    const data = await this.storeService.getActiveHomeItems(HomeItemSection.NEW_ARRIVAL);
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  @Get('home-items/:section')
+  async getHomeItems(@Param('section') section: string) {
+    if (!Object.values(HomeItemSection).includes(section as HomeItemSection)) {
+      throw new BadRequestException({
+        code: 'INVALID_HOME_ITEM_SECTION',
+        message: '홈 아이템 섹션이 올바르지 않습니다.',
+      });
+    }
+
+    const data = await this.storeService.getActiveHomeItems(section as HomeItemSection);
 
     return {
       success: true,
