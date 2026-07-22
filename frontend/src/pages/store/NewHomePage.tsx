@@ -148,10 +148,26 @@ function NewHomeBestItemsSection() {
 
       {!loading && !error && items.length > 0 ? (
         <FadeIn direction="up" delay={0.15}>
-          <div className="new-home-product-rail" aria-label="BEST 상품">
-            {items.map((item) => (
-              <ProductTile className="new-home-product-tile" key={item.id} product={item.product} showCategory />
-            ))}
+          <div className="new-home-best-mobile-carousel">
+            <div className="new-home-product-rail" aria-label="BEST 상품">
+              {items.map((item) => (
+                <ProductTile className="new-home-product-tile" key={item.id} product={item.product} showCategory />
+              ))}
+            </div>
+            {items.length > 1 ? (
+              <div className="new-home-best-swipe-hint" aria-hidden="true">
+                <span className="new-home-best-swipe-wave is-left">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span className="new-home-best-swipe-wave is-right">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              </div>
+            ) : null}
           </div>
         </FadeIn>
       ) : null}
