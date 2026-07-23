@@ -12,15 +12,12 @@ function formatCurrency(value: number): string {
   return `${value.toLocaleString('ko-KR')}원`;
 }
 
-type DetailTab = 'story' | 'options' | 'policy';
-
 export function ProductDetailPage() {
   const { productId } = useParams<{ productId: string }>();
 
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<DetailTab>('story');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedSingleOptionByGroup, setSelectedSingleOptionByGroup] = useState<Record<string, string>>({});
   const [selectedQuantityByOption, setSelectedQuantityByOption] = useState<Record<string, number>>({});
@@ -55,7 +52,6 @@ export function ProductDetailPage() {
 
         setProduct(result);
         setSelectedImageIndex(0);
-        setActiveTab('story');
         setSelectedSingleOptionByGroup({});
         setSelectedQuantityByOption({});
         setInvalidRequiredGroupIds([]);
@@ -711,78 +707,14 @@ export function ProductDetailPage() {
 
       <div className="detail-tab-column">
         <section className="surface-card detail-tab-card">
-          <div className="tab-bar" role="tablist" aria-label="상품 세부 정보">
-            <button
-              className={`tab-button ${activeTab === 'story' ? 'is-active' : ''}`}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'story'}
-              onClick={() => setActiveTab('story')}
-            >
-              상세정보
-            </button>
-            <button
-              className={`tab-button ${activeTab === 'policy' ? 'is-active' : ''}`}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'policy'}
-              onClick={() => setActiveTab('policy')}
-            >
-              안내
-            </button>
-            <button
-              className={`tab-button ${activeTab === 'options' ? 'is-active' : ''}`}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'options'}
-              onClick={() => setActiveTab('options')}
-            >
-              리뷰
-            </button>
-          </div>
-
           <div className="tab-panel">
-            {activeTab === 'story' ? (
-              <div className="policy-copy">
-                {product.contentJson?.blocks.length ? (
-                  <ProductContentRenderer content={product.contentJson} />
-                ) : (
-                  <p className="feedback-copy">{product.description ?? '등록된 상세 본문이 없습니다.'}</p>
-                )}
-              </div>
-            ) : null}
-
-            {activeTab === 'options' ? (
-              optionGroups.length === 0 ? (
-                <p className="feedback-copy">등록된 옵션이 없습니다.</p>
+            <div className="policy-copy">
+              {product.contentJson?.blocks.length ? (
+                <ProductContentRenderer content={product.contentJson} />
               ) : (
-                <ul className="option-list">
-                  {optionGroups.flatMap((group) =>
-                    group.options.map((option) => (
-                      <li className="option-item" key={option.id}>
-                        <div>
-                          <strong>{group.name}</strong>
-                          <p>
-                            {option.name}
-                            {group.selectionType === 'QUANTITY' && option.maxQuantity ? ` / 최대 ${option.maxQuantity}개` : ''}
-                          </p>
-                        </div>
-                        <span>{option.extraPrice > 0 ? `+${formatCurrency(option.extraPrice)}` : '추가 금액 없음'}</span>
-                      </li>
-                    )),
-                  )}
-                </ul>
-              )
-            ) : null}
-
-            {activeTab === 'policy' ? (
-              <div className="policy-copy">
-                <p>{product.description ?? '상품 상세 설명이 아직 등록되지 않았습니다.'}</p>
-                <hr style={{ margin: '20px 20px 0 0 ', color: 'gray' }}></hr>
-                <p>🚚 {product.policy.shippingInfo}</p>
-                <p>🙏 {product.policy.refundInfo}</p>
-              </div>
-            ) : null}
+                <p className="feedback-copy">{product.description ?? '등록된 상세 본문이 없습니다.'}</p>
+              )}
+            </div>
           </div>
         </section>
       </div>
