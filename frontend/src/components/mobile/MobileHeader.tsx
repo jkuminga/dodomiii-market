@@ -171,8 +171,8 @@ export function MobileHeader() {
       <aside className={`m-menu-panel ${menuOpen ? 'is-open' : ''}`} id="mobile-menu-panel" aria-hidden={!menuOpen}>
         <div className="m-menu-head">
           <div>
-            <p className="section-kicker">DODOMIII MARKET</p>
-            <h2>Menu</h2>
+            <p className="section-kicker">DODOMIIII MARKET</p>
+            <h2>MENU</h2>
           </div>
           <button className="m-icon-btn" type="button" onClick={() => setMenuOpen(false)} aria-label="메뉴 닫기">
             <ArrowLeftIcon />
