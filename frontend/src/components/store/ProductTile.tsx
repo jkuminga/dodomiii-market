@@ -31,10 +31,14 @@ export function ProductTile({ product, className = '', showCategory = false, sty
   const thumbnailImageUrl = product.thumbnailImageUrl?.trim() || logoMainImage;
 
   return (
-    <Link className={tileClassName} to={`/products/${product.id}`} style={style}>
+    <Link className={tileClassName + (product.isSoldOut ? ' is-sold-out' : '')} to={`/products/${product.id}`} style={style}>
       <div className="product-media">
         <ProductArtwork src={thumbnailImageUrl} name={product.name} category={product.categoryName} />
-        {product.isSoldOut ? <span className="status-pill is-muted">품절</span> : null}
+        {product.isSoldOut ? (
+          <div className="sold-out-overlay">
+            <span className="sold-out-badge">SOLD OUT</span>
+          </div>
+        ) : null}
       </div>
 
       <div className="product-body">
