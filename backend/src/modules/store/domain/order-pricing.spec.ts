@@ -8,10 +8,12 @@ import {
 } from './order-pricing';
 
 describe('order pricing', () => {
-  it('calculates discounted prices with rate bounds and floor rounding', () => {
+  it('calculates discounted prices with rate bounds and ten-won floor rounding', () => {
     expect(calculateDiscountedPrice(10000, 0)).toBe(10000);
     expect(calculateDiscountedPrice(10000, 15)).toBe(8500);
-    expect(calculateDiscountedPrice(9999, 15)).toBe(8499);
+    expect(calculateDiscountedPrice(9999, 15)).toBe(8490);
+    expect(calculateDiscountedPrice(7500, 5)).toBe(7120);
+    expect(calculateDiscountedPrice(7505, 0)).toBe(7505);
     expect(calculateDiscountedPrice(10000, -10)).toBe(10000);
     expect(calculateDiscountedPrice(10000, 120)).toBe(0);
   });
