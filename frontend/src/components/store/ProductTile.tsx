@@ -9,6 +9,7 @@ type ProductTileProps = {
   product: ProductListItem;
   className?: string;
   showCategory?: boolean;
+  style?: React.CSSProperties;
 };
 
 function formatCurrency(value: number): string {
@@ -23,14 +24,14 @@ function getProductCategoryLabel(product: ProductListItem): string {
   return product.categoryName;
 }
 
-export function ProductTile({ product, className = '', showCategory = false }: ProductTileProps) {
+export function ProductTile({ product, className = '', showCategory = false, style }: ProductTileProps) {
   const discountedPrice = calculateDiscountedPrice(product.basePrice, product.discountRate);
   const hasDiscount = product.discountRate > 0 && discountedPrice < product.basePrice;
   const tileClassName = ['product-tile', className].filter(Boolean).join(' ');
   const thumbnailImageUrl = product.thumbnailImageUrl?.trim() || logoMainImage;
 
   return (
-    <Link className={tileClassName} to={`/products/${product.id}`}>
+    <Link className={tileClassName} to={`/products/${product.id}`} style={style}>
       <div className="product-media">
         <ProductArtwork src={thumbnailImageUrl} name={product.name} category={product.categoryName} />
         {product.isSoldOut ? <span className="status-pill is-muted">품절</span> : null}

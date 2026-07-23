@@ -82,8 +82,8 @@ export function NoticeListPage() {
 
         {!loading && !error && notices.length > 0 ? (
           <div className="notice-list-grid">
-            {notices.map((notice) => (
-              <Link className="notice-list-card" key={notice.id} to={`/notices/${notice.id}`}>
+            {notices.map((notice, index) => (
+              <Link className="notice-list-card animate-stagger-item" key={notice.id} to={`/notices/${notice.id}`} style={{ animationDelay: `${index * 0.05}s` }}>
                 {notice.thumbnailImageUrl ? (
                   <div className="notice-list-card-image">
                     <img src={notice.thumbnailImageUrl} alt={notice.title} loading="lazy" />

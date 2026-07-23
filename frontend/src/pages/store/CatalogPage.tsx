@@ -189,7 +189,7 @@ export function CatalogPage() {
         <>
           <div className="catalog-grid">
             {showCustomBouquetItem ? (
-              <Link className="product-tile" key="custom-bouquet-order-item" to="/products/custom-order">
+              <Link className="product-tile animate-stagger-item" key="custom-bouquet-order-item" to="/products/custom-order" style={{ animationDelay: '0s' }}>
                 <div className="product-media">
                   <ProductArtwork src={logoMainImage} name="커스텀 주문용 상품" category="꽃다발" />
                   <span className="status-pill">상시 접수</span>
@@ -207,9 +207,11 @@ export function CatalogPage() {
               </Link>
             ) : null}
 
-            {products.map((product) => (
+            {products.map((product, index) => (
               <ProductTile
                 key={product.id}
+                className="animate-stagger-item"
+                style={{ animationDelay: `${(showCustomBouquetItem ? index + 1 : index) * 0.05}s` }}
                 product={{
                   ...product,
                   thumbnailImageUrl: product.thumbnailImageUrl?.trim() || logoMainImage,
