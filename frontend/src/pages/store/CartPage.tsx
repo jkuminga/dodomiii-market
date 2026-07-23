@@ -15,13 +15,17 @@ export function CartPage() {
     <main className="m-page cart-page">
       <section className="surface-hero compact-hero">
         <p className="section-kicker">Cart</p>
-        <h1 className="section-title">장바구니</h1>
+        <div className="section-title-row">
+          <h1 className="section-title">장바구니</h1>
+          <span className="metric-chip">{itemCount} items</span>
+        </div>
+        
       </section>
 
       {items.length === 0 ? (
         <section className="surface-card status-card">
           <p className="section-kicker">Empty</p>
-          <h2 className="section-subtitle">장바구니가 비어 있습니다</h2>
+          <h2 className="section-copy">장바구니가 비어 있습니다</h2>
           <div className="inline-actions">
             <Link className="button" to="/products">
               상품 보러 가기
@@ -41,13 +45,15 @@ export function CartPage() {
             </div>
             <div className="inline-actions">
               <button className="button button-ghost" type="button" onClick={() => clearCart()}>
-                전체 비우기
+                장바구니 비우기
               </button>
               <Link className="button" to="/cart/order">
                 장바구니 주문하기
               </Link>
             </div>
           </section>
+
+          <hr style={{ border: 'none', borderTop: '1px solid rgba(0, 0, 0, 0.06)', margin: '8px 0' }} />
 
           <section className="cart-item-list" aria-label="장바구니 상품 목록">
             {items.map((item) => {
