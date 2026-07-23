@@ -1075,8 +1075,7 @@ function AppFrame() {
           : <MobileHeader />}
 
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/new-home" element={<NewHomePage HomePageComponent={HomePage} />} />
+        <Route path="/" element={<NewHomePage HomePageComponent={HomePage} />} />
         <Route path="/notices" element={<NoticeListPage />} />
         <Route path="/notices/:noticeId" element={<NoticeDetailPage />} />
         <Route path="/inquery" element={<InqueryPage />} />
