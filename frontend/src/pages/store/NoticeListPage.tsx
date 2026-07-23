@@ -95,7 +95,7 @@ export function NoticeListPage() {
                     {notice.isPinned ? <PinIcon /> : null}
                     <span>{notice.title}</span>
                   </strong>
-                  <p>{notice.summary || '상세 공지에서 내용을 확인해주세요.'}</p>
+                  <p>{notice.summary || ' '}</p>
                 </div>
               </Link>
             ))}
