@@ -187,50 +187,54 @@ export function MobileHeader() {
 
           <section className="m-menu-category-group" aria-label="카테고리 메뉴">
             <div className="m-menu-category-title">SHOP</div>
-            {roots.length === 0 ? (
-              <p className="m-menu-category-empty">표시할 카테고리가 없습니다.</p>
-            ) : (
-              <ul className="m-menu-category-root-list">
-                {roots.map((root) => {
-                  const hasChildren = root.children.length > 0;
-                  const expanded = expandedRootSlugs.has(root.slug);
+            <ul className="m-menu-category-root-list">
+              <li className="m-menu-category-root-item">
+                <div className="m-menu-category-root-row">
+                  <Link className="m-menu-category-link" to="/products">
+                    ALL
+                  </Link>
+                </div>
+              </li>
+              {roots.map((root) => {
+                const hasChildren = root.children.length > 0;
+                const expanded = expandedRootSlugs.has(root.slug);
 
-                  return (
-                    <li key={root.slug} className="m-menu-category-root-item">
-                      <div className="m-menu-category-root-row">
-                        <Link className="m-menu-category-link" to={`/products?categorySlug=${root.slug}`}>
-                          {root.name}
-                        </Link>
-                        {hasChildren ? (
-                          <button
-                            className={`m-menu-category-toggle ${expanded ? 'is-open' : ''}`}
-                            type="button"
-                            onClick={() => toggleRoot(root.slug)}
-                            aria-label={`${root.name} 하위 카테고리 ${expanded ? '닫기' : '열기'}`}
-                            aria-expanded={expanded}
-                          >
-                            <ChevronIcon />
-                          </button>
-                        ) : null}
-                      </div>
+                return (
+                  <li key={root.slug} className="m-menu-category-root-item">
+                    <div className="m-menu-category-root-row">
+                      <Link className="m-menu-category-link" to={`/products?categorySlug=${root.slug}`}>
+                        {root.name}
+                      </Link>
                       {hasChildren ? (
-                        <ul className={`m-menu-category-child-list ${expanded ? 'is-open' : ''}`}>
-                          <div className="m-menu-category-child-list-inner">
-                            {root.children.map((child) => (
-                              <li key={child.slug}>
-                                <Link className="m-menu-category-child-link" to={`/products?categorySlug=${child.slug}`}>
-                                  {child.name}
-                                </Link>
-                              </li>
-                            ))}
-                          </div>
-                        </ul>
+                        <button
+                          className={`m-menu-category-toggle ${expanded ? 'is-open' : ''}`}
+                          type="button"
+                          onClick={() => toggleRoot(root.slug)}
+                          aria-label={`${root.name} 하위 카테고리 ${expanded ? '닫기' : '열기'}`}
+                          aria-expanded={expanded}
+                        >
+                          <ChevronIcon />
+                        </button>
                       ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+                    </div>
+                    {hasChildren ? (
+                      <ul className={`m-menu-category-child-list ${expanded ? 'is-open' : ''}`}>
+                        <div className="m-menu-category-child-list-inner">
+                          {root.children.map((child) => (
+                            <li key={child.slug}>
+                              <Link className="m-menu-category-child-link" to={`/products?categorySlug=${child.slug}`}>
+                                {child.name}
+                              </Link>
+                            </li>
+                          ))}
+                        </div>
+                      </ul>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+            {roots.length === 0 ? <p className="m-menu-category-empty">표시할 카테고리가 없습니다.</p> : null}
           </section>
 
           <Link className="m-menu-link" to="/notices">
