@@ -812,7 +812,7 @@ function SearchOverlay({ isOpen, keyword, onKeywordChange, onClose, onSubmit }: 
           }}
         >
           <label className="home-search-label" htmlFor="home-search-input">
-            상품명으로 검색
+            키워드으로 검색
           </label>
           <div className="home-search-bar">
             <span className="home-search-icon" aria-hidden="true">
@@ -832,7 +832,7 @@ function SearchOverlay({ isOpen, keyword, onKeywordChange, onClose, onSubmit }: 
               검색
             </button>
           </div>
-          <p className="home-search-helper">상품명, 카테고리명, 선물용 키워드로 바로 찾아볼 수 있습니다.</p>
+          <p className="home-search-helper">키워드로 관련 상품을 검색하실 수 있습니다.</p>
         </form>
       </div>
     </div>
