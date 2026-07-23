@@ -57,12 +57,12 @@ export function NoticeListPage() {
       <section className="surface-card notice-page-hero">
         <div className="notice-page-hero-copy">
           <p className="section-kicker" style={{ paddingBottom: "5px" }}>Notice</p>
-          <h1 className="section-title">공지사항</h1>
+          <div className="section-title-row">
+            <h1 className="section-title">공지사항</h1>
+          <span className="metric-chip">{notices.length} notices</span>
+          </div>
         </div>
-        <div className="notice-page-meta-chip">
-          <span>전체 공지</span>
-          <strong>{notices.length}</strong>
-        </div>
+        
       </section>
 
       <section className="surface-card admin-card-stack notice-page-shell">
