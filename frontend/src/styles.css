@@ -1739,6 +1739,12 @@ img {
   gap: 16px;
 }
 
+.order-lookup-page {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .detail-page {
   grid-template-columns: minmax(0, 1fr);
 }
@@ -2051,6 +2057,12 @@ img {
   background:
     radial-gradient(circle at top right, rgba(239, 216, 203, 0.85), transparent 32%),
     linear-gradient(155deg, #fff7f2 0%, #fffefb 58%, #fff4ec 100%);
+}
+
+.order-lookup-intro {
+  background:
+    radial-gradient(circle at top right, rgba(203, 239, 216, 0.65), transparent 32%),
+    linear-gradient(155deg, #f3fdf5 0%, #fcfffb 58%, #eefbf1 100%);
 }
 
 .compact-hero {
@@ -3848,21 +3860,75 @@ img {
 }
 
 .status-pill.is-shipment-ready {
-  background: #eef2f7;
-  color: #394a63;
-  border: 1px solid #d7e0ec;
+  background: #fffbe6;
+  color: #b98100;
+  border: 1px solid #ffe58f;
 }
 
 .status-pill.is-shipment-shipped {
+  background: #e9f9ed;
+  color: #1e6b3d;
+  border: 1px solid #b9e7c6;
+}
+
+.status-pill.is-shipment-delivered {
   background: #e9f6ff;
   color: #0f5f8f;
   border: 1px solid #beddff;
 }
 
-.status-pill.is-shipment-delivered {
+.status-pill.is-deposit-waiting {
+  background: #fffbe6;
+  color: #b98100;
+  border: 1px solid #ffe58f;
+}
+
+.status-pill.is-deposit-requested {
+  background: #e9f6ff;
+  color: #0f5f8f;
+  border: 1px solid #beddff;
+}
+
+.status-pill.is-deposit-confirmed {
   background: #e9f9ed;
   color: #1e6b3d;
   border: 1px solid #b9e7c6;
+}
+
+.status-pill.is-deposit-rejected {
+  background: #2a2a2a;
+  color: #ffffff;
+  border: 1px solid #000000;
+}
+
+.status-pill.is-order-yellow {
+  background: #fffbe6;
+  color: #b98100;
+  border: 1px solid #ffe58f;
+}
+
+.status-pill.is-order-blue {
+  background: #e9f6ff;
+  color: #0f5f8f;
+  border: 1px solid #beddff;
+}
+
+.status-pill.is-order-green {
+  background: #e9f9ed;
+  color: #1e6b3d;
+  border: 1px solid #b9e7c6;
+}
+
+.status-pill.is-order-red {
+  background: #fff1f0;
+  color: #cf1322;
+  border: 1px solid #ffa39e;
+}
+
+.status-pill.is-order-black {
+  background: #2a2a2a;
+  color: #ffffff;
+  border: 1px solid #000000;
 }
 
 .home-section {
@@ -4524,17 +4590,30 @@ img {
 .order-lookup-block,
 .order-item-card {
   display: grid;
-  gap: 10px;
-  padding: 14px;
+  align-content: start;
+  gap: 12px;
+  padding: 18px;
   border-radius: 20px;
-  background: rgba(247, 241, 234, 0.76);
+  background: #f4f5f6;
 }
 
 .order-result-block h3,
 .order-lookup-block h3 {
-  margin: 0;
+  margin: 0 0 4px 0;
   font-family: var(--font-display);
   font-size: 1.02rem;
+  color: #1a1a1a;
+}
+
+.block-title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.block-title-with-icon .block-icon {
+  color: #4CAF50;
+  flex-shrink: 0;
 }
 
 .payment-focus-card {
@@ -4962,7 +5041,63 @@ img {
 
 .order-lookup-fields {
   grid-template-columns: minmax(0, 1fr);
-  width: min(100%, 520px);
+  width: 100%;
+}
+
+.lookup-icon-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 14px;
+  padding: 0 16px;
+  border: 1px solid rgb(var(--line-rgb, 226 232 240) / 0.8);
+  height: 48px;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.lookup-icon-field:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgb(var(--primary-rgb) / 0.1);
+}
+
+.lookup-icon-field .field-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.lookup-icon-field .field-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.lookup-icon-field .field-divider {
+  width: 1px;
+  height: 16px;
+  background: #e2e8f0;
+  margin: 0 12px;
+  flex-shrink: 0;
+}
+
+.lookup-icon-field input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: #334155;
+  font-size: 0.95rem;
+}
+
+.lookup-icon-field input::placeholder {
+  color: #94a3b8;
 }
 
 .order-lookup-fields .button {

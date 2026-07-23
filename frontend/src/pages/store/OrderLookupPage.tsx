@@ -35,7 +35,7 @@ function formatCurrency(value: number): string {
 
 function formatDateTime(value: string | null | undefined): string {
   if (!value) {
-    return '아직 기록되지 않았습니다.';
+    return '-';
   }
 
   return new Intl.DateTimeFormat('ko-KR', {
@@ -87,11 +87,11 @@ async function copyToClipboard(value: string): Promise<boolean> {
 function getOrderStatusLabel(status: StoreOrderStatus): string {
   switch (status) {
     case 'PENDING_PAYMENT':
-      return '입금 대기';
+      return '결제 대기';
     case 'PAYMENT_REQUESTED':
-      return '입금 요청 확인 중';
+      return '결제 확인 요청';
     case 'PAYMENT_CONFIRMED':
-      return '입금 확인 완료';
+      return '결제 확인 완료';
     case 'PREPARING':
       return '상품 준비 중';
     case 'SHIPPED':
@@ -101,9 +101,29 @@ function getOrderStatusLabel(status: StoreOrderStatus): string {
     case 'CANCELLED':
       return '주문 취소';
     case 'EXPIRED':
-      return '입금 기한 만료';
+      return '주문 만료';
     default:
       return status;
+  }
+}
+
+function getOrderStatusPillClass(status: StoreOrderStatus): string {
+  switch (status) {
+    case 'PENDING_PAYMENT':
+    case 'PREPARING':
+      return 'is-order-yellow';
+    case 'PAYMENT_REQUESTED':
+    case 'DELIVERED':
+      return 'is-order-blue';
+    case 'PAYMENT_CONFIRMED':
+    case 'SHIPPED':
+      return 'is-order-green';
+    case 'CANCELLED':
+      return 'is-order-red';
+    case 'EXPIRED':
+      return 'is-order-black';
+    default:
+      return '';
   }
 }
 
@@ -119,6 +139,21 @@ function getDepositStatusLabel(status: StoreDepositStatus): string {
       return '입금 재확인 필요';
     default:
       return status;
+  }
+}
+
+function getDepositStatusPillClass(status: StoreDepositStatus): string {
+  switch (status) {
+    case 'WAITING':
+      return 'is-deposit-waiting';
+    case 'REQUESTED':
+      return 'is-deposit-requested';
+    case 'CONFIRMED':
+      return 'is-deposit-confirmed';
+    case 'REJECTED':
+      return 'is-deposit-rejected';
+    default:
+      return '';
   }
 }
 
@@ -193,7 +228,7 @@ function buildTimeline(order: StoreOrderLookupResponse, tracking: StoreOrderTrac
     items.push({
       key: 'created',
       title: '주문 접수',
-      description: '주문이 생성되어 확인 가능한 상태가 되었습니다.',
+      description: '주문이 접수되었습니다. 고객님의 입금을 대기 중입니다.',
       occurredAt: order.createdAt,
       variant: 'complete',
     });
@@ -215,8 +250,8 @@ function buildTimeline(order: StoreOrderLookupResponse, tracking: StoreOrderTrac
     if (order.deposit.requestedAt) {
       items.push({
         key: 'deposit-requested',
-        title: '입금 확인 요청',
-        description: '고객의 입금 확인 요청이 접수되었습니다.',
+        title: '입금 완료 / 확인 대기 중',
+        description: '판매자가 고객님의 입금을 확인하면 주문이 확정됩니다. 조금만 기다려주세요',
         occurredAt: order.deposit.requestedAt,
         variant: order.deposit.depositStatus === 'REQUESTED' ? 'current' : 'complete',
       });
@@ -226,7 +261,7 @@ function buildTimeline(order: StoreOrderLookupResponse, tracking: StoreOrderTrac
       items.push({
         key: 'deposit-confirmed',
         title: '입금 확인 완료',
-        description: '결제가 확인되어 다음 제작 단계로 진행할 수 있습니다.',
+        description: '결제가 완료되어 상품의 작업이 진행 중 입니다.',
         occurredAt: order.deposit.confirmedAt,
         variant:
           order.orderStatus === 'PAYMENT_CONFIRMED' || order.orderStatus === 'PREPARING' || order.orderStatus === 'SHIPPED' || order.orderStatus === 'DELIVERED'
@@ -446,9 +481,6 @@ export function OrderLookupPage() {
       <section className="surface-hero compact-hero order-lookup-intro">
         <p className="section-kicker">Order Lookup</p>
         <h1 className="section-title">주문 조회</h1>
-        <p className="section-copy">
-          주문번호를 통해 주문 상태, 입금 진행, 배송 상태를 확인할 수 있습니다.
-        </p>
 
         <form className="order-lookup-form" onSubmit={onLookupSubmit}>
           {/* <div className="section-head">
@@ -464,7 +496,17 @@ export function OrderLookupPage() {
           </div> */}
 
           <div className="lookup-input-row order-lookup-fields" style={{ marginTop: '18px' }}>
-            <label className="field">
+            <label className="field lookup-icon-field">
+              <span className="field-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </span>
+              <span className="field-divider" aria-hidden="true"></span>
               <input
                 value={orderNumberInput}
                 onChange={(event) => setOrderNumberInput(event.target.value)}
@@ -474,7 +516,13 @@ export function OrderLookupPage() {
               />
             </label>
 
-            <label className="field">
+            <label className="field lookup-icon-field">
+              <span className="field-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+              </span>
+              <span className="field-divider" aria-hidden="true"></span>
               <input
                 value={contactPhoneInput}
                 onChange={(event) => setContactPhoneInput(event.target.value)}
@@ -513,15 +561,37 @@ export function OrderLookupPage() {
           <section className="surface-card order-lookup-summary">
             <div className="section-head">
               <div>
-                <p className="section-kicker">Overview</p>
-                <h2 className="section-subtitle">{order.orderNumber}</h2>
+                <p className="section-kicker block-title-with-icon" style={{ gap: '4px' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="block-icon" style={{ width: '14px', height: '14px' }} aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  Overview
+                </p>
+                <h2 className="section-subtitle">
+                  {order.orderNumber}
+                </h2>
               </div>
-              <span className="status-pill">{getOrderStatusLabel(order.orderStatus)}</span>
+              <span className={`status-pill ${getOrderStatusPillClass(order.orderStatus)}`}>
+                {getOrderStatusLabel(order.orderStatus)}
+              </span>
             </div>
 
             <div className="order-lookup-grid">
               <div className="order-lookup-block">
-                <h3>주문 기본정보</h3>
+                <h3 className="block-title-with-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="block-icon" style={{ width: '18px', height: '18px' }} aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  주문 기본정보
+                </h3>
                 <div className="order-summary-row">
                   <span>주문 상태</span>
                   <strong>{getOrderStatusLabel(order.orderStatus)}</strong>
@@ -530,26 +600,34 @@ export function OrderLookupPage() {
                   <span>주문 시각</span>
                   <strong>{formatDateTime(order.createdAt)}</strong>
                 </div>
-                {/* <div className="order-summary-row">
-                  <span>배송 상태</span>
-                  <strong>
-                    {hasShipmentStarted(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)
-                      ? getShipmentStatusLabel(activeTracking?.shipmentStatus ?? order.shipment.shipmentStatus)
-                      : '-'}
-                  </strong>
-                </div> */}
               </div>
 
               <div className="order-lookup-block">
-                <h3>배송지 정보</h3>
-                <div className="lookup-contact-copy">
-                  <strong>{order.contact.receiverName}</strong>
-                  <span>{formatPhone(order.contact.receiverPhone)}</span>
+                <h3 className="block-title-with-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="block-icon" style={{ width: '18px', height: '18px' }} aria-hidden="true">
+                    <rect x="1" y="3" width="15" height="13"></rect>
+                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                  </svg>
+                  배송지 정보
+                </h3>
+                <div className="order-summary-row">
+                  <span>수령인</span>
+                  <strong>
+                    <div style={{ display: 'grid', gap: '2px' }}>
+                      <span>{order.contact.receiverName}  |  {formatPhone(order.contact.receiverPhone)}</span>
+                    </div>
+                  </strong>
                 </div>
-                <p className="lookup-address">
-                  [{order.contact.zipcode}] {order.contact.address1}
-                  {order.contact.address2 ? ` ${order.contact.address2}` : ''}
-                </p>
+                <div className="order-summary-row">
+                  <span>배송지 주소</span>
+                  <strong>
+                    <div style={{ display: 'grid', gap: '2px' }}>
+                      <span>[{order.contact.zipcode}] {order.contact.address1}{order.contact.address2 ? ` ${order.contact.address2}` : ''}</span>
+                    </div>
+                  </strong>
+                </div>
               </div>
             </div>
           </section>
@@ -557,8 +635,17 @@ export function OrderLookupPage() {
           <section className="surface-card order-lookup-summary">
             <div className="section-head">
               <div>
-                <p className="section-kicker">Order Items</p>
-                <h2 className="section-subtitle">주문 상품</h2>
+                <p className="section-kicker block-title-with-icon" style={{ gap: '4px' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="block-icon" style={{ width: '14px', height: '14px' }} aria-hidden="true">
+                    <circle cx="9" cy="21" r="1"></circle>
+                    <circle cx="20" cy="21" r="1"></circle>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                  </svg>
+                  Order Items
+                </p>
+                <h2 className="section-subtitle">
+                  주문 상품
+                </h2>
               </div>
               {/* <strong className="detail-price">{formatCurrency(order.pricing.finalTotalPrice)}</strong> */}
             </div>
@@ -614,8 +701,18 @@ export function OrderLookupPage() {
           <section className="surface-card order-lookup-summary">
             <div className="section-head">
               <div>
-                <p className="section-kicker">Tracking</p>
-                <h2 className="section-subtitle">주문 트래킹</h2>
+                <p className="section-kicker block-title-with-icon" style={{ gap: '4px' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="block-icon" style={{ width: '14px', height: '14px' }} aria-hidden="true">
+                    <rect x="1" y="3" width="15" height="13"></rect>
+                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                  </svg>
+                  Tracking
+                </p>
+                <h2 className="section-subtitle">
+                  주문 트래킹
+                </h2>
               </div>
               {currentShipmentStatus ? (
                 <span className={`status-pill ${getShipmentStatusPillClass(currentShipmentStatus)}`}>
@@ -628,6 +725,26 @@ export function OrderLookupPage() {
                 </a>
               ) : null} */}
             </div>
+
+            <ol className="order-timeline" aria-label="주문 진행 타임라인">
+              {timelineItems.map((item) => (
+                <li className={`timeline-item is-${item.variant}`} key={item.key}>
+                  <div className="timeline-rail" aria-hidden="true">
+                    <span className="timeline-dot" />
+                  </div>
+                  <div className="timeline-content">
+                    <strong>{item.title}</strong>
+                    <p>{item.description}</p>
+                    <span className="timeline-time">{formatDateTime(item.occurredAt)}</span>
+                    {item.linkUrl && item.linkLabel ? (
+                      <a className="button-text timeline-link" href={item.linkUrl} target="_blank" rel="noreferrer">
+                        {item.linkLabel}
+                      </a>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ol>
 
             <div className="order-lookup-grid">
               <div className="order-lookup-block">
@@ -681,34 +798,26 @@ export function OrderLookupPage() {
               </div>
             </div>
 
-            <ol className="order-timeline" aria-label="주문 진행 타임라인">
-              {timelineItems.map((item) => (
-                <li className={`timeline-item is-${item.variant}`} key={item.key}>
-                  <div className="timeline-rail" aria-hidden="true">
-                    <span className="timeline-dot" />
-                  </div>
-                  <div className="timeline-content">
-                    <strong>{item.title}</strong>
-                    <p>{item.description}</p>
-                    <span className="timeline-time">{formatDateTime(item.occurredAt)}</span>
-                    {item.linkUrl && item.linkLabel ? (
-                      <a className="button-text timeline-link" href={item.linkUrl} target="_blank" rel="noreferrer">
-                        {item.linkLabel}
-                      </a>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ol>
+            
           </section>
 
           <section className="surface-card order-lookup-summary">
             <div className="section-head">
               <div>
-                <p className="section-kicker">Deposit</p>
-                <h2 className="section-subtitle">입금 정보</h2>
+                <p className="section-kicker block-title-with-icon" style={{ gap: '4px' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="block-icon" style={{ width: '14px', height: '14px' }} aria-hidden="true">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                  Deposit
+                </p>
+                <h2 className="section-subtitle">
+                  입금 정보
+                </h2>
               </div>
-              <span className="status-pill">{getDepositStatusLabel(order.deposit.depositStatus)}</span>
+              <span className={`status-pill ${getDepositStatusPillClass(order.deposit.depositStatus)}`}>
+                {getDepositStatusLabel(order.deposit.depositStatus)}
+              </span>
             </div>
 
             <div className="order-lookup-grid">
@@ -721,6 +830,9 @@ export function OrderLookupPage() {
                   <span>입금 예정 금액</span>
                   <strong>{formatCurrency(depositExpectedAmount)}</strong>
                 </div>
+              </div>
+
+              <div className="order-lookup-block">
                 <div className="order-summary-row">
                   <span>입금 시각</span>
                   <strong>{formatDateTime(order.deposit.requestedAt)}</strong>
