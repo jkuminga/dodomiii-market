@@ -68,7 +68,7 @@ function NewHomeNewArrivalSection() {
         </h2>
       </FadeIn>
 
-      {loading ? <LoadingScreen mode="inline" title="New Arrival 로딩 중" message="신상품 이미지를 불러오고 있습니다." /> : null}
+      {loading ? <LoadingScreen mode="inline" title="새 상품 목록 로딩 중" message="상품 목록을 불러오고 있습니다." /> : null}
       {error ? <p className="feedback-copy is-error new-home-best-feedback">{error}</p> : null}
 
       {!loading && !error && items.length > 0 ? (
@@ -139,7 +139,7 @@ function NewHomeBestItemsSection() {
         </h2>
       </FadeIn>
 
-      {loading ? <LoadingScreen mode="inline" title="베스트 상품 로딩 중" message="추천 상품을 불러오고 있습니다." /> : null}
+      {loading ? <LoadingScreen mode="inline" title="추천 상품 로딩 중" message="상품 목록을 불러오고 있습니다." /> : null}
       {error ? <p className="feedback-copy is-error new-home-best-feedback">{error}</p> : null}
 
       {!loading && !error && items.length === 0 ? (
@@ -220,7 +220,7 @@ function NewHomeAllProductsSection() {
         </h2>
       </FadeIn>
 
-      {loading ? <LoadingScreen mode="inline" title="ALL 상품 로딩 중" message="전체 상품을 불러오고 있습니다." /> : null}
+      {loading ? <LoadingScreen mode="inline" title="상품 로딩 중" message="전체 상품 목록을 불러오고 있습니다." /> : null}
       {error ? <p className="feedback-copy is-error new-home-best-feedback">{error}</p> : null}
 
       {!loading && !error && products.length === 0 ? (
