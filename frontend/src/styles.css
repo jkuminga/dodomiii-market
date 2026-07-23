@@ -1645,7 +1645,7 @@ img {
   flex: 1;
   padding: 10px 10px;
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 500;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.5);
@@ -2472,6 +2472,7 @@ img {
   margin-right: 0;
   margin-left: 0;
   min-height: 0;
+  border: 0;
   border-radius: 0;
 }
 
@@ -5810,7 +5811,7 @@ img {
 }
 
 .cart-summary-card .inline-actions {
-  justify-content: space-between;
+  justify-content: flex-end;
 }
 
 .cart-item-card {
@@ -6527,7 +6528,7 @@ button.m-bottom-nav-item {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 4px;
 }
 
 .home-search-close {
@@ -11763,4 +11764,17 @@ button.admin-list-card {
 .animate-stagger-item {
   opacity: 0;
   animation: initialFadeInUp 0.6s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+.mobile-only-hr {
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin: 16px 0;
+  display: block;
+}
+
+@media (min-width: 960px) {
+  .mobile-only-hr {
+    display: none;
+  }
 }

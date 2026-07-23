@@ -12,6 +12,12 @@ function formatCurrency(value: number): string {
   return `${value.toLocaleString('ko-KR')}원`;
 }
 
+function formatLastCategory(categoryName: string | null | undefined): string {
+  if (!categoryName) return '';
+  const parts = categoryName.split('/');
+  return parts[parts.length - 1].trim();
+}
+
 export function ProductDetailPage() {
   const { productId } = useParams<{ productId: string }>();
 
@@ -429,11 +435,13 @@ export function ProductDetailPage() {
         </section>
       </div>
 
+      <hr className="mobile-only-hr" />
+
       <div className="detail-side-column">
         <section className="surface-hero compact-hero detail-summary-card">
-          <p className="section-kicker">{product.categoryName}</p>
+          <p className="section-kicker">{formatLastCategory(product.categoryName)}</p>
           <h1 className="section-title">{product.name}</h1>
-          <p className="section-copy">{product.shortDescription ?? product.description ?? '상품 소개 문구가 준비 중입니다.'}</p>
+          <p className="section-copy" style={{ marginTop: 5 }}>{product.shortDescription ?? product.description ?? '상품 소개 문구가 준비 중입니다.'}</p>
 
           {/* <div className="detail-price-row">
             <div className="detail-price-stack">
@@ -704,6 +712,8 @@ export function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      <hr className="mobile-only-hr" />
 
       <div className="detail-tab-column">
         <section className="surface-card detail-tab-card">
