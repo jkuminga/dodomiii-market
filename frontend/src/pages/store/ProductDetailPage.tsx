@@ -504,7 +504,15 @@ export function ProductDetailPage() {
                       }
                       aria-expanded={expandedOptionGroups[String(group.id)] ?? false}
                     >
-                      {expandedOptionGroups[String(group.id)] ?? false ? '접기' : '펼치기'}
+                      {expandedOptionGroups[String(group.id)] ?? false ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="접기">
+                          <path d="m18 15-6-6-6 6"/>
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="펼치기">
+                          <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                      )}
                     </button>
                   </div>
                   {invalidRequiredGroupIds.includes(String(group.id)) ? (

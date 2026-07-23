@@ -1530,10 +1530,14 @@ img {
 }
 
 .m-menu-head h2 {
-  margin: 8px 0 0;
+  margin: 5px 0 0;
   font-family: var(--font-display);
   font-size: 1.38rem;
   line-height: 1.15;
+}
+
+.m-menu-head .section-kicker {
+  padding-bottom: 0;
 }
 
 .m-menu-links {
@@ -1569,7 +1573,7 @@ img {
   display: block;
   color: var(--text);
   font-size: 1.05rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .m-menu-link small {
@@ -1583,7 +1587,7 @@ img {
 .m-menu-category-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   padding: 18px 12px;
   background: rgba(255, 255, 255, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.6);
@@ -1597,7 +1601,7 @@ img {
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  margin-bottom: 6px;
+  margin-bottom: 3px;
 }
 
 .m-menu-category-empty {
@@ -1616,7 +1620,7 @@ img {
 .m-menu-category-root-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .m-menu-category-root-item {
@@ -1630,7 +1634,7 @@ img {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 4px 0;
+  padding: 2px 0;
 }
 
 .m-menu-category-link,
@@ -1643,7 +1647,7 @@ img {
 
 .m-menu-category-link {
   flex: 1;
-  padding: 10px 10px;
+  padding: 5px 10px;
   font-size: 0.95rem;
   font-weight: 500;
   border-radius: 10px;
@@ -1709,12 +1713,12 @@ img {
 .m-menu-category-child-list-inner {
   overflow: hidden;
   display: grid;
-  gap: 4px;
-  padding: 0 6px 8px;
+  gap: 2px;
+  padding: 0 6px 4px;
 }
 
 .m-menu-category-child-link {
-  padding: 7px 10px;
+  padding: 4px 10px;
   color: var(--muted);
   font-size: 0.82rem;
 }
@@ -3216,6 +3220,10 @@ img {
   pointer-events: none;
 }
 
+.home-page-full-hero .hero-landing-gradient {
+  display: none;
+}
+
 .hero-landing-grain {
   position: absolute;
   inset: 0;
@@ -4016,6 +4024,11 @@ img {
 .product-media,
 .detail-main-media {
   background: #ffffff;
+}
+
+.product-tile .product-media,
+.product-tile .product-artwork-image {
+  background: inherit;
 }
 
 .feature-card-media,
@@ -5397,10 +5410,13 @@ img {
   border: 1px solid rgb(var(--primary-rgb) / 0.16);
   background: rgba(255, 255, 255, 0.9);
   color: var(--muted);
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 0.72rem;
-  font-weight: 700;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   cursor: pointer;
 }
 
@@ -6595,7 +6611,7 @@ button.m-bottom-nav-item {
   border: 0;
   background: transparent;
   color: var(--text);
-  font-size: 1.05rem;
+  font-size: 0.85rem;
   line-height: 1.4;
   outline: none;
 }
@@ -10486,9 +10502,9 @@ button.admin-list-card {
     border-color: rgba(15, 23, 42, 0.07);
     border-radius: 30px;
     box-shadow:
-      0 1px 2px rgba(15, 23, 42, 0.04),
-      0 12px 24px -22px rgba(15, 23, 42, 0.2);
-    filter: drop-shadow(0 4px 7px rgba(15, 23, 42, 0.025));
+      0 0 0 0px rgba(15, 23, 42, 0.04),
+      0 0px 0px -22px rgba(15, 23, 42, 0.2);
+    filter: drop-shadow(0 6px 10px rgba(15, 23, 42, 0.025));
   }
 
   .app-shell.is-store.is-store-desktop .detail-side-column>.detail-summary-card {
@@ -11769,7 +11785,8 @@ button.admin-list-card {
 .mobile-only-hr {
   border: none;
   border-top: 1px solid rgba(0, 0, 0, 0.08);
-  margin: 16px 0;
+  margin: 4px auto;
+  width: 75%;
   display: block;
 }
 
@@ -11777,4 +11794,29 @@ button.admin-list-card {
   .mobile-only-hr {
     display: none;
   }
+}
+
+.sold-out-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.sold-out-badge {
+  background: rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
