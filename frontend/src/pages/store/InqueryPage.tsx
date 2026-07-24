@@ -24,7 +24,7 @@ export function InqueryPage() {
           <div className="custom-order-action-row">
             <a
               className="custom-order-kakao-link"
-              href="https://open.kakao.com/o/sGNOJYJh"
+              href="https://open.kakao.com/o/sinMSygh"
               target="_blank"
               rel="noreferrer noopener"
               aria-label="카카오톡 오픈채팅 문의하기"
