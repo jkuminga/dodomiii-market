@@ -242,6 +242,7 @@ function NewHomeProductMarquee({ products }: { products: ProductListItem[] }) {
   const firstSetRef = useRef<HTMLDivElement>(null);
   const isPausedRef = useRef(false);
   const [duplicateCount, setDuplicateCount] = useState(2);
+  const [paintCycle, setPaintCycle] = useState(0);
 
   useEffect(() => {
     const rail = railRef.current;
@@ -303,6 +304,7 @@ function NewHomeProductMarquee({ products }: { products: ProductListItem[] }) {
 
         if (virtualScrollLeft >= resetPoint) {
           virtualScrollLeft %= resetPoint;
+          setPaintCycle((currentCycle) => currentCycle + 1);
         }
 
         // Some iOS Safari versions round scrollLeft writes to whole pixels.
@@ -321,7 +323,7 @@ function NewHomeProductMarquee({ products }: { products: ProductListItem[] }) {
       resizeObserver?.disconnect();
       window.removeEventListener('resize', updateResetPoint);
     };
-  }, [products.length]);
+  }, [paintCycle, products.length]);
 
   const setPaused = (isPaused: boolean) => {
     isPausedRef.current = isPaused;
@@ -354,7 +356,7 @@ function NewHomeProductMarquee({ products }: { products: ProductListItem[] }) {
       onPointerEnter={(event) => setPausedForPointer(event, true)}
       onPointerLeave={(event) => setPausedForPointer(event, false)}
     >
-      <div className="new-home-product-marquee-set" ref={firstSetRef}>
+      <div className="new-home-product-marquee-set" key={`paint-cycle-${paintCycle}`} ref={firstSetRef}>
         {renderProducts(products, 'first')}
         <div className="new-home-marquee-divider" aria-hidden="true" />
       </div>

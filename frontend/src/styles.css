@@ -3039,6 +3039,13 @@ img {
   gap: 16px;
 }
 
+.new-home-product-marquee-set .new-home-product-tile {
+  flex: 0 0 clamp(238px, 13vw, 276px);
+  width: clamp(238px, 13vw, 276px);
+  min-width: clamp(238px, 13vw, 276px);
+  max-width: clamp(238px, 13vw, 276px);
+}
+
 .new-home-marquee-divider {
   width: 1px;
   background-color: var(--line);
