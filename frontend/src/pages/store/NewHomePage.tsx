@@ -241,6 +241,7 @@ function NewHomeProductMarquee({ products }: { products: ProductListItem[] }) {
   const railRef = useRef<HTMLDivElement>(null);
   const firstSetRef = useRef<HTMLDivElement>(null);
   const isPausedRef = useRef(false);
+  const [duplicateCount, setDuplicateCount] = useState(2);
 
   useEffect(() => {
     const rail = railRef.current;
@@ -257,11 +258,27 @@ function NewHomeProductMarquee({ products }: { products: ProductListItem[] }) {
     let animationFrameId = 0;
     let lastTime = performance.now();
     let resetPoint = 0;
+    let virtualScrollLeft = Math.max(0, rail.scrollLeft);
+    let lastWrittenScrollLeft = rail.scrollLeft;
 
     const updateResetPoint = () => {
       const railStyle = window.getComputedStyle(rail);
       const gap = Number.parseFloat(railStyle.columnGap || railStyle.gap || '0') || 0;
+      const firstTile = firstSet.querySelector<HTMLElement>('.new-home-product-tile');
+
       resetPoint = firstSet.getBoundingClientRect().width + gap;
+
+      if (firstTile) {
+        const firstSetStyle = window.getComputedStyle(firstSet);
+        const tileGap = Number.parseFloat(firstSetStyle.columnGap || firstSetStyle.gap || '0') || 0;
+        const tileStep = firstTile.getBoundingClientRect().width + tileGap;
+        const nextDuplicateCount = Math.min(
+          products.length,
+          Math.max(2, Math.ceil(rail.clientWidth / tileStep) + 1),
+        );
+
+        setDuplicateCount((currentCount) => (currentCount === nextDuplicateCount ? currentCount : nextDuplicateCount));
+      }
     };
 
     const resizeObserver = 'ResizeObserver' in window ? new ResizeObserver(updateResetPoint) : null;
@@ -276,11 +293,22 @@ function NewHomeProductMarquee({ products }: { products: ProductListItem[] }) {
       lastTime = time;
 
       if (!isPausedRef.current && resetPoint > 0) {
-        rail.scrollLeft += deltaSeconds * ALL_MARQUEE_SPEED_PX_PER_SECOND;
+        const actualScrollLeft = Math.max(0, rail.scrollLeft);
 
-        if (rail.scrollLeft >= resetPoint) {
-          rail.scrollLeft -= resetPoint;
+        if (Math.abs(actualScrollLeft - lastWrittenScrollLeft) > 1) {
+          virtualScrollLeft = actualScrollLeft;
         }
+
+        virtualScrollLeft += deltaSeconds * ALL_MARQUEE_SPEED_PX_PER_SECOND;
+
+        if (virtualScrollLeft >= resetPoint) {
+          virtualScrollLeft %= resetPoint;
+        }
+
+        // Some iOS Safari versions round scrollLeft writes to whole pixels.
+        // Keep the fractional position here so sub-pixel movement still accumulates.
+        rail.scrollLeft = virtualScrollLeft;
+        lastWrittenScrollLeft = rail.scrollLeft;
       }
 
       animationFrameId = window.requestAnimationFrame(tick);
@@ -299,8 +327,14 @@ function NewHomeProductMarquee({ products }: { products: ProductListItem[] }) {
     isPausedRef.current = isPaused;
   };
 
-  const renderProducts = (keyPrefix: string, isDuplicate = false) =>
-    products.map((product) => (
+  const setPausedForPointer = (event: React.PointerEvent<HTMLDivElement>, isPaused: boolean) => {
+    if (event.pointerType === 'mouse') {
+      setPaused(isPaused);
+    }
+  };
+
+  const renderProducts = (items: ProductListItem[], keyPrefix: string, isDuplicate = false) =>
+    items.map((product) => (
       <ProductTile
         ariaHidden={isDuplicate}
         className="new-home-product-tile"
@@ -317,18 +351,15 @@ function NewHomeProductMarquee({ products }: { products: ProductListItem[] }) {
       className="new-home-product-rail is-marquee"
       ref={railRef}
       aria-label="ALL 전체 상품"
-      onFocus={() => setPaused(true)}
-      onBlur={() => setPaused(false)}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      onPointerEnter={(event) => setPausedForPointer(event, true)}
+      onPointerLeave={(event) => setPausedForPointer(event, false)}
     >
       <div className="new-home-product-marquee-set" ref={firstSetRef}>
-        {renderProducts('first')}
+        {renderProducts(products, 'first')}
         <div className="new-home-marquee-divider" aria-hidden="true" />
       </div>
       <div className="new-home-product-marquee-set" aria-hidden="true">
-        {renderProducts('second', true)}
-        <div className="new-home-marquee-divider" aria-hidden="true" />
+        {renderProducts(products.slice(0, duplicateCount), 'duplicate', true)}
       </div>
     </div>
   );
