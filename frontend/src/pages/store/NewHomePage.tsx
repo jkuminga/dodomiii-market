@@ -216,10 +216,16 @@ function NewHomeAllProductsSection() {
 
   return (
     <section className="new-home-best-section new-home-all-section" aria-labelledby="new-home-all-title">
-      <FadeIn direction="up" delay={0}>
+      <FadeIn direction="up" delay={0} className="new-home-all-header">
         <h2 className="new-home-best-title" id="new-home-all-title">
           <span className="new-home-best-title-text">ALL</span>
         </h2>
+        <Link className="new-home-all-view-link" to="/products" aria-label="전체 상품 보기">
+          <span>전체보기</span>
+          <span className="new-home-all-view-link-icon" aria-hidden="true">
+            ›
+          </span>
+        </Link>
       </FadeIn>
 
       {loading ? <LoadingScreen mode="inline" title="상품 로딩 중" message="전체 상품 목록을 불러오고 있습니다." /> : null}

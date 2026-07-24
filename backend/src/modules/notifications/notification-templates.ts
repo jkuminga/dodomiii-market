@@ -118,6 +118,7 @@ const renderOrderItemsHtml = (items: OrderItemTemplateData[]): string => {
 const formatOrderStatus = (status: OrderStatus): string => ORDER_STATUS_LABELS[status];
 const formatShipmentStatus = (status: ShipmentStatus): string => SHIPMENT_STATUS_LABELS[status];
 
+// To 관리자: 신규 주문 생성 이메일
 export const renderAdminNewOrderEmail = (order: OrderTemplateContext): RenderedEmail => {
   const subject = `[신규 주문] ${order.orderNumber}`;
   const text = [
@@ -152,11 +153,11 @@ export const renderAdminNewOrderEmail = (order: OrderTemplateContext): RenderedE
   return { subject, text, html };
 };
 
-// To 관리자 : 새 주문 생성(입금 대기)
+// To 관리자: 신규 주문 생성 SMS
 export const renderAdminNewOrderSms = (order: OrderTemplateContext): string =>
   `[도도미마켓 - 신규 주문]\n◼︎주문 번호 : ${order.orderNumber}\n◼︎구매인 성함 : ${order.buyerName ?? '-'}\n◼︎금액 : ${formatCurrency(order.finalTotalPrice)}\n◼︎상태 : ${formatOrderStatus(order.orderStatus)}`;
 
-// To 관리자 : 새 주문 생성(입금 확인 요청)
+// To 관리자: 입금 확인 요청 SMS
 export const renderAdminDepositRequestedSms = (
   order: OrderTemplateContext,
   adminOrderUrl: string | null = null,
@@ -176,7 +177,7 @@ export const renderAdminDepositRequestedSms = (
   return lines.join('\n');
 };
 
-// To 구매자 : 주문 상태 변경 시
+// To 구매자: 주문 상태 변경 SMS
 export const renderCustomerOrderStatusSms = (
   order: OrderTemplateContext,
   previousStatus: OrderStatus,
@@ -205,6 +206,7 @@ export const renderCustomerOrderStatusSms = (
   return lines.join('\n');
 };
 
+// To 관리자: 주문 상태 변경 요약 이메일
 export const renderAdminOrderStatusEmail = (
   context: AdminStatusSummaryContext,
 ): RenderedEmail => {
@@ -238,10 +240,11 @@ export const renderAdminOrderStatusEmail = (
   return { subject, text, html };
 };
 
-// To 관리자 : 주문 상태 변경
+// To 관리자: 주문 상태 변경 요약 SMS
 export const renderAdminOrderStatusSms = (context: AdminStatusSummaryContext): string =>
   `[도도미마켓 - 주문 상태 변경]\n ◼︎주문 번호 : ${context.order.orderNumber}\n ◼︎상태 : ${formatOrderStatus(context.previousStatus)} > ${formatOrderStatus(context.newStatus)}\n ◼︎구매자 : ${context.order.buyerName ?? '-'}\n ◼︎사유 : ${context.changeReason ?? '-'}`;
 
+// To 관리자: 배송 정보 업데이트 이메일
 export const renderAdminShipmentUpdatedEmail = (
   context: AdminShipmentSummaryContext,
 ): RenderedEmail => {
@@ -269,8 +272,7 @@ export const renderAdminShipmentUpdatedEmail = (
   return { subject, text, html };
 };
 
-
-// To
+// To 관리자: 배송 정보 업데이트 SMS
 export const renderAdminShipmentUpdatedSms = (
   context: AdminShipmentSummaryContext,
 ): string =>

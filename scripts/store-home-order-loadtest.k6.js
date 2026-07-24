@@ -6,16 +6,18 @@ const PRODUCT_ID = Number(__ENV.PRODUCT_ID || 0);
 const ORDER_RATIO = Number(__ENV.ORDER_RATIO || 0.05);
 const TEST_TAG = __ENV.TEST_TAG || 'LOADTEST';
 const SLEEP_SECONDS = Number(__ENV.SLEEP_SECONDS || 1);
+const REFUND_POLICY_CONSENT_VERSION =
+  __ENV.REFUND_POLICY_CONSENT_VERSION || 'custom_order_refund_policy_v1';
 
 const SELECTED_OPTIONS = parseSelectedOptions(__ENV.SELECTED_OPTIONS);
 
 export const options = {
   stages: [
-    { duration: '2m', target: 3 },
-    { duration: '5m', target: 10 },
-    { duration: '10m', target: 30 },
-    { duration: '10m', target: 50 },
-    { duration: '3m', target: 80 },
+    { duration: '2m', target: 8 },
+    { duration: '5m', target: 25 },
+    { duration: '10m', target: 75 },
+    { duration: '10m', target: 125 },
+    { duration: '3m', target: 200 },
     { duration: '2m', target: 0 },
   ],
   thresholds: {
@@ -27,12 +29,7 @@ export const options = {
 };
 
 export default function () {
-  if (Math.random() < ORDER_RATIO) {
-    createOrder();
-  } else {
-    loadHome();
-  }
-
+  loadHome();
   sleep(SLEEP_SECONDS);
 }
 
@@ -101,6 +98,10 @@ function createOrder() {
       zipcode: '06000',
       address1: '서울특별시 강남구 테스트로 1',
       address2: 'k6 production load test',
+    },
+    refundPolicyConsent: {
+      agreed: true,
+      version: REFUND_POLICY_CONSENT_VERSION,
     },
     customerRequest: `[${TEST_TAG}] k6 production transaction-mode test`,
   };

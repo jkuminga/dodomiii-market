@@ -3005,6 +3005,52 @@ img {
   background: linear-gradient(90deg, #102717 0%, rgb(var(--primary-rgb) / 0.9) 100%);
 }
 
+.new-home-all-header {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.new-home-all-view-link {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid rgb(var(--primary-rgb) / 0.18);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--primary-deep);
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.new-home-all-view-link:hover,
+.new-home-all-view-link:focus-visible {
+  border-color: rgb(var(--primary-rgb) / 0.42);
+  background: rgb(var(--primary-rgb) / 0.06);
+  color: #102717;
+}
+
+.new-home-all-view-link:focus-visible {
+  outline: 2px solid rgb(var(--primary-rgb) / 0.24);
+  outline-offset: 2px;
+}
+
+.new-home-all-view-link-icon {
+  font-size: 1.15rem;
+  line-height: 0;
+}
+
 .new-home-product-rail {
   display: flex;
   gap: 16px;
@@ -4055,6 +4101,7 @@ img {
   text-align: left;
   gap: 10px;
   padding: 16px 18px;
+  flex-grow: 1;
 }
 
 .product-body .product-description {
@@ -4069,6 +4116,7 @@ img {
 
 .product-body .product-meta-row {
   margin-top: auto;
+  width: 100%;
 }
 
 .feature-card h3,
@@ -4149,6 +4197,8 @@ img {
   display: grid;
   gap: 2px;
   min-width: 0;
+  min-height: 40px;
+  align-content: start;
 }
 
 .detail-price-stack {
