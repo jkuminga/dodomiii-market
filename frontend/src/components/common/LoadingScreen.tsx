@@ -32,6 +32,6 @@ export function LoadingScreen({
       <div className="loading-logo-wrap loading-logo-wrap-large" aria-hidden="true">
         <Lottie className="loading-lottie" animationData={loadingAnimation} loop autoplay />
       </div>
-    </div>
+    </div> 
   );
 }

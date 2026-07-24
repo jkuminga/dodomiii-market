@@ -1080,8 +1080,8 @@ img {
 .app-shell.is-store .order-option-basket-item,
 .app-shell.is-store .loading-screen-overlay,
 .app-shell.is-store .loading-screen-page-only {
-  background: rgb(var(--surface-cream-rgb) / 0.96);
-  /* background : white */
+  /* background: rgb(var(--surface-cream-rgb) / 0.96); */
+  background : white
 }
 
 .app-shell.is-store .m-bottom-nav-inner {
@@ -2260,8 +2260,8 @@ img {
   border-radius: 15px;
   padding: 10px;
   background: #ffffff;
-  /* border : rgb(var(--primary-deep-rgb)); */
-  box-shadow: 0 12px 32px -8px rgb(var(--primary-deep-rgb) / 0.32), 0 4px 16px -4px rgb(var(--primary-deep-rgb) / 0.24);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 24px 48px rgb(var(--primary-deep-rgb) / 0.25), 0 12px 24px rgb(var(--primary-deep-rgb) / 0.15);
 }
 
 .loading-screen-inline .loading-copy {
