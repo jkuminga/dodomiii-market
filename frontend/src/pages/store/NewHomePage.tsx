@@ -19,6 +19,7 @@ type NewHomePageProps = {
 
 const NEW_HOME_PRODUCT_SIZE = 12;
 const ALL_MARQUEE_SPEED_PX_PER_SECOND = 34;
+const ALL_MARQUEE_TOUCH_RESUME_DELAY_MS = 180;
 
 function NewHomeNewArrivalSection() {
   const [items, setItems] = useState<StoreHomeItem[]>([]);
@@ -241,6 +242,8 @@ function NewHomeProductMarquee({ products }: { products: ProductListItem[] }) {
   const railRef = useRef<HTMLDivElement>(null);
   const firstSetRef = useRef<HTMLDivElement>(null);
   const isPausedRef = useRef(false);
+  const isTouchScrollingRef = useRef(false);
+  const touchResumeTimerRef = useRef<number | null>(null);
   const [duplicateCount, setDuplicateCount] = useState(2);
   const [paintCycle, setPaintCycle] = useState(0);
 
@@ -322,6 +325,10 @@ function NewHomeProductMarquee({ products }: { products: ProductListItem[] }) {
       window.cancelAnimationFrame(animationFrameId);
       resizeObserver?.disconnect();
       window.removeEventListener('resize', updateResetPoint);
+
+      if (touchResumeTimerRef.current !== null) {
+        window.clearTimeout(touchResumeTimerRef.current);
+      }
     };
   }, [paintCycle, products.length]);
 
@@ -332,6 +339,44 @@ function NewHomeProductMarquee({ products }: { products: ProductListItem[] }) {
   const setPausedForPointer = (event: React.PointerEvent<HTMLDivElement>, isPaused: boolean) => {
     if (event.pointerType === 'mouse') {
       setPaused(isPaused);
+    }
+  };
+
+  const clearTouchResumeTimer = () => {
+    if (touchResumeTimerRef.current !== null) {
+      window.clearTimeout(touchResumeTimerRef.current);
+      touchResumeTimerRef.current = null;
+    }
+  };
+
+  const scheduleTouchResume = () => {
+    clearTouchResumeTimer();
+    touchResumeTimerRef.current = window.setTimeout(() => {
+      isTouchScrollingRef.current = false;
+      touchResumeTimerRef.current = null;
+      setPaused(false);
+    }, ALL_MARQUEE_TOUCH_RESUME_DELAY_MS);
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse') {
+      return;
+    }
+
+    clearTouchResumeTimer();
+    isTouchScrollingRef.current = true;
+    setPaused(true);
+  };
+
+  const handlePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'mouse') {
+      scheduleTouchResume();
+    }
+  };
+
+  const handleScroll = () => {
+    if (isTouchScrollingRef.current) {
+      scheduleTouchResume();
     }
   };
 
@@ -353,8 +398,12 @@ function NewHomeProductMarquee({ products }: { products: ProductListItem[] }) {
       className="new-home-product-rail is-marquee"
       ref={railRef}
       aria-label="ALL 전체 상품"
+      onPointerCancel={handlePointerEnd}
+      onPointerDown={handlePointerDown}
       onPointerEnter={(event) => setPausedForPointer(event, true)}
       onPointerLeave={(event) => setPausedForPointer(event, false)}
+      onPointerUp={handlePointerEnd}
+      onScroll={handleScroll}
     >
       <div className="new-home-product-marquee-set" key={`paint-cycle-${paintCycle}`} ref={firstSetRef}>
         {renderProducts(products, 'first')}

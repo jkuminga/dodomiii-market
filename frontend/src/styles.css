@@ -3031,7 +3031,8 @@ img {
   overflow-x: auto;
   scroll-padding-left: 0;
   scroll-snap-type: none;
-  -webkit-overflow-scrolling: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .new-home-marquee-frame {
@@ -3050,6 +3051,7 @@ img {
   width: clamp(238px, 13vw, 276px);
   min-width: clamp(238px, 13vw, 276px);
   max-width: clamp(238px, 13vw, 276px);
+  scroll-snap-align: none;
 }
 
 .new-home-marquee-divider {
