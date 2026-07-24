@@ -306,7 +306,8 @@ export function OrderPage() {
   const estimatedUnitPrice = product
     ? discountedBasePrice + selectedOptionExtraTotal
     : 0;
-  const estimatedSubtotal = estimatedUnitPrice * quantity + 3000;
+  const estimatedProductPrice = estimatedUnitPrice * quantity;
+  const estimatedSubtotal = estimatedProductPrice + 3000;
   const requiresOptionSelection =
     optionGroups.length > 0 &&
     optionGroups.some((group) => {
@@ -551,16 +552,20 @@ export function OrderPage() {
             <div className="detail-price-stack">
               {hasDiscount ? (
                 <>
-                  <span className="detail-original-price">{formatCurrency(product.basePrice)}</span>
+                  <span className="detail-original-price">{formatCurrency(product.basePrice * quantity)}</span>
                   <span className="detail-price-meta">
                     <span className="detail-discount-rate">{formatDiscountRate(product.discountRate)}</span>
-                    <strong>{formatCurrency(discountedBasePrice)}</strong>
+                    <strong>{formatCurrency(discountedBasePrice * quantity)}</strong>
                   </span>
                 </>
               ) : (
-                <strong>{formatCurrency(discountedBasePrice)}</strong>
+                <strong>{formatCurrency(discountedBasePrice * quantity)}</strong>
               )}
             </div>
+          </div>
+          <div className="order-summary-row">
+            <span>상품 수량</span>
+            <strong>{quantity}개</strong>
           </div>
           <div className="order-summary-row">
             <span>배송비</span>
@@ -579,7 +584,7 @@ export function OrderPage() {
               </div>
               <strong>
                 {selectedOptionExtraTotal > 0
-                  ? `+${formatCurrency(selectedOptionExtraTotal)}`
+                  ? `+${formatCurrency(selectedOptionExtraTotal * quantity)}`
                   : '추가 금액 없음'}
               </strong>
             </div>
@@ -599,26 +604,55 @@ export function OrderPage() {
           <fieldset className="order-form-section">
             <legend>옵션 및 수량</legend>
 
+            <div className="product-quantity-field">
+              <span>수량</span>
+              <div className="quantity-stepper">
+                <button
+                  className="quantity-button"
+                  type="button"
+                  onClick={() => onQuantityChange(quantity - 1)}
+                  aria-label="수량 감소"
+                  disabled={quantity <= 1}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9.5"/>
+                    <line x1="7.5" y1="12" x2="16.5" y2="12"/>
+                  </svg>
+                </button>
+                <input
+                  className="quantity-input"
+                  type="number"
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  value={quantity}
+                  onChange={(event) => onQuantityChange(Number(event.target.value) || 1)}
+                />
+                <button className="quantity-button" type="button" onClick={() => onQuantityChange(quantity + 1)} aria-label="수량 증가">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9.5"/>
+                    <line x1="12" y1="7.5" x2="12" y2="16.5"/>
+                    <line x1="7.5" y1="12" x2="16.5" y2="12"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
             {optionGroups.length > 0 ? (
               <div className="order-option-group-list">
                 {optionGroups.map((group) => (
                   <div
-                    className="field order-option-group-field"
+                    className={`order-option-group-field ${(expandedOptionGroups[String(group.id)] ?? false) ? 'is-expanded' : ''}`}
                     key={group.id}
                     ref={(node) => {
                       optionGroupRefs.current[String(group.id)] = node;
                     }}
                   >
-                    <div className="order-option-group-head">
+                    <div style={{paddingBottom:"5px"}} className="order-option-group-head">
                       <span>
                         {group.name}
                         {group.isRequired ? (
                           <small className="order-option-required-flag">필수</small>
-                        ) : null}
-                        {(group.selectionType === 'SINGLE'
-                          ? Boolean(selectedSingleOptionByGroup[String(group.id)])
-                          : group.options.some((option) => (selectedQuantityByOption[String(option.id)] ?? 0) > 0)) ? (
-                          <small className="order-option-selected-flag">선택됨</small>
                         ) : null}
                       </span>
                       <button
@@ -632,7 +666,15 @@ export function OrderPage() {
                         }
                         aria-expanded={expandedOptionGroups[String(group.id)] ?? false}
                       >
-                        {expandedOptionGroups[String(group.id)] ?? false ? '접기' : '펼치기'}
+                        {expandedOptionGroups[String(group.id)] ?? false ? (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="접기">
+                            <path d="m18 15-6-6-6 6"/>
+                          </svg>
+                        ) : (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="펼치기">
+                            <path d="m6 9 6 6 6-6"/>
+                          </svg>
+                        )}
                       </button>
                     </div>
                     {invalidRequiredGroupIds.includes(String(group.id)) ? (
@@ -691,7 +733,10 @@ export function OrderPage() {
                                   }}
                                   aria-label={`${option.name} 수량 감소`}
                                 >
-                                  -
+                                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="9.5"/>
+                                    <line x1="7.5" y1="12" x2="16.5" y2="12"/>
+                                  </svg>
                                 </button>
                                 <input
                                   className="quantity-input"
@@ -736,7 +781,11 @@ export function OrderPage() {
                                   }}
                                   aria-label={`${option.name} 수량 증가`}
                                 >
-                                  +
+                                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="9.5"/>
+                                    <line x1="12" y1="7.5" x2="12" y2="16.5"/>
+                                    <line x1="7.5" y1="12" x2="16.5" y2="12"/>
+                                  </svg>
                                 </button>
                               </div>
                             </div>
@@ -774,7 +823,8 @@ export function OrderPage() {
                           </span>
                           <button
                             type="button"
-                            className="button-text order-option-remove-button"
+                            className="order-option-remove-button"
+                            aria-label="선택 옵션 제거"
                             onClick={() => {
                               if (entry.group.selectionType === 'SINGLE') {
                                 setSelectedSingleOptionByGroup((current) => ({
@@ -790,7 +840,10 @@ export function OrderPage() {
                               }));
                             }}
                           >
-                            제거
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="18" y1="6" x2="6" y2="18"/>
+                              <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
                           </button>
                         </div>
                       </li>
@@ -802,32 +855,7 @@ export function OrderPage() {
               </section>
             ) : null}
 
-            {/* <div className="field">
-              <span>수량</span>
-              <div className="quantity-stepper">
-                <button
-                  className="quantity-button"
-                  type="button"
-                  onClick={() => onQuantityChange(quantity - 1)}
-                  aria-label="수량 감소"
-                  disabled={quantity <= 1}
-                >
-                  -
-                </button>
-                <input
-                  className="quantity-input"
-                  type="number"
-                  min={1}
-                  step={1}
-                  inputMode="numeric"
-                  value={quantity}
-                  onChange={(event) => onQuantityChange(Number(event.target.value) || 1)}
-                />
-                <button className="quantity-button" type="button" onClick={() => onQuantityChange(quantity + 1)} aria-label="수량 증가">
-                  +
-                </button>
-              </div>
-            </div> */}
+
           </fieldset>
         </section>
 

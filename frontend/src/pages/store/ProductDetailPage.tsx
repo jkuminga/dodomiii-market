@@ -29,6 +29,7 @@ export function ProductDetailPage() {
   const [selectedQuantityByOption, setSelectedQuantityByOption] = useState<Record<string, number>>({});
   const [expandedOptionGroups, setExpandedOptionGroups] = useState<Record<string, boolean>>({});
   const [invalidRequiredGroupIds, setInvalidRequiredGroupIds] = useState<string[]>([]);
+  const [productQuantity, setProductQuantity] = useState(1);
   const [showPriceDetails, setShowPriceDetails] = useState(false);
   const [showCartAddedPopup, setShowCartAddedPopup] = useState(false);
   const optionGroupRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -61,6 +62,7 @@ export function ProductDetailPage() {
         setSelectedSingleOptionByGroup({});
         setSelectedQuantityByOption({});
         setInvalidRequiredGroupIds([]);
+        setProductQuantity(1);
         setShowCartAddedPopup(false);
       } catch (caught) {
         if (!cancelled) {
@@ -242,7 +244,8 @@ export function ProductDetailPage() {
   );
   const discountedBasePrice = calculateDiscountedPrice(product.basePrice, product.discountRate);
   const hasDiscount = product.discountRate > 0 && discountedBasePrice < product.basePrice;
-  const selectedTotalPrice = discountedBasePrice + selectedOptionExtraTotal + 3000;
+  const selectedUnitPrice = discountedBasePrice + selectedOptionExtraTotal;
+  const selectedTotalPrice = selectedUnitPrice * productQuantity + 3000;
   const missingRequiredGroupIds = optionGroups
     .filter((group) => {
       if (!group.isRequired) {
@@ -265,8 +268,12 @@ export function ProductDetailPage() {
         .join(';'),
     );
   }
+  orderParams.set('quantity', String(productQuantity));
 
   const orderHref = `/products/${product.id}/order${orderParams.toString() ? `?${orderParams.toString()}` : ''}`;
+  const onProductQuantityChange = (nextValue: number) => {
+    setProductQuantity(Number.isFinite(nextValue) ? Math.max(1, Math.floor(nextValue)) : 1);
+  };
   const focusFirstMissingRequiredGroup = () => {
     if (missingRequiredGroupIds.length === 0) {
       return;
@@ -299,7 +306,7 @@ export function ProductDetailPage() {
       categoryName: product.categoryName,
       thumbnailImageUrl: product.images[0]?.imageUrl ?? null,
       basePrice: discountedBasePrice,
-      productQuantity: 1,
+      productQuantity,
       selectedOptions: selectedOptions.map((entry) => ({
         groupId: entry.group.id,
         groupName: entry.group.name,
@@ -373,7 +380,7 @@ export function ProductDetailPage() {
                 </div>
               ))}
             </div>
-
+ 
             <div className="detail-media-overlay">
               <span className={`status-pill ${product.isSoldOut ? 'is-muted' : ''}`}>{product.isSoldOut ? '품절' : '판매 중'}</span>
               {product.consultationRequired ? <span className="status-pill">상담 필요</span> : null}
@@ -571,39 +578,37 @@ export function ProductDetailPage() {
                                 }}
                                 aria-label={`${option.name} 수량 감소`}
                               >
-                                -
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="9.5"/>
+                                  <line x1="7.5" y1="12" x2="16.5" y2="12"/>
+                                </svg>
                               </button>
-                              <div className="quantity-value-wrap">
-                                <input
-                                  className="quantity-input"
-                                  type="text"
-                                  pattern="[0-9]*"
-                                  role="spinbutton"
-                                  aria-label={`${option.name} 수량`}
-                                  aria-valuemin={0}
-                                  aria-valuemax={option.maxQuantity ?? undefined}
-                                  aria-valuenow={quantityValue}
-                                  inputMode="numeric"
-                                  value={quantityValue}
-                                  onChange={(event) => {
-                                    const nextValue = Math.max(0, Number(event.target.value) || 0);
-                                    const boundedValue =
-                                      option.maxQuantity === null || option.maxQuantity === undefined
-                                        ? nextValue
-                                        : Math.min(option.maxQuantity, nextValue);
-                                    setSelectedQuantityByOption((current) => ({
-                                      ...current,
-                                      [String(option.id)]: boundedValue,
-                                    }));
-                                    setInvalidRequiredGroupIds((current) =>
-                                      current.filter((groupId) => groupId !== String(group.id)),
-                                    );
-                                  }}
-                                />
-                                <span className="quantity-input-display" aria-hidden="true">
-                                  {quantityValue}
-                                </span>
-                              </div>
+                              <input
+                                className="quantity-input"
+                                type="text"
+                                pattern="[0-9]*"
+                                role="spinbutton"
+                                aria-label={`${option.name} 수량`}
+                                aria-valuemin={0}
+                                aria-valuemax={option.maxQuantity ?? undefined}
+                                aria-valuenow={quantityValue}
+                                inputMode="numeric"
+                                value={quantityValue}
+                                onChange={(event) => {
+                                  const nextValue = Math.max(0, Number(event.target.value) || 0);
+                                  const boundedValue =
+                                    option.maxQuantity === null || option.maxQuantity === undefined
+                                      ? nextValue
+                                      : Math.min(option.maxQuantity, nextValue);
+                                  setSelectedQuantityByOption((current) => ({
+                                    ...current,
+                                    [String(option.id)]: boundedValue,
+                                  }));
+                                  setInvalidRequiredGroupIds((current) =>
+                                    current.filter((groupId) => groupId !== String(group.id)),
+                                  );
+                                }}
+                              />
                               <button
                                 className="quantity-button"
                                 type="button"
@@ -624,7 +629,11 @@ export function ProductDetailPage() {
                                 }}
                                 aria-label={`${option.name} 수량 증가`}
                               >
-                                +
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="9.5"/>
+                                  <line x1="12" y1="7.5" x2="12" y2="16.5"/>
+                                  <line x1="7.5" y1="12" x2="16.5" y2="12"/>
+                                </svg>
                               </button>
                             </div>
                           </div>
@@ -642,6 +651,45 @@ export function ProductDetailPage() {
           {product.consultationRequired ? (
             <p className="feedback-copy">주문 접수 뒤 상담 확인이 이어질 수 있습니다.</p>
           ) : null}
+
+          <div className="product-quantity-field">
+            <span>상품 수량</span>
+            <div className="quantity-stepper" aria-label="상품 수량 선택">
+              <button
+                className="quantity-button"
+                type="button"
+                onClick={() => onProductQuantityChange(productQuantity - 1)}
+                aria-label="상품 수량 감소"
+                disabled={productQuantity <= 1}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9.5"/>
+                  <line x1="7.5" y1="12" x2="16.5" y2="12"/>
+                </svg>
+              </button>
+              <input
+                className="quantity-input"
+                type="number"
+                min={1}
+                step={1}
+                inputMode="numeric"
+                value={productQuantity}
+                onChange={(event) => onProductQuantityChange(Number(event.target.value) || 1)}
+              />
+              <button
+                className="quantity-button"
+                type="button"
+                onClick={() => onProductQuantityChange(productQuantity + 1)}
+                aria-label="상품 수량 증가"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9.5"/>
+                  <line x1="12" y1="7.5" x2="12" y2="16.5"/>
+                  <line x1="7.5" y1="12" x2="16.5" y2="12"/>
+                </svg>
+              </button>
+            </div>
+          </div>
         </section>
 
         <div className={`fixed-product-bar ${showPriceDetails ? 'is-expanded' : ''}`}>
@@ -691,16 +739,20 @@ export function ProductDetailPage() {
                   <div className="detail-price-stack">
                     {hasDiscount ? (
                       <>
-                        <span className="detail-original-price">{formatCurrency(product.basePrice)}</span>
+                        <span className="detail-original-price">{formatCurrency(product.basePrice * productQuantity)}</span>
                         <span className="detail-price-meta">
                           <span className="detail-discount-rate">{formatDiscountRate(product.discountRate)}</span>
-                          <strong>{formatCurrency(discountedBasePrice)}</strong>
+                          <strong>{formatCurrency(discountedBasePrice * productQuantity)}</strong>
                         </span>
                       </>
                     ) : (
-                      <strong>{formatCurrency(discountedBasePrice)}</strong>
+                      <strong>{formatCurrency(discountedBasePrice * productQuantity)}</strong>
                     )}
                   </div>
+                </div>
+                <div className="breakdown-row">
+                  <span>상품 수량</span>
+                  <strong style={{ color: 'black' }}>{productQuantity}개</strong>
                 </div>
                 <div className="breakdown-row">
                   <span>배송비</span>
@@ -712,7 +764,7 @@ export function ProductDetailPage() {
                       {entry.group.name}: {entry.option.name}
                       {entry.quantity > 1 ? ` (x${entry.quantity})` : ''}
                     </span>
-                    <strong>+{formatCurrency(entry.option.extraPrice * entry.quantity)}</strong>
+                    <strong>+{formatCurrency(entry.option.extraPrice * entry.quantity * productQuantity)}</strong>
                   </div>
                 ))}
               </div>

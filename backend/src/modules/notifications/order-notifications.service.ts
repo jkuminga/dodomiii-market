@@ -182,7 +182,7 @@ export class OrderNotificationsService {
       },
     );
 
-    if (!this.configService.get<boolean>('NOTIFICATIONS_ADMIN_STATUS_SUMMARY_ENABLED', true)) {
+    if (!this.isAdminOrderStatusSummaryEnabled()) {
       return;
     }
 
@@ -218,7 +218,7 @@ export class OrderNotificationsService {
   }
 
   private async handleOrderShipmentUpdated(event: OrderShipmentUpdatedEvent): Promise<void> {
-    if (!this.configService.get<boolean>('NOTIFICATIONS_ADMIN_STATUS_SUMMARY_ENABLED', true)) {
+    if (!this.isAdminShipmentSummaryEnabled()) {
       return;
     }
 
@@ -494,6 +494,30 @@ export class OrderNotificationsService {
     }
 
     return `${baseUrl}/admin/orders/${orderId.toString()}`;
+  }
+
+  private isAdminOrderStatusSummaryEnabled(): boolean {
+    const legacyDefault = this.configService.get<boolean>(
+      'NOTIFICATIONS_ADMIN_STATUS_SUMMARY_ENABLED',
+      true,
+    );
+
+    return this.configService.get<boolean>(
+      'NOTIFICATIONS_ADMIN_ORDER_STATUS_SUMMARY_ENABLED',
+      legacyDefault,
+    );
+  }
+
+  private isAdminShipmentSummaryEnabled(): boolean {
+    const legacyDefault = this.configService.get<boolean>(
+      'NOTIFICATIONS_ADMIN_STATUS_SUMMARY_ENABLED',
+      true,
+    );
+
+    return this.configService.get<boolean>(
+      'NOTIFICATIONS_ADMIN_SHIPMENT_SUMMARY_ENABLED',
+      legacyDefault,
+    );
   }
 
   private normalizeBaseUrl(value: string | undefined): string | null {

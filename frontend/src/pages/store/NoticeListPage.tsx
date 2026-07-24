@@ -10,8 +10,8 @@ function formatNoticeDate(value: string) {
 
 function PinIcon() {
   return (
-    <svg aria-hidden="true" className="notice-pin-icon" viewBox="0 0 24 24">
-      <path d="M15.5 4.5a1 1 0 0 1 .9 1.5l-1.7 2.8 2.3 2.3a1 1 0 0 1-.7 1.7h-3.1l-4.8 5.3a.7.7 0 0 1-1.2-.6l.7-3.3-2.2-2.2a1 1 0 0 1 .7-1.7h3L11 5.8a1 1 0 0 1 .9-.8z" />
+    <svg aria-hidden="true" className="notice-pin-icon" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
     </svg>
   );
 }

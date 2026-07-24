@@ -151,7 +151,10 @@ function NewHomeBestItemsSection() {
       {!loading && !error && items.length > 0 ? (
         <FadeIn direction="up" delay={0.15}>
           <div className="new-home-best-mobile-carousel">
-            <div className="new-home-product-rail" aria-label="BEST 상품">
+            <div
+              className={`new-home-product-rail${items.length <= 3 ? ' is-desktop-contained' : ''}`}
+              aria-label="BEST 상품"
+            >
               {items.map((item) => (
                 <ProductTile className="new-home-product-tile" key={item.id} product={item.product} showCategory />
               ))}
