@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 import { LoadingScreen } from '../../components/common/LoadingScreen';
@@ -18,6 +18,7 @@ type NewHomePageProps = {
 };
 
 const NEW_HOME_PRODUCT_SIZE = 12;
+const ALL_MARQUEE_SPEED_PX_PER_SECOND = 34;
 
 function NewHomeNewArrivalSection() {
   const [items, setItems] = useState<StoreHomeItem[]>([]);
@@ -228,22 +229,108 @@ function NewHomeAllProductsSection() {
       ) : null}
 
       {!loading && !error && products.length > 0 ? (
-        <FadeIn direction="up" delay={0.15}>
-          <div className="new-home-product-rail is-marquee" aria-label="ALL 전체 상품">
-            <div className="new-home-product-marquee">
-              {products.map((product) => (
-                <ProductTile className="new-home-product-tile" key={`first-${product.id}`} product={product} showCategory />
-              ))}
-              <div className="new-home-marquee-divider" aria-hidden="true" />
-              {products.map((product) => (
-                <ProductTile className="new-home-product-tile" key={`second-${product.id}`} product={product} showCategory aria-hidden="true" />
-              ))}
-              <div className="new-home-marquee-divider" aria-hidden="true" />
-            </div>
-          </div>
+        <FadeIn direction="up" delay={0.15} className="new-home-marquee-frame">
+          <NewHomeProductMarquee products={products} />
         </FadeIn>
       ) : null}
     </section>
+  );
+}
+
+function NewHomeProductMarquee({ products }: { products: ProductListItem[] }) {
+  const railRef = useRef<HTMLDivElement>(null);
+  const firstSetRef = useRef<HTMLDivElement>(null);
+  const isPausedRef = useRef(false);
+
+  useEffect(() => {
+    const rail = railRef.current;
+    const firstSet = firstSetRef.current;
+
+    if (!rail || !firstSet) {
+      return undefined;
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return undefined;
+    }
+
+    let animationFrameId = 0;
+    let lastTime = performance.now();
+    let resetPoint = 0;
+
+    const updateResetPoint = () => {
+      const railStyle = window.getComputedStyle(rail);
+      const gap = Number.parseFloat(railStyle.columnGap || railStyle.gap || '0') || 0;
+      resetPoint = firstSet.getBoundingClientRect().width + gap;
+    };
+
+    const resizeObserver = 'ResizeObserver' in window ? new ResizeObserver(updateResetPoint) : null;
+
+    updateResetPoint();
+    resizeObserver?.observe(rail);
+    resizeObserver?.observe(firstSet);
+    window.addEventListener('resize', updateResetPoint);
+
+    const tick = (time: number) => {
+      const deltaSeconds = Math.min((time - lastTime) / 1000, 0.08);
+      lastTime = time;
+
+      if (!isPausedRef.current && resetPoint > 0) {
+        rail.scrollLeft += deltaSeconds * ALL_MARQUEE_SPEED_PX_PER_SECOND;
+
+        if (rail.scrollLeft >= resetPoint) {
+          rail.scrollLeft -= resetPoint;
+        }
+      }
+
+      animationFrameId = window.requestAnimationFrame(tick);
+    };
+
+    animationFrameId = window.requestAnimationFrame(tick);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', updateResetPoint);
+    };
+  }, [products.length]);
+
+  const setPaused = (isPaused: boolean) => {
+    isPausedRef.current = isPaused;
+  };
+
+  const renderProducts = (keyPrefix: string, isDuplicate = false) =>
+    products.map((product) => (
+      <ProductTile
+        ariaHidden={isDuplicate}
+        className="new-home-product-tile"
+        imageLoading="eager"
+        key={`${keyPrefix}-${product.id}`}
+        product={product}
+        showCategory
+        tabIndex={isDuplicate ? -1 : undefined}
+      />
+    ));
+
+  return (
+    <div
+      className="new-home-product-rail is-marquee"
+      ref={railRef}
+      aria-label="ALL 전체 상품"
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <div className="new-home-product-marquee-set" ref={firstSetRef}>
+        {renderProducts('first')}
+        <div className="new-home-marquee-divider" aria-hidden="true" />
+      </div>
+      <div className="new-home-product-marquee-set" aria-hidden="true">
+        {renderProducts('second', true)}
+        <div className="new-home-marquee-divider" aria-hidden="true" />
+      </div>
+    </div>
   );
 }
 

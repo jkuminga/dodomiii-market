@@ -5,6 +5,7 @@ type ProductArtworkProps = {
   name: string;
   category?: string;
   className?: string;
+  loading?: 'eager' | 'lazy';
 };
 
 function getInitials(name: string): string {
@@ -20,7 +21,7 @@ function getInitials(name: string): string {
     .join('');
 }
 
-export function ProductArtwork({ src, name, category, className = '' }: ProductArtworkProps) {
+export function ProductArtwork({ src, name, category, className = '', loading = 'lazy' }: ProductArtworkProps) {
   const [hasError, setHasError] = useState(false);
 
   if (src && !hasError) {
@@ -29,7 +30,7 @@ export function ProductArtwork({ src, name, category, className = '' }: ProductA
         className={`product-artwork-image ${className}`.trim()}
         src={src}
         alt={name}
-        loading="lazy"
+        loading={loading}
         onError={() => setHasError(true)}
       />
     );

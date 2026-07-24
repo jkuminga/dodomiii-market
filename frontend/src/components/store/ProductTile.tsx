@@ -10,6 +10,9 @@ type ProductTileProps = {
   className?: string;
   showCategory?: boolean;
   style?: React.CSSProperties;
+  imageLoading?: 'eager' | 'lazy';
+  tabIndex?: number;
+  ariaHidden?: boolean;
 };
 
 function formatCurrency(value: number): string {
@@ -24,16 +27,22 @@ function getProductCategoryLabel(product: ProductListItem): string {
   return product.categoryName;
 }
 
-export function ProductTile({ product, className = '', showCategory = false, style }: ProductTileProps) {
+export function ProductTile({ product, className = '', showCategory = false, style, imageLoading = 'lazy', tabIndex, ariaHidden = false }: ProductTileProps) {
   const discountedPrice = calculateDiscountedPrice(product.basePrice, product.discountRate);
   const hasDiscount = product.discountRate > 0 && discountedPrice < product.basePrice;
   const tileClassName = ['product-tile', className].filter(Boolean).join(' ');
   const thumbnailImageUrl = product.thumbnailImageUrl?.trim() || logoMainImage;
 
   return (
-    <Link className={tileClassName + (product.isSoldOut ? ' is-sold-out' : '')} to={`/products/${product.id}`} style={style}>
+    <Link
+      aria-hidden={ariaHidden || undefined}
+      className={tileClassName + (product.isSoldOut ? ' is-sold-out' : '')}
+      tabIndex={tabIndex}
+      to={`/products/${product.id}`}
+      style={style}
+    >
       <div className="product-media">
-        <ProductArtwork src={thumbnailImageUrl} name={product.name} category={product.categoryName} />
+        <ProductArtwork src={thumbnailImageUrl} name={product.name} category={product.categoryName} loading={imageLoading} />
         {product.isSoldOut ? (
           <div className="sold-out-overlay">
             <span className="sold-out-badge">SOLD OUT</span>

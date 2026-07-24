@@ -3032,28 +3032,25 @@ img {
 }
 
 .new-home-product-rail.is-marquee {
-  display: block;
-  overflow: hidden;
-}
-
-.new-home-product-marquee {
   display: flex;
   gap: 16px;
-  width: max-content;
-  animation: scrollMarquee 40s linear infinite;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  scroll-padding-left: 0;
+  scroll-snap-type: none;
+  -webkit-overflow-scrolling: auto;
 }
 
-.new-home-product-marquee:hover {
-  animation-play-state: paused;
+.new-home-marquee-frame {
+  min-width: 0;
+  max-width: 100%;
 }
 
-@keyframes scrollMarquee {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(calc(-50% - 8px));
-  }
+.new-home-product-marquee-set {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 16px;
 }
 
 .new-home-marquee-divider {
