@@ -2833,13 +2833,19 @@ img {
     max-width: 100%;
     margin-right: auto;
     margin-left: auto;
+    overflow: visible;
   }
 
   .new-home-best-swipe-hint {
     position: absolute;
-    inset: 0;
+    top: 0;
+    bottom: 0;
+    left: 50%;
     z-index: 3;
     display: block;
+    width: calc(100vw - 8px);
+    max-width: calc(100vw - 8px);
+    transform: translateX(-50%);
     pointer-events: none;
   }
 
@@ -2847,9 +2853,9 @@ img {
     --best-swipe-wave-x: 0;
 
     position: absolute;
-    top: 27%;
+    top: 50%;
     display: flex;
-    width: 38px;
+    width: 28px;
     height: 44px;
     align-items: center;
     justify-content: center;
@@ -2862,21 +2868,21 @@ img {
   .new-home-best-swipe-wave.is-left {
     --best-swipe-wave-x: -5px;
 
-    left: 8px;
+    left: max(4px, env(safe-area-inset-left));
   }
 
   .new-home-best-swipe-wave.is-right {
     --best-swipe-wave-x: 5px;
 
-    right: 8px;
+    right: max(4px, env(safe-area-inset-right));
   }
 
   .new-home-best-swipe-wave i {
     position: absolute;
-    width: 14px;
-    height: 14px;
-    border-top: 3px solid rgb(19 60 35 / 0.84);
-    border-right: 3px solid rgb(19 60 35 / 0.84);
+    width: 10px;
+    height: 10px;
+    border-top: 2.5px solid rgb(19 60 35 / 0.84);
+    border-right: 2.5px solid rgb(19 60 35 / 0.84);
     opacity: 0.72;
     animation: bestSwipeChevron 2.8s ease-in-out infinite;
   }
@@ -2903,12 +2909,12 @@ img {
 
   .new-home-best-swipe-wave.is-left i:nth-child(1),
   .new-home-best-swipe-wave.is-right i:nth-child(3) {
-    margin-left: 18px;
+    margin-left: 12px;
   }
 
   .new-home-best-swipe-wave.is-left i:nth-child(3),
   .new-home-best-swipe-wave.is-right i:nth-child(1) {
-    margin-left: -18px;
+    margin-left: -12px;
   }
 
   .new-home-product-tile {
