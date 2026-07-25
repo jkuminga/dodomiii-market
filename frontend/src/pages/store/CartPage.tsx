@@ -138,10 +138,10 @@ export function CartPage() {
                         </div>
                       </div>
                       <span>단가 {formatCurrency(unitPrice)}</span>
-                      <strong>합계 {formatCurrency(lineTotalPrice)}</strong>
                     </div>
 
                     <div className="cart-item-actions">
+                      <strong className="cart-item-total-price">합계 {formatCurrency(lineTotalPrice)}</strong>
                       <div className="inline-actions cart-item-action-row">
                         <button className="button button-ghost" type="button" onClick={() => removeCartItem(item.id)}>
                           장바구니에서 제거

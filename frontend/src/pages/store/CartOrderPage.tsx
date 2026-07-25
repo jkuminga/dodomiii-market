@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { RefundPolicyConsentDialog } from '../../components/store/RefundPolicyConsentDialog';
 import { apiClient } from '../../lib/api';
-import { calculateCartItemUnitPrice, clearCart, updateCartItemQuantity, useCart } from '../../lib/cart';
+import { calculateCartItemUnitPrice, clearCart, useCart } from '../../lib/cart';
 import { buildRefundPolicyConsentPayload } from '../../lib/refundPolicyConsent';
 
 type KakaoPostcodeAddressData = {
@@ -119,10 +119,6 @@ export function CartOrderPage() {
   const shippingFee = items.length > 0 ? 3000 : 0;
   const estimatedFinalPrice = totalProductPrice + shippingFee;
   const hasSelectedAddress = !!selectedAddress && contact.zipcode.trim().length > 0 && contact.address1.trim().length > 0;
-  const onCartItemQuantityChange = (itemId: string, nextValue: number) => {
-    const normalizedQuantity = Number.isFinite(nextValue) ? Math.max(1, Math.floor(nextValue)) : 1;
-    updateCartItemQuantity(itemId, normalizedQuantity);
-  };
 
   useEffect(() => {
     if (!receiverSameAsBuyer) {
@@ -294,7 +290,7 @@ export function CartOrderPage() {
             <p className="section-kicker">Order Items</p>
             <h2 className="section-subtitle">담은 상품 {itemCount}개</h2>
           </div>
-          <span className="status-pill">한 번에 주문</span>
+          <span className="status-pill">장바구니 주문</span>
         </div>
 
         <div className="order-cart-item-list">
@@ -306,46 +302,8 @@ export function CartOrderPage() {
               <div className="order-cart-item" key={item.id}>
                 <div className="order-cart-item-copy">
                   <strong>{item.productName}</strong>
-                  <span>{item.categoryName}</span>
-                  <div className="cart-item-quantity-control order-cart-quantity-control">
-                    <span>수량</span>
-                    <div className="quantity-stepper" aria-label={`${item.productName} 수량 선택`}>
-                      <button
-                        className="quantity-button"
-                        type="button"
-                        onClick={() => onCartItemQuantityChange(item.id, item.productQuantity - 1)}
-                        aria-label={`${item.productName} 수량 감소`}
-                        disabled={item.productQuantity <= 1}
-                      >
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="9.5"/>
-                          <line x1="7.5" y1="12" x2="16.5" y2="12"/>
-                        </svg>
-                      </button>
-                      <input
-                        className="quantity-input"
-                        type="number"
-                        min={1}
-                        step={1}
-                        inputMode="numeric"
-                        value={item.productQuantity}
-                        onChange={(event) => onCartItemQuantityChange(item.id, Number(event.target.value) || 1)}
-                      />
-                      <button
-                        className="quantity-button"
-                        type="button"
-                        onClick={() => onCartItemQuantityChange(item.id, item.productQuantity + 1)}
-                        aria-label={`${item.productName} 수량 증가`}
-                      >
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="9.5"/>
-                          <line x1="12" y1="7.5" x2="12" y2="16.5"/>
-                          <line x1="7.5" y1="12" x2="16.5" y2="12"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  {item.selectedOptions.length > 0 ? (
+                  <small>수량 {item.productQuantity}개</small>
+                  {item.selectedOptions.length > 0 && (
                     <div className="order-cart-option-lines">
                       {item.selectedOptions.map((option) => (
                         <small key={`${item.id}-${option.groupId}-${option.optionId}`}>
@@ -354,8 +312,6 @@ export function CartOrderPage() {
                         </small>
                       ))}
                     </div>
-                  ) : (
-                    <small>선택 옵션 없음</small>
                   )}
                 </div>
                 <strong>{formatCurrency(lineTotalPrice)}</strong>
