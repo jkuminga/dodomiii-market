@@ -1,10 +1,10 @@
-import { ShipmentStatus } from '@prisma/client';
-import { IsEnum, IsISO8601, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsIn, IsISO8601, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdateAdminOrderShipmentDto {
   @IsOptional()
-  @IsEnum(ShipmentStatus)
-  shipmentStatus?: ShipmentStatus;
+  // 배송 단계는 별도 ShipmentStatus가 아니라 주문 상태와 동일한 값으로 처리한다.
+  @IsIn(['SHIPPED', 'DELIVERED'])
+  orderStatus?: 'SHIPPED' | 'DELIVERED';
 
   @IsOptional()
   @IsString()

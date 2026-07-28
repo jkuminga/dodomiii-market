@@ -1,4 +1,3 @@
-import { ShipmentStatus } from '@prisma/client';
 import { describe, expect, it } from '@jest/globals';
 
 import {
@@ -18,12 +17,13 @@ describe('order tracking helpers', () => {
   it('returns a ready shipment snapshot when shipment does not exist', () => {
     expect(
       getShipmentSnapshot({
+        orderStatus: 'PENDING_PAYMENT',
         createdAt: new Date('2026-04-24T00:00:00.000Z'),
         statusHistories: [],
         shipment: null,
       }),
     ).toEqual({
-      shipmentStatus: ShipmentStatus.READY,
+      shipmentStatus: 'READY',
       courierName: null,
       trackingNumber: null,
       trackingUrl: null,
@@ -34,16 +34,16 @@ describe('order tracking helpers', () => {
 
   it('builds ordered tracking events and fills shipment-only events', () => {
     const events = buildTrackingEvents({
+      orderStatus: 'PENDING_PAYMENT',
       createdAt: new Date('2026-04-24T00:00:00.000Z'),
       statusHistories: [
         {
-          newStatus: 'PAYMENT_REQUESTED',
-          changeReason: '입금 요청 접수',
+          newStatus: 'PAYMENT_CONFIRMED',
+          changeReason: '입금 확인',
           createdAt: new Date('2026-04-24T01:00:00.000Z'),
         },
       ],
       shipment: {
-        shipmentStatus: ShipmentStatus.SHIPPED,
         courierName: 'CJ대한통운',
         trackingNumber: '1234567890',
         shippedAt: new Date('2026-04-24T03:00:00.000Z'),
@@ -61,10 +61,10 @@ describe('order tracking helpers', () => {
       },
       {
         source: 'ORDER',
-        status: 'PAYMENT_REQUESTED',
-        label: '입금 요청 확인 중',
+        status: 'PAYMENT_CONFIRMED',
+        label: '입금 확인 완료',
         occurredAt: '2026-04-24T01:00:00.000Z',
-        description: '입금 요청 접수',
+        description: '입금 확인',
       },
       {
         source: 'SHIPMENT',
@@ -78,6 +78,7 @@ describe('order tracking helpers', () => {
 
   it('does not duplicate shipment events already present in order history', () => {
     const events = buildTrackingEvents({
+      orderStatus: 'SHIPPED',
       createdAt: new Date('2026-04-24T00:00:00.000Z'),
       statusHistories: [
         {
@@ -87,7 +88,6 @@ describe('order tracking helpers', () => {
         },
       ],
       shipment: {
-        shipmentStatus: ShipmentStatus.SHIPPED,
         courierName: 'CJ대한통운',
         trackingNumber: '1234567890',
         shippedAt: new Date('2026-04-24T03:00:00.000Z'),
@@ -102,7 +102,6 @@ describe('order tracking helpers', () => {
     expect(getOrderTrackingLabel('DELIVERED')).toBe('배송 완료');
     expect(
       buildShipmentEventDescription({
-        shipmentStatus: ShipmentStatus.SHIPPED,
         courierName: 'CJ대한통운',
         trackingNumber: '1234567890',
         shippedAt: null,

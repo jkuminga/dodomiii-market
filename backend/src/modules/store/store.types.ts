@@ -1,4 +1,4 @@
-import type { DepositStatus, HomeItemSection, OrderStatus, ShipmentStatus, UserWebFontSize } from '@prisma/client';
+import type { DepositStatus, HomeItemSection, OrderStatus, UserWebFontSize } from '@prisma/client';
 
 import type { StoreWebFontFamily, StoreWebFontWeightPreset } from '../../common/storefront-fonts';
 
@@ -41,7 +41,7 @@ export type StoreOrderDepositInfo = {
 };
 
 export type StoreOrderShipmentInfo = {
-  shipmentStatus: ShipmentStatus;
+  shipmentStatus: 'READY' | 'SHIPPED' | 'DELIVERED';
   courierName: string | null;
   trackingNumber: string | null;
   trackingUrl: string | null;
@@ -51,7 +51,7 @@ export type StoreOrderShipmentInfo = {
 
 export type StoreTrackingEvent = {
   source: 'ORDER' | 'SHIPMENT';
-  status: OrderStatus | ShipmentStatus;
+  status: OrderStatus;
   label: string;
   occurredAt: string;
   description: string | null;
@@ -83,7 +83,7 @@ export type StoreDepositRequestResponse = {
 export type StoreOrderTrackingResponse = {
   orderNumber: string;
   orderStatus: OrderStatus;
-  shipmentStatus: ShipmentStatus;
+  shipmentStatus: 'READY' | 'SHIPPED' | 'DELIVERED';
   courierName: string | null;
   trackingNumber: string | null;
   trackingUrl: string | null;

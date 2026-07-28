@@ -21,18 +21,14 @@ export type DepositRequestDecision =
 export function getDepositRequestDecision(
   input: DepositRequestDecisionInput,
 ): DepositRequestDecision {
-  if (
-    input.depositStatus === DepositStatus.CONFIRMED ||
-    (input.depositStatus === DepositStatus.REQUESTED &&
-      input.orderStatus === 'PAYMENT_REQUESTED')
-  ) {
+  if (input.depositStatus === DepositStatus.CONFIRMED || input.depositStatus === DepositStatus.REQUESTED) {
     return {
       requestAccepted: false,
       shouldTransitionOrder: false,
     };
   }
 
-  if (input.orderStatus !== 'PENDING_PAYMENT' && input.orderStatus !== 'PAYMENT_REQUESTED') {
+  if (input.orderStatus !== 'PENDING_PAYMENT') {
     throw new ConflictException({
       code: 'INVALID_STATUS_TRANSITION',
       message: '입금 요청을 처리할 수 없는 주문 상태입니다.',
@@ -41,7 +37,7 @@ export function getDepositRequestDecision(
 
   return {
     requestAccepted: true,
-    shouldTransitionOrder: input.orderStatus === 'PENDING_PAYMENT',
+    shouldTransitionOrder: false,
   };
 }
 

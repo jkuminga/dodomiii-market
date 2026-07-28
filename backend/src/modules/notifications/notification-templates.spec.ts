@@ -2,8 +2,9 @@ import { describe, expect, it } from '@jest/globals';
 import type { OrderTemplateContext } from './notification-templates';
 import {
   notificationTemplateUtils,
-  renderAdminDepositRequestedSms,
   renderAdminNewOrderEmail,
+  renderCustomerDepositRequestedSms,
+  renderCustomerNewOrderSms,
   renderCustomerOrderStatusSms,
 } from './notification-templates';
 
@@ -55,20 +56,28 @@ describe('notification templates', () => {
     expect(email.html).not.toContain('<script>alert(1)</script>');
   });
 
-  it('renders a deposit request sms with an optional admin order url', () => {
-    const message = renderAdminDepositRequestedSms(
-      {
-        ...baseOrder,
-        orderStatus: 'PAYMENT_REQUESTED',
-      },
-      'https://admin.example.test/orders/1',
-    );
+  it('renders a deposit request sms for the buyer', () => {
+    const message = renderCustomerDepositRequestedSms({
+      orderNumber: 'D20260424-0001',
+      depositorName: '홍길동',
+      requestedAt: '2026-04-24T01:30:00.000Z',
+    });
 
-    expect(message).toContain('[도도미마켓 - 입금 확인 요청]');
+    expect(message).toContain('[도도미마켓]');
     expect(message).toContain('◼︎주문 번호 : D20260424-0001');
-    expect(message).toContain('◼︎금액 : 62,000원');
-    expect(message).toContain('◼︎상태 : 입금 확인 중');
-    expect(message).toContain('◼︎관리자 페이지 : https://admin.example.test/orders/1');
+    expect(message).toContain('◼︎입금자 : 홍길동');
+    expect(message).toContain('◼︎주문이 생성되었습니다.');
+    expect(message).toContain('◼︎입금 확인까지 최대 2일이 소요될 수 있습니다.');
+  });
+
+  it('renders a new order sms for the buyer', () => {
+    const message = renderCustomerNewOrderSms(baseOrder);
+
+    expect(message).toContain('[도도미마켓]');
+    expect(message).toContain('◼︎주문 번호 : D20260424-0001');
+    expect(message).toContain('◼︎주문자 : 홍길동');
+    expect(message).toContain('◼︎결제 예정 금액 : 62,000원');
+    expect(message).toContain('◼︎주문이 생성되었습니다.');
   });
 
   it('adds shipment details to customer status sms only when shipment data is available', () => {
@@ -93,6 +102,21 @@ describe('notification templates', () => {
     expect(shippedMessage).toContain('◼︎배송 상태 : 배송 중');
     expect(shippedMessage).toContain('◼︎CJ대한통운 1234567890');
     expect(shippedMessage).toContain('◼︎주문 조회 : https://shop.example.test/orders/D20260424-0001');
+  });
+
+  it.each([
+    ['PENDING_PAYMENT', '입금 정보를 확인한 뒤 입금을 완료해 주세요.'],
+    ['PAYMENT_CONFIRMED', '입금이 확인되었습니다. 상품을 준비하겠습니다.'],
+    ['PREPARING', '주문하신 상품을 정성껏 준비하고 있습니다.'],
+    ['SHIPPED', '상품이 발송되었습니다. 배송 정보를 확인해 주세요.'],
+    ['DELIVERED', '주문하신 상품의 배송이 완료되었습니다.'],
+    ['CANCELLED', '주문이 취소되었습니다. 환불 안내를 확인해 주세요.'],
+    ['EXPIRED', '입금 기한이 지나 주문이 만료되었습니다.'],
+  ] as const)('renders the customer template for %s', (newStatus, expectedMessage) => {
+    const message = renderCustomerOrderStatusSms(baseOrder, 'PENDING_PAYMENT', newStatus);
+
+    expect(message).toContain(`◼︎(${newStatus} 상태로 변경되었습니다)`);
+    expect(message).toContain(`◼︎${expectedMessage}`);
   });
 
   it('exposes stable formatting helpers for shared status labels', () => {

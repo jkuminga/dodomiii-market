@@ -4,7 +4,6 @@ import type {
   HomeItemSection,
   OrderStatus,
   ProductOptionSelectionType,
-  ShipmentStatus,
   UserWebFontSize,
 } from '@prisma/client';
 
@@ -165,7 +164,8 @@ export type AdminOrderListItemResponse = {
   receiverName: string | null;
   receiverPhone: string | null;
   depositStatus: DepositStatus | null;
-  shipmentStatus: ShipmentStatus;
+  // 배송 상태는 주문 상태에서 파생된 표시용 값이다.
+  shipmentStatus: 'READY' | 'SHIPPED' | 'DELIVERED';
   trackingNumber: string | null;
   createdAt: string;
   updatedAt: string;
@@ -199,7 +199,8 @@ export type AdminOrderDepositResponse = {
 };
 
 export type AdminOrderShipmentResponse = {
-  shipmentStatus: ShipmentStatus;
+  // 배송 상태는 주문 상태에서 파생된 표시용 값이다.
+  shipmentStatus: 'READY' | 'SHIPPED' | 'DELIVERED';
   courierName: string | null;
   trackingNumber: string | null;
   trackingUrl: string | null;

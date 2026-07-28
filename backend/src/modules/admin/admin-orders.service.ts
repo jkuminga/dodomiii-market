@@ -8,7 +8,6 @@ import {
 import {
   DepositStatus,
   Prisma,
-  ShipmentStatus,
 } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -54,7 +53,6 @@ const adminOrderListArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
     },
     shipment: {
       select: {
-        shipmentStatus: true,
         trackingNumber: true,
       },
     },
@@ -147,7 +145,6 @@ const adminOrderDetailArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
         trackingNumber: true,
         shippedAt: true,
         deliveredAt: true,
-        shipmentStatus: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -198,7 +195,6 @@ const adminOrderMutationArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
         trackingNumber: true,
         shippedAt: true,
         deliveredAt: true,
-        shipmentStatus: true,
       },
     },
   },
@@ -221,7 +217,7 @@ type ShipmentUpdateEvent = {
   orderId: number;
   orderNumber: string;
   orderStatus: AdminOrderMutationRecord['orderStatus'];
-  shipmentStatus: ShipmentStatus;
+  shipmentStatus: 'READY' | 'SHIPPED' | 'DELIVERED';
   adminId: number;
 };
 
@@ -341,7 +337,7 @@ export class AdminOrdersService {
     dto: UpdateAdminOrderShipmentDto,
   ): Promise<AdminOrderDetailResponse> {
     if (
-      dto.shipmentStatus === undefined &&
+      dto.orderStatus === undefined &&
       dto.courierName === undefined &&
       dto.trackingNumber === undefined &&
       dto.shippedAt === undefined &&
@@ -365,7 +361,7 @@ export class AdminOrdersService {
       }
 
       const nextShipment = this.normalizeShipmentPatch(order, dto, now);
-      this.assertShipmentPatchCompatible(order, nextShipment.status);
+      const nextOrderStatus = dto.orderStatus;
 
       await tx.shipment.upsert({
         where: {
@@ -377,18 +373,16 @@ export class AdminOrdersService {
           trackingNumber: nextShipment.trackingNumber,
           shippedAt: nextShipment.shippedAt,
           deliveredAt: nextShipment.deliveredAt,
-          shipmentStatus: nextShipment.status,
         },
         update: {
           courierName: nextShipment.courierName,
           trackingNumber: nextShipment.trackingNumber,
           shippedAt: nextShipment.shippedAt,
           deliveredAt: nextShipment.deliveredAt,
-          shipmentStatus: nextShipment.status,
         },
       });
 
-      if (nextShipment.status === ShipmentStatus.SHIPPED && order.orderStatus === 'PREPARING') {
+      if (nextOrderStatus === 'SHIPPED' && order.orderStatus === 'PREPARING') {
         await this.transitionOrderStatus(
           tx,
           order,
@@ -408,7 +402,7 @@ export class AdminOrdersService {
         });
       }
 
-      if (nextShipment.status === ShipmentStatus.DELIVERED && order.orderStatus === 'SHIPPED') {
+      if (nextOrderStatus === 'DELIVERED' && order.orderStatus === 'SHIPPED') {
         await this.transitionOrderStatus(
           tx,
           order,
@@ -585,7 +579,7 @@ export class AdminOrdersService {
     order: AdminOrderListRecord,
     itemStatsMap: Map<string, OrderListItemStats>,
   ): AdminOrderListItemResponse {
-    const shipmentStatus = order.shipment?.shipmentStatus ?? ShipmentStatus.READY;
+    const shipmentStatus = this.getShipmentStatus(order.orderStatus);
     const itemStats = itemStatsMap.get(order.id.toString()) ?? {
       itemCount: 0,
       totalQuantity: 0,
@@ -683,7 +677,7 @@ export class AdminOrdersService {
         updatedAt: order.deposit.updatedAt.toISOString(),
       },
       shipment: {
-        shipmentStatus: order.shipment?.shipmentStatus ?? ShipmentStatus.READY,
+        shipmentStatus: this.getShipmentStatus(order.orderStatus),
         courierName: order.shipment?.courierName ?? null,
         trackingNumber: order.shipment?.trackingNumber ?? null,
         trackingUrl: this.buildTrackingUrl(order.shipment?.trackingNumber ?? null),
@@ -771,10 +765,6 @@ export class AdminOrdersService {
       },
       data: {
         orderStatus: nextStatus,
-        paymentRequestedAt:
-          nextStatus === 'PAYMENT_REQUESTED'
-            ? (order.paymentRequestedAt ?? occurredAt)
-            : undefined,
         paymentConfirmedAt:
           nextStatus === 'PAYMENT_CONFIRMED'
             ? (order.paymentConfirmedAt ?? occurredAt)
@@ -790,7 +780,7 @@ export class AdminOrdersService {
       },
     });
 
-    if (nextStatus === 'PAYMENT_REQUESTED' || nextStatus === 'PAYMENT_CONFIRMED') {
+    if (nextStatus === 'PAYMENT_CONFIRMED') {
       this.assertOrderHasDeposit(order);
 
       await tx.deposit.update({
@@ -798,14 +788,8 @@ export class AdminOrdersService {
           orderId: order.id,
         },
         data: {
-          depositStatus:
-            nextStatus === 'PAYMENT_CONFIRMED'
-              ? DepositStatus.CONFIRMED
-              : DepositStatus.REQUESTED,
-          requestedAt:
-            nextStatus === 'PAYMENT_REQUESTED'
-              ? (order.deposit.requestedAt ?? occurredAt)
-              : (order.deposit.requestedAt ?? occurredAt),
+          depositStatus: DepositStatus.CONFIRMED,
+          requestedAt: order.deposit.requestedAt ?? occurredAt,
           confirmedAt:
             nextStatus === 'PAYMENT_CONFIRMED'
               ? (order.deposit.confirmedAt ?? occurredAt)
@@ -815,12 +799,6 @@ export class AdminOrdersService {
     }
 
     if (nextStatus === 'PREPARING' || nextStatus === 'SHIPPED' || nextStatus === 'DELIVERED') {
-      const nextShipmentStatus =
-        nextStatus === 'DELIVERED'
-          ? ShipmentStatus.DELIVERED
-          : nextStatus === 'SHIPPED'
-            ? ShipmentStatus.SHIPPED
-            : ShipmentStatus.READY;
       const shippedAt =
         nextStatus === 'SHIPPED' || nextStatus === 'DELIVERED'
           ? (order.shipment?.shippedAt ?? occurredAt)
@@ -840,12 +818,10 @@ export class AdminOrdersService {
           trackingNumber: order.shipment?.trackingNumber ?? null,
           shippedAt,
           deliveredAt,
-          shipmentStatus: nextShipmentStatus,
         },
         update: {
           shippedAt,
           deliveredAt,
-          shipmentStatus: nextShipmentStatus,
         },
       });
     }
@@ -861,8 +837,6 @@ export class AdminOrdersService {
     });
 
     order.orderStatus = nextStatus;
-    order.paymentRequestedAt =
-      nextStatus === 'PAYMENT_REQUESTED' ? (order.paymentRequestedAt ?? occurredAt) : order.paymentRequestedAt;
     order.paymentConfirmedAt =
       nextStatus === 'PAYMENT_CONFIRMED'
         ? (order.paymentConfirmedAt ?? occurredAt)
@@ -873,11 +847,6 @@ export class AdminOrdersService {
       nextStatus === 'EXPIRED' ? (order.expiredAt ?? occurredAt) : order.expiredAt;
 
     if (order.deposit) {
-      if (nextStatus === 'PAYMENT_REQUESTED') {
-        order.deposit.depositStatus = DepositStatus.REQUESTED;
-        order.deposit.requestedAt = order.deposit.requestedAt ?? occurredAt;
-      }
-
       if (nextStatus === 'PAYMENT_CONFIRMED') {
         order.deposit.depositStatus = DepositStatus.CONFIRMED;
         order.deposit.requestedAt = order.deposit.requestedAt ?? occurredAt;
@@ -892,7 +861,6 @@ export class AdminOrdersService {
         trackingNumber: order.shipment?.trackingNumber ?? null,
         shippedAt: order.shipment?.shippedAt ?? null,
         deliveredAt: order.shipment?.deliveredAt ?? null,
-        shipmentStatus: ShipmentStatus.READY,
       };
     }
 
@@ -903,7 +871,6 @@ export class AdminOrdersService {
         trackingNumber: order.shipment?.trackingNumber ?? null,
         shippedAt: order.shipment?.shippedAt ?? occurredAt,
         deliveredAt: order.shipment?.deliveredAt ?? null,
-        shipmentStatus: ShipmentStatus.SHIPPED,
       };
     }
 
@@ -914,7 +881,6 @@ export class AdminOrdersService {
         trackingNumber: order.shipment?.trackingNumber ?? null,
         shippedAt: order.shipment?.shippedAt ?? occurredAt,
         deliveredAt: order.shipment?.deliveredAt ?? occurredAt,
-        shipmentStatus: ShipmentStatus.DELIVERED,
       };
     }
   }
@@ -928,10 +894,7 @@ export class AdminOrdersService {
     trackingNumber: string | null;
     shippedAt: Date | null;
     deliveredAt: Date | null;
-    status: ShipmentStatus;
   } {
-    const currentShipmentStatus = order.shipment?.shipmentStatus ?? ShipmentStatus.READY;
-    const requestedStatus = dto.shipmentStatus ?? currentShipmentStatus;
     const courierName =
       dto.courierName !== undefined ? dto.courierName ?? null : order.shipment?.courierName ?? null;
     const trackingNumber =
@@ -948,11 +911,11 @@ export class AdminOrdersService {
         ? this.parseDateOrNull(dto.deliveredAt)
         : order.shipment?.deliveredAt ?? null;
 
-    if (requestedStatus === ShipmentStatus.SHIPPED && !shippedAt) {
+    if (dto.orderStatus === 'SHIPPED' && !shippedAt) {
       shippedAt = order.shipment?.shippedAt ?? now;
     }
 
-    if (requestedStatus === ShipmentStatus.DELIVERED) {
+    if (dto.orderStatus === 'DELIVERED') {
       deliveredAt = deliveredAt ?? order.shipment?.deliveredAt ?? now;
       shippedAt = shippedAt ?? order.shipment?.shippedAt ?? deliveredAt;
     }
@@ -960,13 +923,6 @@ export class AdminOrdersService {
     if (deliveredAt && !shippedAt) {
       shippedAt = order.shipment?.shippedAt ?? deliveredAt;
     }
-
-    const status =
-      deliveredAt !== null
-        ? ShipmentStatus.DELIVERED
-        : shippedAt !== null
-          ? ShipmentStatus.SHIPPED
-          : requestedStatus;
 
     if (shippedAt && deliveredAt && deliveredAt.getTime() < shippedAt.getTime()) {
       throw this.createInvalidShipmentStateException(
@@ -979,49 +935,7 @@ export class AdminOrdersService {
       trackingNumber,
       shippedAt,
       deliveredAt,
-      status,
     };
-  }
-
-  private assertShipmentPatchCompatible(
-    order: AdminOrderMutationRecord,
-    targetShipmentStatus: ShipmentStatus,
-  ): void {
-    switch (order.orderStatus) {
-      case 'DELIVERED':
-        if (targetShipmentStatus !== ShipmentStatus.DELIVERED) {
-          throw this.createInvalidShipmentStateException(
-            '배송 완료 주문은 배송 완료 상태만 유지할 수 있습니다.',
-          );
-        }
-        return;
-      case 'SHIPPED':
-        if (targetShipmentStatus === ShipmentStatus.READY) {
-          throw this.createInvalidShipmentStateException(
-            '배송 중 주문은 출고 전 상태로 되돌릴 수 없습니다.',
-          );
-        }
-        return;
-      case 'PREPARING':
-        if (targetShipmentStatus === ShipmentStatus.DELIVERED) {
-          throw this.createInvalidStatusTransitionException('PREPARING', 'DELIVERED');
-        }
-        return;
-      case 'PENDING_PAYMENT':
-      case 'PAYMENT_REQUESTED':
-      case 'PAYMENT_CONFIRMED':
-        if (targetShipmentStatus !== ShipmentStatus.READY) {
-          throw this.createInvalidStatusTransitionException(order.orderStatus, 'SHIPPED');
-        }
-        return;
-      case 'CANCELLED':
-      case 'EXPIRED':
-        throw this.createInvalidShipmentStateException(
-          '종료된 주문은 배송 정보를 수정할 수 없습니다.',
-        );
-      default:
-        return;
-    }
   }
 
   private buildShipmentNotificationEvent(
@@ -1032,22 +946,26 @@ export class AdminOrdersService {
       orderId: Number(order.id),
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
-      shipmentStatus: order.shipment?.shipmentStatus ?? ShipmentStatus.READY,
+      shipmentStatus: this.getShipmentStatus(order.orderStatus),
       adminId,
     };
   }
 
+  private getShipmentStatus(orderStatus: AdminOrderMutationRecord['orderStatus']): 'READY' | 'SHIPPED' | 'DELIVERED' {
+    if (orderStatus === 'DELIVERED') return 'DELIVERED';
+    if (orderStatus === 'SHIPPED') return 'SHIPPED';
+    return 'READY';
+  }
+
   private dispatchOrderMutationHooks(
     transitions: StatusTransitionEvent[],
-    shipmentEvent: ShipmentUpdateEvent | null,
+    _shipmentEvent: ShipmentUpdateEvent | null,
   ): void {
     for (const transition of transitions) {
       this.notifications.notifyOrderStatusChanged(transition);
     }
 
-    if (shipmentEvent) {
-      this.notifications.notifyOrderShipmentUpdated(shipmentEvent);
-    }
+    // 배송 정보 수정은 관리자가 직접 수행하므로 관리자 요약 알림을 보내지 않는다.
   }
 
   private async runOrderWriteTransaction<T>(

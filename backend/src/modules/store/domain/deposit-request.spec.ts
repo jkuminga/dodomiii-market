@@ -17,7 +17,7 @@ describe('deposit request helpers', () => {
 
     expect(
       getDepositRequestDecision({
-        orderStatus: 'PAYMENT_REQUESTED',
+        orderStatus: 'PENDING_PAYMENT',
         depositStatus: 'REQUESTED',
       }),
     ).toEqual({
@@ -26,7 +26,7 @@ describe('deposit request helpers', () => {
     });
   });
 
-  it('accepts pending payment requests and marks them for order status transition', () => {
+  it('accepts pending payment requests without changing the order status', () => {
     expect(
       getDepositRequestDecision({
         orderStatus: 'PENDING_PAYMENT',
@@ -34,14 +34,14 @@ describe('deposit request helpers', () => {
       }),
     ).toEqual({
       requestAccepted: true,
-      shouldTransitionOrder: true,
+      shouldTransitionOrder: false,
     });
   });
 
-  it('accepts repeated request processing on PAYMENT_REQUESTED when deposit is still waiting', () => {
+  it('accepts a pending payment request when the deposit is still waiting', () => {
     expect(
       getDepositRequestDecision({
-        orderStatus: 'PAYMENT_REQUESTED',
+        orderStatus: 'PENDING_PAYMENT',
         depositStatus: 'WAITING',
       }),
     ).toEqual({

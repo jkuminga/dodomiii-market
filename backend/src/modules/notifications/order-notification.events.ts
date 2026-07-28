@@ -1,4 +1,4 @@
-import type { OrderStatus, ShipmentStatus } from '@prisma/client';
+import type { OrderStatus } from '@prisma/client';
 
 export type NewOrderCreatedEvent = {
   orderId: number;
@@ -18,7 +18,7 @@ export type OrderShipmentUpdatedEvent = {
   orderId: number;
   orderNumber: string;
   orderStatus: OrderStatus;
-  shipmentStatus: ShipmentStatus;
+  shipmentStatus: 'READY' | 'SHIPPED' | 'DELIVERED';
   adminId: number;
 };
 

@@ -8,8 +8,7 @@ import {
 
 describe('order status transitions', () => {
   it('allows the expected customer order lifecycle', () => {
-    expect(canTransitionOrderStatus('PENDING_PAYMENT', 'PAYMENT_REQUESTED')).toBe(true);
-    expect(canTransitionOrderStatus('PAYMENT_REQUESTED', 'PAYMENT_CONFIRMED')).toBe(true);
+    expect(canTransitionOrderStatus('PENDING_PAYMENT', 'PAYMENT_CONFIRMED')).toBe(true);
     expect(canTransitionOrderStatus('PAYMENT_CONFIRMED', 'PREPARING')).toBe(true);
     expect(canTransitionOrderStatus('PREPARING', 'SHIPPED')).toBe(true);
     expect(canTransitionOrderStatus('SHIPPED', 'DELIVERED')).toBe(true);
@@ -18,7 +17,7 @@ describe('order status transitions', () => {
   it('blocks transitions from terminal statuses', () => {
     expect(canTransitionOrderStatus('DELIVERED', 'CANCELLED')).toBe(false);
     expect(canTransitionOrderStatus('CANCELLED', 'PENDING_PAYMENT')).toBe(false);
-    expect(canTransitionOrderStatus('EXPIRED', 'PAYMENT_REQUESTED')).toBe(false);
+    expect(canTransitionOrderStatus('EXPIRED', 'PAYMENT_CONFIRMED')).toBe(false);
   });
 
   // 현재 상태에서 목표 상태로 변경 가능한지 확인하고, 불가능하면 에러 발생
@@ -39,7 +38,7 @@ describe('order status transitions', () => {
     allowed.push('DELIVERED');
 
     expect(getAllowedNextOrderStatuses('PENDING_PAYMENT')).toEqual([
-      'PAYMENT_REQUESTED',
+      'PAYMENT_CONFIRMED',
       'EXPIRED',
       'CANCELLED',
     ]);

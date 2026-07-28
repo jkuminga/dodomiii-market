@@ -242,7 +242,6 @@ const storeOrderDetailArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
     },
     shipment: {
       select: {
-        shipmentStatus: true,
         courierName: true,
         trackingNumber: true,
         shippedAt: true,
@@ -1135,46 +1134,10 @@ export class StoreService {
               },
             });
 
-            let nextOrderStatus = order.orderStatus;
-
-            if (decision.shouldTransitionOrder) {
-              assertOrderStatusTransition(order.orderStatus, 'PAYMENT_REQUESTED');
-
-              await tx.order.update({
-                where: {
-                  id: order.id,
-                },
-                data: {
-                  orderStatus: 'PAYMENT_REQUESTED',
-                  paymentRequestedAt: now,
-                },
-              });
-
-              await tx.orderStatusHistory.create({
-                data: {
-                  orderId: order.id,
-                  previousStatus: order.orderStatus,
-                  newStatus: 'PAYMENT_REQUESTED',
-                  changeReason: buildDepositRequestReason(dto.memo),
-                },
-              });
-
-              nextOrderStatus = 'PAYMENT_REQUESTED';
-            } else {
-              await tx.order.update({
-                where: {
-                  id: order.id,
-                },
-                data: {
-                  paymentRequestedAt: now,
-                },
-              });
-            }
-
             return {
               orderId: Number(order.id),
               orderNumber: order.orderNumber,
-              orderStatus: nextOrderStatus,
+              orderStatus: order.orderStatus,
               depositStatus: DepositStatus.REQUESTED,
               requestedAt: now.toISOString(),
               confirmedAt: null,
@@ -1186,7 +1149,7 @@ export class StoreService {
           },
         );
 
-        if (result.requestAccepted && result.orderStatus === 'PAYMENT_REQUESTED') {
+        if (result.requestAccepted) {
           this.orderNotifications.notifyDepositRequested({
             orderId: result.orderId,
             orderNumber: result.orderNumber,

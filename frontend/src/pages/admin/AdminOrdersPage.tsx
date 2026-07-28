@@ -21,7 +21,6 @@ const DEFAULT_META: PaginationMeta = {
 const ORDER_STATUS_FILTER_OPTIONS: Array<{ value: 'all' | StoreOrderStatus; label: string }> = [
   { value: 'all', label: '전체' },
   { value: 'PENDING_PAYMENT', label: '입금 대기' },
-  { value: 'PAYMENT_REQUESTED', label: '입금 요청 확인 중' },
   { value: 'PAYMENT_CONFIRMED', label: '입금 확인 완료' },
   { value: 'PREPARING', label: '상품 준비 중' },
   { value: 'SHIPPED', label: '배송 중' },
@@ -33,7 +32,6 @@ const ORDER_STATUS_FILTER_OPTIONS: Array<{ value: 'all' | StoreOrderStatus; labe
 function parseOrderStatusFilter(value: string | null): StoreOrderStatus | undefined {
   if (
     value === 'PENDING_PAYMENT' ||
-    value === 'PAYMENT_REQUESTED' ||
     value === 'PAYMENT_CONFIRMED' ||
     value === 'PREPARING' ||
     value === 'SHIPPED' ||

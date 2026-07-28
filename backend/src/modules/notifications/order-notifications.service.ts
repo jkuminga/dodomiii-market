@@ -1,18 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { waitUntil } from '@vercel/functions';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { EmailNotificationService } from './email-notification.service';
 import {
-  renderAdminDepositRequestedSms,
   renderAdminNewOrderEmail,
   renderAdminNewOrderSms,
   renderAdminOrderStatusEmail,
   renderAdminOrderStatusSms,
   renderAdminShipmentUpdatedEmail,
   renderAdminShipmentUpdatedSms,
+  renderCustomerDepositRequestedSms,
+  renderCustomerNewOrderSms,
   renderCustomerOrderStatusSms,
   type OrderTemplateContext,
 } from './notification-templates';
@@ -56,7 +57,12 @@ const orderNotificationArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
       select: {
         courierName: true,
         trackingNumber: true,
-        shipmentStatus: true,
+      },
+    },
+    deposit: {
+      select: {
+        depositorName: true,
+        requestedAt: true,
       },
     },
   },
@@ -86,6 +92,9 @@ const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
+
+// 관리자 요약은 관리자가 직접 수행하지 않은 종료 상태만 알린다.
+const adminStatusSummaryStatuses = new Set<OrderStatus>([OrderStatus.CANCELLED, OrderStatus.EXPIRED]);
 
 @Injectable()
 export class OrderNotificationsService {
@@ -147,18 +156,24 @@ export class OrderNotificationsService {
     const adminRecipients = await this.findActiveAdminRecipients();
     const context = this.mapOrderTemplateContext(order);
     const email = renderAdminNewOrderEmail(context);
-    const sms = renderAdminNewOrderSms(context);
+    const adminSms = renderAdminNewOrderSms(context);
+    const customerSms = renderCustomerNewOrderSms(context);
 
     await this.deliverAll(
       [
         ...this.buildAdminEmailTargets(adminRecipients, email),
-        ...this.buildAdminSmsTargets(adminRecipients, sms),
+        ...this.buildAdminSmsTargets(adminRecipients, adminSms),
       ],
       {
-        eventType: 'new-order-created',
+        eventType: 'new-order-created-admin',
         orderNumber: order.orderNumber,
       },
     );
+
+    await this.deliverAll(this.buildBuyerSmsTargets(order, customerSms), {
+      eventType: 'new-order-created-customer',
+      orderNumber: order.orderNumber,
+    });
   }
 
   private async handleOrderStatusChanged(event: OrderStatusChangedEvent): Promise<void> {
@@ -184,7 +199,7 @@ export class OrderNotificationsService {
       },
     );
 
-    if (!this.isAdminOrderStatusSummaryEnabled()) {
+    if (!this.isAdminOrderStatusSummaryEnabled() || !adminStatusSummaryStatuses.has(event.newStatus)) {
       return;
     }
 
@@ -265,14 +280,21 @@ export class OrderNotificationsService {
       return;
     }
 
-    const adminRecipients = await this.findActiveAdminRecipients();
-    const context = this.mapOrderTemplateContext(order);
-    const sms = renderAdminDepositRequestedSms(context, this.buildAdminOrderDetailUrl(order.id));
+    if (!order.deposit?.requestedAt) {
+      this.logger.warn(`deposit notification skipped missing-requested-at orderId=${event.orderId}`);
+      return;
+    }
+
+    const sms = renderCustomerDepositRequestedSms({
+      orderNumber: order.orderNumber,
+      depositorName: order.deposit.depositorName,
+      requestedAt: order.deposit.requestedAt.toISOString(),
+    });
 
     await this.deliverAll(
-      this.buildAdminSmsTargets(adminRecipients, sms),
+      this.buildBuyerSmsTargets(order, sms),
       {
-        eventType: 'deposit-requested-admin',
+        eventType: 'deposit-requested-customer',
         orderNumber: order.orderNumber,
       },
     );
@@ -467,7 +489,12 @@ export class OrderNotificationsService {
       receiverPhone: order.contact?.receiverPhone ?? null,
       courierName: order.shipment?.courierName ?? null,
       trackingNumber: order.shipment?.trackingNumber ?? null,
-      shipmentStatus: order.shipment?.shipmentStatus ?? null,
+      shipmentStatus:
+        order.orderStatus === 'DELIVERED'
+          ? 'DELIVERED'
+          : order.orderStatus === 'SHIPPED'
+            ? 'SHIPPED'
+            : 'READY',
       items: order.items.map((item) => ({
         productName: item.productNameSnapshot,
         optionLabel:
@@ -480,6 +507,20 @@ export class OrderNotificationsService {
     };
   }
 
+  // 입금 요청 안내는 주문자 전화번호에만 전송한다.
+  private buildBuyerSmsTargets(order: OrderNotificationRecord, message: string): DeliveryTarget[] {
+    if (!this.smsService.isEnabled()) {
+      this.logger.warn('customer sms notifications disabled due to missing SMS API configuration');
+      return [];
+    }
+
+    return this.uniqueValues([order.contact?.buyerPhone ?? null]).map((recipient) => ({
+      channel: 'sms',
+      recipient,
+      execute: () => this.smsService.send({ to: recipient, message }),
+    }));
+  }
+
   private buildStoreOrderLookupUrl(orderNumber: string): string | null {
     const baseUrl = this.normalizeBaseUrl(this.configService.get<string>('STORE_WEB_BASE_URL'));
     if (!baseUrl) {
@@ -487,15 +528,6 @@ export class OrderNotificationsService {
     }
 
     return `${baseUrl}/orders?orderNumber=${encodeURIComponent(orderNumber)}`;
-  }
-
-  private buildAdminOrderDetailUrl(orderId: bigint): string | null {
-    const baseUrl = this.normalizeBaseUrl(this.configService.get<string>('ADMIN_WEB_BASE_URL'));
-    if (!baseUrl) {
-      return null;
-    }
-
-    return `${baseUrl}/admin/orders/${orderId.toString()}`;
   }
 
   private isAdminOrderStatusSummaryEnabled(): boolean {

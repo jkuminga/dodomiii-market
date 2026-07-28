@@ -15,7 +15,6 @@ enum ProductOptionSelectionType {
 
 enum OrderStatus {
   PENDING_PAYMENT
-  PAYMENT_REQUESTED
   PAYMENT_CONFIRMED
   PREPARING
   SHIPPED
@@ -29,12 +28,6 @@ enum DepositStatus {
   REQUESTED
   CONFIRMED
   REJECTED
-}
-
-enum ShipmentStatus {
-  READY
-  SHIPPED
-  DELIVERED
 }
 
 enum AdminRole {
@@ -67,8 +60,8 @@ model Category {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children Category[] @relation("CategoryHierarchy")
+  parent            Category?         @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children          Category[]        @relation("CategoryHierarchy")
   productCategories ProductCategory[]
 
   @@unique([parentId, slug], map: "uq_categories_parent_slug")
@@ -95,10 +88,10 @@ model Product {
   deletedAt            DateTime? @map("deleted_at")
 
   productCategories ProductCategory[]
-  thumbnails         ProductThumbnail[]
-  optionGroups       ProductOptionGroup[]
-  orderItems         OrderItem[]
-  homeItems          HomeItem[]
+  thumbnails        ProductThumbnail[]
+  optionGroups      ProductOptionGroup[]
+  orderItems        OrderItem[]
+  homeItems         HomeItem[]
 
   @@index([isVisible, isSoldOut], map: "idx_products_visibility_stock")
   @@index([isVisible, deletedAt, createdAt(sort: Desc), id(sort: Desc)], map: "idx_products_visible_deleted_created")
@@ -143,9 +136,9 @@ model ProductOptionGroup {
   createdAt     DateTime                   @default(now()) @map("created_at")
   updatedAt     DateTime                   @updatedAt @map("updated_at")
 
-  product               Product                    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  options               ProductOption[]
-  orderItemSelections   OrderItemOptionSelection[]
+  product             Product                    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  options             ProductOption[]
+  orderItemSelections OrderItemOptionSelection[]
 
   @@index([productId, isActive], map: "idx_product_option_groups_product_active")
   @@map("product_option_groups")
@@ -171,21 +164,21 @@ model ProductOption {
 }
 
 model Order {
-  id                 BigInt      @id @default(autoincrement())
-  orderNumber        String      @unique @map("order_number") @db.VarChar(30)
-  orderStatus        OrderStatus @default(PENDING_PAYMENT) @map("order_status")
-  totalProductPrice  Int         @default(0) @map("total_product_price")
-  shippingFee        Int         @default(0) @map("shipping_fee")
-  finalTotalPrice    Int         @default(0) @map("final_total_price")
-  customerRequest    String?     @map("customer_request") @db.VarChar(500)
+  id                  BigInt      @id @default(autoincrement())
+  orderNumber         String      @unique @map("order_number") @db.VarChar(30)
+  orderStatus         OrderStatus @default(PENDING_PAYMENT) @map("order_status")
+  totalProductPrice   Int         @default(0) @map("total_product_price")
+  shippingFee         Int         @default(0) @map("shipping_fee")
+  finalTotalPrice     Int         @default(0) @map("final_total_price")
+  customerRequest     String?     @map("customer_request") @db.VarChar(500)
   refundPolicyConsent Json?       @map("refund_policy_consent")
-  depositDeadlineAt  DateTime?   @map("deposit_deadline_at")
-  paymentRequestedAt DateTime?   @map("payment_requested_at")
-  paymentConfirmedAt DateTime?   @map("payment_confirmed_at")
-  cancelledAt        DateTime?   @map("cancelled_at")
-  expiredAt          DateTime?   @map("expired_at")
-  createdAt          DateTime    @default(now()) @map("created_at")
-  updatedAt          DateTime    @updatedAt @map("updated_at")
+  depositDeadlineAt   DateTime?   @map("deposit_deadline_at")
+  paymentRequestedAt  DateTime?   @map("payment_requested_at")
+  paymentConfirmedAt  DateTime?   @map("payment_confirmed_at")
+  cancelledAt         DateTime?   @map("cancelled_at")
+  expiredAt           DateTime?   @map("expired_at")
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
 
   items               OrderItem[]
   contact             OrderContact?
@@ -212,10 +205,10 @@ model OrderItem {
   lineTotalPrice      Int      @map("line_total_price")
   createdAt           DateTime @default(now()) @map("created_at")
 
-  order             Order                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product           Product                    @relation(fields: [productId], references: [id], onDelete: Restrict)
-  productOption     ProductOption?             @relation(fields: [productOptionId], references: [id], onDelete: SetNull)
-  optionSelections  OrderItemOptionSelection[]
+  order            Order                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product          Product                    @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productOption    ProductOption?             @relation(fields: [productOptionId], references: [id], onDelete: SetNull)
+  optionSelections OrderItemOptionSelection[]
 
   @@index([orderId], map: "idx_order_items_order_id")
   @@index([productId], map: "idx_order_items_product_id")
@@ -233,9 +226,9 @@ model OrderItemOptionSelection {
   quantity             Int      @default(1)
   createdAt            DateTime @default(now()) @map("created_at")
 
-  orderItem     OrderItem            @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-  optionGroup   ProductOptionGroup?  @relation(fields: [productOptionGroupId], references: [id], onDelete: SetNull)
-  productOption ProductOption?       @relation(fields: [productOptionId], references: [id], onDelete: SetNull)
+  orderItem     OrderItem           @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  optionGroup   ProductOptionGroup? @relation(fields: [productOptionGroupId], references: [id], onDelete: SetNull)
+  productOption ProductOption?      @relation(fields: [productOptionId], references: [id], onDelete: SetNull)
 
   @@index([orderItemId], map: "idx_order_item_option_selections_order_item_id")
   @@index([productOptionId], map: "idx_order_item_option_selections_option_id")
@@ -282,19 +275,17 @@ model Deposit {
 }
 
 model Shipment {
-  id             BigInt         @id @default(autoincrement()) @map("shipment_id")
-  orderId        BigInt         @unique @map("order_id")
-  courierName    String?        @map("courier_name") @db.VarChar(100)
-  trackingNumber String?        @map("tracking_number") @db.VarChar(100)
-  shippedAt      DateTime?      @map("shipped_at")
-  deliveredAt    DateTime?      @map("delivered_at")
-  shipmentStatus ShipmentStatus @default(READY) @map("shipment_status")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  id             BigInt    @id @default(autoincrement()) @map("shipment_id")
+  orderId        BigInt    @unique @map("order_id")
+  courierName    String?   @map("courier_name") @db.VarChar(100)
+  trackingNumber String?   @map("tracking_number") @db.VarChar(100)
+  shippedAt      DateTime? @map("shipped_at")
+  deliveredAt    DateTime? @map("delivered_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  @@index([shipmentStatus], map: "idx_shipments_status")
   @@map("shipments")
 }
 
@@ -380,12 +371,12 @@ model HomeHeroSetting {
 }
 
 model StorefrontSetting {
-  key               String          @id @default("default") @db.VarChar(30)
-  userWebFontSize   UserWebFontSize @default(NORMAL) @map("user_web_font_size")
-  userWebFontFamily String          @default("HANAM_DAUM") @map("user_web_font_family") @db.VarChar(50)
-  userWebFontWeightPreset String    @default("NORMAL") @map("user_web_font_weight_preset") @db.VarChar(30)
-  createdAt         DateTime        @default(now()) @map("created_at")
-  updatedAt         DateTime        @updatedAt @map("updated_at")
+  key                     String          @id @default("default") @db.VarChar(30)
+  userWebFontSize         UserWebFontSize @default(NORMAL) @map("user_web_font_size")
+  userWebFontFamily       String          @default("HANAM_DAUM") @map("user_web_font_family") @db.VarChar(50)
+  userWebFontWeightPreset String          @default("NORMAL") @map("user_web_font_weight_preset") @db.VarChar(30)
+  createdAt               DateTime        @default(now()) @map("created_at")
+  updatedAt               DateTime        @updatedAt @map("updated_at")
 
   @@map("storefront_settings")
 }

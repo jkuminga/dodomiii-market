@@ -57,8 +57,6 @@ function getOrderStatusLabel(status: StoreOrderStatus): string {
   switch (status) {
     case 'PENDING_PAYMENT':
       return '입금 대기';
-    case 'PAYMENT_REQUESTED':
-      return '입금 요청 확인 중';
     case 'PAYMENT_CONFIRMED':
       return '입금 확인 완료';
     case 'PREPARING':

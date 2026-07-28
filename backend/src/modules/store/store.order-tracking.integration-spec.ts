@@ -1,7 +1,6 @@
 import {
   DepositStatus,
   PrismaClient,
-  ShipmentStatus,
 } from '@prisma/client';
 import { afterAll, afterEach, beforeAll, describe, expect, it, jest } from '@jest/globals';
 
@@ -74,7 +73,7 @@ describe('StoreService order lookup and tracking integration', () => {
         depositorName: '홍길동',
       },
       shipment: {
-        shipmentStatus: ShipmentStatus.DELIVERED,
+        shipmentStatus: 'DELIVERED',
         courierName: 'CJ대한통운',
         trackingNumber: '1234567890',
         trackingUrl: 'https://tracker.example.com/1234567890',
@@ -112,7 +111,7 @@ describe('StoreService order lookup and tracking integration', () => {
     expect(result).toMatchObject({
       orderNumber: fixture.order.orderNumber,
       orderStatus: 'DELIVERED',
-      shipmentStatus: ShipmentStatus.DELIVERED,
+      shipmentStatus: 'DELIVERED',
       courierName: 'CJ대한통운',
       trackingNumber: '1234567890',
       trackingUrl: 'https://tracker.example.com/1234567890',
@@ -234,7 +233,6 @@ describe('StoreService order lookup and tracking integration', () => {
         },
         shipment: {
           create: {
-            shipmentStatus: ShipmentStatus.DELIVERED,
             courierName: 'CJ대한통운',
             trackingNumber: '1234567890',
             shippedAt: new Date('2026-04-24T03:00:00.000Z'),
@@ -243,7 +241,7 @@ describe('StoreService order lookup and tracking integration', () => {
         },
         statusHistories: {
           create: {
-            previousStatus: 'PAYMENT_REQUESTED',
+            previousStatus: 'PENDING_PAYMENT',
             newStatus: 'PAYMENT_CONFIRMED',
             changeReason: '입금 확인',
             createdAt: new Date('2026-04-24T02:00:00.000Z'),
