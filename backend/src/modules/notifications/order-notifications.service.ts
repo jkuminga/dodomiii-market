@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
+import { waitUntil } from '@vercel/functions';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { EmailNotificationService } from './email-notification.service';
@@ -127,12 +128,13 @@ export class OrderNotificationsService {
       return;
     }
 
-    setImmediate(() => {
-      void task().catch((error: unknown) => {
-        const message = error instanceof Error ? error.stack ?? error.message : String(error);
-        this.logger.error(`notification job failed label=${label} ${message}`);
-      });
+    const notificationTask = task().catch((error: unknown) => {
+      const message = error instanceof Error ? error.stack ?? error.message : String(error);
+      this.logger.error(`notification job failed label=${label} ${message}`);
     });
+
+    this.logger.debug(`notification job registered label=${label}`);
+    waitUntil(notificationTask);
   }
 
   private async handleNewOrderCreated(event: NewOrderCreatedEvent): Promise<void> {
