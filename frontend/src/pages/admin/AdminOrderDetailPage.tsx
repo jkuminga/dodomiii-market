@@ -156,7 +156,10 @@ export function AdminOrderDetailPage() {
       await apiClient.updateAdminOrderShipment(order.id, {
         courierName: shipmentForm.courierName.trim() || null,
         trackingNumber: shipmentForm.trackingNumber.trim() || null,
-        shipmentStatus: shipmentForm.shipmentStatus,
+        orderStatus:
+          shipmentForm.shipmentStatus === 'READY'
+            ? undefined
+            : shipmentForm.shipmentStatus,
       });
 
       await loadOrder();

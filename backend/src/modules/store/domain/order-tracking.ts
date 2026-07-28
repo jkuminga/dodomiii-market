@@ -1,10 +1,12 @@
-import { ShipmentStatus, type OrderStatus } from '@prisma/client';
+import type { OrderStatus } from '@prisma/client';
 
-import type { StoreTrackingEvent } from '../store.types';
+import type { StoreOrderShipmentInfo, StoreTrackingEvent } from '../store.types';
 
 const TRACKING_BASE_URL = 'https://tracker.example.com';
 
 export type StoreOrderTrackingInput = {
+  // 배송 단계의 단일 기준이 되는 주문 상태다.
+  orderStatus: OrderStatus;
   createdAt: Date;
   statusHistories: Array<{
     newStatus: OrderStatus;
@@ -12,7 +14,6 @@ export type StoreOrderTrackingInput = {
     createdAt: Date;
   }>;
   shipment: {
-    shipmentStatus: ShipmentStatus;
     courierName: string | null;
     trackingNumber: string | null;
     shippedAt: Date | null;
@@ -28,9 +29,14 @@ export function buildTrackingUrl(trackingNumber: string | null): string | null {
   return `${TRACKING_BASE_URL}/${encodeURIComponent(trackingNumber)}`;
 }
 
-export function getShipmentSnapshot(order: StoreOrderTrackingInput) {
+export function getShipmentSnapshot(order: StoreOrderTrackingInput): StoreOrderShipmentInfo {
   return {
-    shipmentStatus: order.shipment?.shipmentStatus ?? ShipmentStatus.READY,
+    shipmentStatus:
+      order.orderStatus === 'DELIVERED'
+        ? 'DELIVERED'
+        : order.orderStatus === 'SHIPPED'
+          ? 'SHIPPED'
+          : 'READY',
     courierName: order.shipment?.courierName ?? null,
     trackingNumber: order.shipment?.trackingNumber ?? null,
     trackingUrl: buildTrackingUrl(order.shipment?.trackingNumber ?? null),
@@ -109,8 +115,6 @@ export function getOrderTrackingLabel(status: OrderStatus): string {
   switch (status) {
     case 'PENDING_PAYMENT':
       return '주문 접수';
-    case 'PAYMENT_REQUESTED':
-      return '입금 요청 확인 중';
     case 'PAYMENT_CONFIRMED':
       return '입금 확인 완료';
     case 'PREPARING':

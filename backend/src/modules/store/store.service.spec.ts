@@ -1,4 +1,4 @@
-import { DepositStatus, HomeItemSection, ShipmentStatus } from '@prisma/client';
+import { DepositStatus, HomeItemSection } from '@prisma/client';
 
 import { StoreService } from './store.service';
 
@@ -252,7 +252,7 @@ describe('StoreService public order lookup access', () => {
     expect(result).toMatchObject({
       orderNumber: 'DM20260424-0001',
       orderStatus: 'PAYMENT_CONFIRMED',
-      shipmentStatus: ShipmentStatus.SHIPPED,
+      shipmentStatus: 'READY',
       courierName: 'CJ대한통운',
       trackingNumber: '1234567890',
     });
@@ -310,7 +310,7 @@ describe('StoreService deposit requests', () => {
 
     expect(result).toMatchObject({
       orderNumber: 'DM20260424-0001',
-      orderStatus: 'PAYMENT_REQUESTED',
+      orderStatus: 'PENDING_PAYMENT',
       depositStatus: DepositStatus.REQUESTED,
       confirmedAt: null,
       requestAccepted: true,
@@ -326,23 +326,8 @@ describe('StoreService deposit requests', () => {
         depositStatus: DepositStatus.REQUESTED,
       },
     });
-    expect(tx.order.update).toHaveBeenCalledWith({
-      where: {
-        id: BigInt(1),
-      },
-      data: {
-        orderStatus: 'PAYMENT_REQUESTED',
-        paymentRequestedAt: expect.any(Date),
-      },
-    });
-    expect(tx.orderStatusHistory.create).toHaveBeenCalledWith({
-      data: {
-        orderId: BigInt(1),
-        previousStatus: 'PENDING_PAYMENT',
-        newStatus: 'PAYMENT_REQUESTED',
-        changeReason: '입금 요청 접수: 홍길동 이름으로 입금했습니다',
-      },
-    });
+    expect(tx.order.update).not.toHaveBeenCalled();
+    expect(tx.orderStatusHistory.create).not.toHaveBeenCalled();
     expect(orderNotifications.notifyDepositRequested).toHaveBeenCalledWith({
       orderId: 1,
       orderNumber: 'DM20260424-0001',
@@ -357,7 +342,7 @@ describe('StoreService deposit requests', () => {
         findUnique: jest.fn().mockResolvedValue({
           id: BigInt(1),
           orderNumber: 'DM20260424-0001',
-          orderStatus: 'PAYMENT_REQUESTED',
+          orderStatus: 'PENDING_PAYMENT',
           paymentRequestedAt: requestedAt,
           paymentConfirmedAt: null,
           contact: {
@@ -399,7 +384,7 @@ describe('StoreService deposit requests', () => {
       }),
     ).resolves.toEqual({
       orderNumber: 'DM20260424-0001',
-      orderStatus: 'PAYMENT_REQUESTED',
+      orderStatus: 'PENDING_PAYMENT',
       depositStatus: DepositStatus.REQUESTED,
       requestedAt: requestedAt.toISOString(),
       confirmedAt: null,
@@ -528,7 +513,7 @@ function createOrderDetailRecord() {
       adminMemo: 'public response must not expose this',
     },
     shipment: {
-      shipmentStatus: ShipmentStatus.SHIPPED,
+      shipmentStatus: 'SHIPPED',
       courierName: 'CJ대한통운',
       trackingNumber: '1234567890',
       shippedAt,

@@ -38,7 +38,7 @@ describe('StoreService deposit request integration', () => {
     await prisma.$disconnect();
   });
 
-  it('accepts a pending payment deposit request and updates order, deposit, and history rows', async () => {
+  it('accepts a pending payment deposit request and updates only the deposit row', async () => {
     const order = await createOrderWithDeposit({
       orderStatus: 'PENDING_PAYMENT',
       depositStatus: DepositStatus.WAITING,
@@ -52,7 +52,7 @@ describe('StoreService deposit request integration', () => {
 
     expect(result).toMatchObject({
       orderNumber: order.orderNumber,
-      orderStatus: 'PAYMENT_REQUESTED',
+      orderStatus: 'PENDING_PAYMENT',
       depositStatus: DepositStatus.REQUESTED,
       confirmedAt: null,
       requestAccepted: true,
@@ -74,28 +74,23 @@ describe('StoreService deposit request integration', () => {
     });
 
     expect(updatedOrder).toMatchObject({
-      orderStatus: 'PAYMENT_REQUESTED',
+      orderStatus: 'PENDING_PAYMENT',
       paymentConfirmedAt: null,
     });
-    expect(updatedOrder?.paymentRequestedAt).toEqual(expect.any(Date));
+    expect(updatedOrder?.paymentRequestedAt).toBeNull();
     expect(updatedOrder?.deposit).toMatchObject({
       depositStatus: DepositStatus.REQUESTED,
       depositorName: '홍길동',
       confirmedAt: null,
     });
     expect(updatedOrder?.deposit?.requestedAt).toEqual(expect.any(Date));
-    expect(updatedOrder?.statusHistories).toHaveLength(1);
-    expect(updatedOrder?.statusHistories[0]).toMatchObject({
-      previousStatus: 'PENDING_PAYMENT',
-      newStatus: 'PAYMENT_REQUESTED',
-      changeReason: '입금 요청 접수: 홍길동 이름으로 입금했습니다',
-    });
+    expect(updatedOrder?.statusHistories).toHaveLength(0);
   });
 
   it('returns requestAccepted=false without changing rows when deposit request is already pending', async () => {
     const requestedAt = new Date('2026-04-24T08:00:00.000Z');
     const order = await createOrderWithDeposit({
-      orderStatus: 'PAYMENT_REQUESTED',
+      orderStatus: 'PENDING_PAYMENT',
       depositStatus: DepositStatus.REQUESTED,
       paymentRequestedAt: requestedAt,
       depositRequestedAt: requestedAt,
@@ -110,7 +105,7 @@ describe('StoreService deposit request integration', () => {
 
     expect(result).toEqual({
       orderNumber: order.orderNumber,
-      orderStatus: 'PAYMENT_REQUESTED',
+      orderStatus: 'PENDING_PAYMENT',
       depositStatus: DepositStatus.REQUESTED,
       requestedAt: requestedAt.toISOString(),
       confirmedAt: null,
@@ -173,7 +168,7 @@ describe('StoreService deposit request integration', () => {
   });
 
   async function createOrderWithDeposit(input: {
-    orderStatus: 'PENDING_PAYMENT' | 'PAYMENT_REQUESTED';
+    orderStatus: 'PENDING_PAYMENT';
     depositStatus: DepositStatus;
     paymentRequestedAt?: Date;
     depositRequestedAt?: Date;

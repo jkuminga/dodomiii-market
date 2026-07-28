@@ -88,8 +88,6 @@ function getOrderStatusLabel(status: StoreOrderStatus): string {
   switch (status) {
     case 'PENDING_PAYMENT':
       return '결제 대기';
-    case 'PAYMENT_REQUESTED':
-      return '결제 확인 요청';
     case 'PAYMENT_CONFIRMED':
       return '결제 확인 완료';
     case 'PREPARING':
@@ -112,7 +110,6 @@ function getOrderStatusPillClass(status: StoreOrderStatus): string {
     case 'PENDING_PAYMENT':
     case 'PREPARING':
       return 'is-order-yellow';
-    case 'PAYMENT_REQUESTED':
     case 'DELIVERED':
       return 'is-order-blue';
     case 'PAYMENT_CONFIRMED':

@@ -671,7 +671,6 @@ export type AdminProductListQuery = {
 
 export type StoreOrderStatus =
   | 'PENDING_PAYMENT'
-  | 'PAYMENT_REQUESTED'
   | 'PAYMENT_CONFIRMED'
   | 'PREPARING'
   | 'SHIPPED'
@@ -990,12 +989,12 @@ export type AdminOrderStatusUpdatePayload = {
 export type AdminOrderShipmentUpdatePayload = {
   courierName?: string | null;
   trackingNumber?: string | null;
-  shipmentStatus: StoreShipmentStatus;
+  // 배송 전환은 별도 상태가 아니라 주문 상태를 변경한다.
+  orderStatus?: 'SHIPPED' | 'DELIVERED';
 };
 
 const STORE_ORDER_STATUSES = [
   'PENDING_PAYMENT',
-  'PAYMENT_REQUESTED',
   'PAYMENT_CONFIRMED',
   'PREPARING',
   'SHIPPED',

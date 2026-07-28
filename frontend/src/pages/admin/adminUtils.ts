@@ -77,8 +77,6 @@ export function getOrderStatusLabel(status: StoreOrderStatus): string {
   switch (status) {
     case 'PENDING_PAYMENT':
       return '입금 대기';
-    case 'PAYMENT_REQUESTED':
-      return '입금 요청 확인 중';
     case 'PAYMENT_CONFIRMED':
       return '입금 확인 완료';
     case 'PREPARING':
@@ -138,8 +136,7 @@ export function getShipmentStatusPillClass(status: StoreShipmentStatus): string 
 }
 
 const ADMIN_ALLOWED_NEXT_ORDER_STATUSES: Record<StoreOrderStatus, StoreOrderStatus[]> = {
-  PENDING_PAYMENT: ['PAYMENT_REQUESTED', 'EXPIRED', 'CANCELLED'],
-  PAYMENT_REQUESTED: ['PAYMENT_CONFIRMED', 'CANCELLED'],
+  PENDING_PAYMENT: ['PAYMENT_CONFIRMED', 'EXPIRED', 'CANCELLED'],
   PAYMENT_CONFIRMED: ['PREPARING', 'CANCELLED'],
   PREPARING: ['SHIPPED', 'CANCELLED'],
   SHIPPED: ['DELIVERED'],
