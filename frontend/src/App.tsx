@@ -52,6 +52,7 @@ import { NewHomePage, type HomePageComponentProps } from './pages/store/NewHomeP
 import { NoticeDetailPage } from './pages/store/NoticeDetailPage';
 import { NoticeListPage } from './pages/store/NoticeListPage';
 import { OrderLookupPage } from './pages/store/OrderLookupPage';
+import { OrderCompletePage } from './pages/store/OrderCompletePage';
 import { OrderPaymentPage } from './pages/store/OrderPaymentPage';
 import { OrderPage } from './pages/store/OrderPage';
 import { ProductDetailPage } from './pages/store/ProductDetailPage';
@@ -1083,6 +1084,8 @@ function AppFrame() {
         <Route path="/orders" element={<OrderLookupPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/cart/order" element={<CartOrderPage />} />
+        <Route path="/temp/order-complete" element={<OrderCompletePage preview />} />
+        <Route path="/orders/:orderNumber/complete" element={<OrderCompletePage />} />
         <Route path="/orders/:orderNumber/payment" element={<OrderPaymentPage />} />
         <Route path="/orders/:orderNumber/deposit-request-complete" element={<DepositRequestCompletePage />} />
         <Route path="/products" element={<CatalogPage />} />

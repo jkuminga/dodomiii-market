@@ -459,9 +459,14 @@ export function OrderPage() {
         customerRequest: contact.customerRequest.trim() || undefined,
       });
 
-      navigate(`/orders/${encodeURIComponent(result.orderNumber)}/payment`, {
+      navigate(`/orders/${encodeURIComponent(result.orderNumber)}/complete`, {
         state: {
-          createdOrder: result,
+          orderSummary: {
+            orderNumber: result.orderNumber,
+            totalAmount: result.pricing.finalTotalPrice,
+            firstItemName: result.items?.[0]?.productNameSnapshot ?? '주문 상품',
+            itemCount: result.items?.length ?? 0,
+          },
         },
       });
     } catch (caught) {
