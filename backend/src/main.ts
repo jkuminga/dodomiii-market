@@ -107,6 +107,18 @@ async function createApp() {
   app.use(
     pinoHttp({
       level: config.get<string>('LOG_LEVEL', 'info'),
+      redact: {
+        paths: [
+          'req.headers.cookie',
+          'req.headers.authorization',
+          'req.headers.forwarded',
+          'req.headers.x-vercel-oidc-token',
+          'req.headers.x-vercel-proxy-signature',
+          'req.headers.x-vercel-proxy-signature-ts',
+          'res.headers.set-cookie',
+        ],
+        censor: '[REDACTED]',
+      },
     }),
   );
 
