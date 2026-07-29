@@ -19,6 +19,12 @@ export type OrderTemplateContext = {
   buyerPhone: string | null;
   receiverName: string | null;
   receiverPhone: string | null;
+  // 주문 생성 시 확정된 입금 계좌 스냅샷이다.
+  depositBankName: string | null;
+  depositAccountHolder: string | null;
+  depositAccountNumber: string | null;
+  // orders.deposit_deadline_at 컬럼을 API에서 쓰는 이름이다.
+  depositDeadlineAt: string | null;
   courierName: string | null;
   trackingNumber: string | null;
   shipmentStatus: 'READY' | 'SHIPPED' | 'DELIVERED' | null;
@@ -160,18 +166,25 @@ export const renderAdminNewOrderEmail = (order: OrderTemplateContext): RenderedE
 };
 
 // To 관리자: 신규 주문 생성 SMS
-export const renderAdminNewOrderSms = (order: OrderTemplateContext): string =>
-  `[도도미마켓 - 신규 주문]\n◼︎주문 번호 : ${order.orderNumber}\n◼︎구매인 성함 : ${order.buyerName ?? '-'}\n◼︎금액 : ${formatCurrency(order.finalTotalPrice)}\n◼︎상태 : ${formatOrderStatus(order.orderStatus)}`;
+export const renderAdminNewOrderSms = (
+  order: OrderTemplateContext,
+  adminOrderUrl: string | null = null,
+): string =>
+  `[도도미마켓 - 신규 주문]\n◼︎주문 번호 : ${order.orderNumber}\n◼︎주문인 : ${order.buyerName ?? '-'}\n◼︎주문 금액 : ${formatCurrency(order.finalTotalPrice)}\n${adminOrderUrl ? `◼︎조회(관리자 페이지) : ${adminOrderUrl}\n` : ''}`;
 
-// To 주문자: 신규 주문 생성 SMS
+// To 주문자: 신규 주문 생성 시 전송(결제 정보 입력)
 export const renderCustomerNewOrderSms = (order: OrderTemplateContext): string =>
   [
     '[도도미마켓]',
+    '안녕하세요 도도미마켓입니다 🐶',
+    '고객님의 소중한 주문이 접수되었습니다 💛\n',
     `◼︎주문 번호 : ${order.orderNumber}`,
-    `◼︎주문자 : ${order.buyerName ?? '-'}`,
-    `◼︎결제 예정 금액 : ${formatCurrency(order.finalTotalPrice)}`,
-    '◼︎주문이 생성되었습니다.',
-    '◼︎입금 확인까지 최대 2일이 소요될 수 있습니다.',
+    `◼︎결제 금액 : ${formatCurrency(order.finalTotalPrice)}(배송비 포함)`,
+    `◼︎입금 계좌 : ${[order.depositBankName, order.depositAccountNumber].filter(Boolean).join(' ') || '-'}`,
+    `(예금주 : ${order.depositAccountHolder ?? '-'})`,
+    `◼︎입금기한 : ${order.depositDeadlineAt ? formatDateTime(order.depositDeadlineAt) : '-'}\n`,
+    '⚠️ 재고 보유 상품은 빠르게 출고되며,\n제작이 필요한 경우 순차적으로 제작 후 발송됩니다.\n',
+    '주문해주셔서 감사합니다 🎀',
   ].join('\n');
 
 // To 주문자: 입금 확인 요청 접수 SMS
@@ -185,45 +198,84 @@ export const renderCustomerDepositRequestedSms = (context: CustomerDepositReques
     '◼︎입금 확인까지 최대 2일이 소요될 수 있습니다.',
   ].join('\n');
 
-// 주문 상태별 주문자 안내 문구. 상태 코드(B)를 단일 기준으로 사용한다.
-const CUSTOMER_ORDER_STATUS_MESSAGES: Record<OrderStatus, string> = {
-  PENDING_PAYMENT: '입금 정보를 확인한 뒤 입금을 완료해 주세요.',
-  PAYMENT_CONFIRMED: '입금이 확인되었습니다. 상품을 준비하겠습니다.',
-  PREPARING: '주문하신 상품을 정성껏 준비하고 있습니다.',
-  SHIPPED: '상품이 발송되었습니다. 배송 정보를 확인해 주세요.',
-  DELIVERED: '주문하신 상품의 배송이 완료되었습니다.',
-  CANCELLED: '주문이 취소되었습니다. 환불 안내를 확인해 주세요.',
-  EXPIRED: '입금 기한이 지나 주문이 만료되었습니다.',
+// 주문자에게 상태 변경 SMS를 보내는 도착 상태(B)만 명시한다.
+export type CustomerOrderStatusNotificationStatus =
+  | 'SHIPPED'
+  | 'CANCELLED'
+  | 'EXPIRED';
+
+const CUSTOMER_ORDER_STATUS_NOTIFICATION_STATUSES = new Set<CustomerOrderStatusNotificationStatus>([
+  'SHIPPED',
+  'CANCELLED',
+  'EXPIRED',
+]);
+
+// 상태 변경 알림 발송 대상인지 확인하는 타입 가드다.
+export const isCustomerOrderStatusNotificationStatus = (
+  status: OrderStatus,
+): status is CustomerOrderStatusNotificationStatus =>
+  CUSTOMER_ORDER_STATUS_NOTIFICATION_STATUSES.has(status as CustomerOrderStatusNotificationStatus);
+
+type CustomerOrderStatusSmsRenderer = (
+  order: OrderTemplateContext,
+  orderStatusUrl: string | null,
+) => string;
+
+const appendOrderLookupUrl = (lines: string[], orderStatusUrl: string | null): string[] => {
+  if (orderStatusUrl) {
+    lines.push(`◼︎주문 조회 : ${orderStatusUrl}`);
+  }
+
+  return lines;
+};
+
+// 상태마다 완성된 메시지를 독립적으로 관리한다.
+const CUSTOMER_ORDER_STATUS_SMS_TEMPLATES: Record<
+  CustomerOrderStatusNotificationStatus,
+  CustomerOrderStatusSmsRenderer
+> = {
+  SHIPPED: (order, orderStatusUrl) => {
+    const lines = [
+      '[도도미마켓]',
+      '안녕하세요 도도미마켓입니다 🐶',
+      '고객님의 주문 상품이 오늘 출고되었습니다.\n',
+      `◼︎주문 번호 : ${order.orderNumber}`,
+      `◼︎택배사 : ${order.orderNumber}`,
+      `◼︎운송장번호 : ${order.orderNumber}`,
+
+      '배송 관련 문의는 언제든 편하게 연락주세요',
+      '감사합니다💛!',
+    ];
+
+    // if (order.courierName && order.trackingNumber) {
+    //   lines.push(`◼︎${order.courierName} ${order.trackingNumber}`);
+    // }
+
+    return appendOrderLookupUrl(lines, orderStatusUrl).join('\n');
+  },
+  CANCELLED: () =>
+    [
+      '[도도미마켓]',
+      '안녕하세요 도도미마켓입니다 🐶',
+      '고객님의 요청으로 인해 주문이 취소되었습니다.\n',
+      '주문해주셔서 감사드리며,\n다시 찾아주신다면 정성껏 준비해드리겠습니다 💛',
+    ].join('\n'),
+  EXPIRED: () =>
+    [
+      '[도도미마켓]',
+      '안녕하세요 도도미마켓입니다 🐶',
+      '고객님의 주문은 입금기한 내 결제가 확인되지 않아\n자동으로 취소되었습니다.\n',
+      '주문해주셔서 감사드리며,\n다시 찾아주신다면 정성껏 준비해드리겠습니다 💛',
+    ].join('\n'),
 };
 
 // To 구매자: 주문 상태 변경 SMS
 export const renderCustomerOrderStatusSms = (
   order: OrderTemplateContext,
   _previousStatus: OrderStatus,
-  newStatus: OrderStatus,
+  newStatus: CustomerOrderStatusNotificationStatus,
   orderStatusUrl: string | null = null,
-): string => {
-  const lines = [
-    `[도도미마켓]`,
-    `◼︎주문 번호 : ${order.orderNumber}`,
-    `◼︎(${newStatus} 상태로 변경되었습니다)`,
-    `◼︎${CUSTOMER_ORDER_STATUS_MESSAGES[newStatus]}`,
-  ];
-
-  if (order.shipmentStatus === 'SHIPPED' || order.shipmentStatus === 'DELIVERED') {
-    lines.push(`◼︎배송 상태 : ${formatShipmentStatus(order.shipmentStatus)}`);
-  }
-
-  if (order.courierName && order.trackingNumber) {
-    lines.push(`◼︎${order.courierName} ${order.trackingNumber}`);
-  }
-
-  if (orderStatusUrl) {
-    lines.push(`◼︎주문 조회 : ${orderStatusUrl}`);
-  }
-
-  return lines.join('\n');
-};
+): string => CUSTOMER_ORDER_STATUS_SMS_TEMPLATES[newStatus](order, orderStatusUrl);
 
 // To 관리자: 주문 상태 변경 요약 이메일
 export const renderAdminOrderStatusEmail = (
@@ -261,7 +313,7 @@ export const renderAdminOrderStatusEmail = (
 
 // To 관리자: 주문 상태 변경 요약 SMS
 export const renderAdminOrderStatusSms = (context: AdminStatusSummaryContext): string =>
-  `[도도미마켓 - 주문 상태 변경]\n ◼︎주문 번호 : ${context.order.orderNumber}\n ◼︎상태 : ${formatOrderStatus(context.previousStatus)} > ${formatOrderStatus(context.newStatus)}\n ◼︎구매자 : ${context.order.buyerName ?? '-'}\n ◼︎사유 : ${context.changeReason ?? '-'}`;
+  `[도도미마켓 - 주문 상태 변경]\n ◼︎주문 번호 : ${context.order.orderNumber}\n ◼︎구매자 : ${context.order.buyerName ?? '-'}\n ◼︎상태 : ${formatOrderStatus(context.previousStatus)} > ${formatOrderStatus(context.newStatus)}\n `;
 
 // To 관리자: 배송 정보 업데이트 이메일
 export const renderAdminShipmentUpdatedEmail = (

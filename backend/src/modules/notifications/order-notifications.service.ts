@@ -15,6 +15,7 @@ import {
   renderCustomerDepositRequestedSms,
   renderCustomerNewOrderSms,
   renderCustomerOrderStatusSms,
+  isCustomerOrderStatusNotificationStatus,
   type OrderTemplateContext,
 } from './notification-templates';
 import type {
@@ -34,6 +35,7 @@ const orderNotificationArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
     shippingFee: true,
     finalTotalPrice: true,
     customerRequest: true,
+    depositDeadlineAt: true,
     createdAt: true,
     contact: {
       select: {
@@ -61,6 +63,9 @@ const orderNotificationArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
     },
     deposit: {
       select: {
+        bankName: true,
+        accountHolder: true,
+        accountNumber: true,
         depositorName: true,
         requestedAt: true,
       },
@@ -156,7 +161,10 @@ export class OrderNotificationsService {
     const adminRecipients = await this.findActiveAdminRecipients();
     const context = this.mapOrderTemplateContext(order);
     const email = renderAdminNewOrderEmail(context);
-    const adminSms = renderAdminNewOrderSms(context);
+    const adminSms = renderAdminNewOrderSms(
+      context,
+      this.buildAdminOrderDetailUrl(order.id),
+    );
     const customerSms = renderCustomerNewOrderSms(context);
 
     await this.deliverAll(
@@ -184,20 +192,23 @@ export class OrderNotificationsService {
     }
 
     const context = this.mapOrderTemplateContext(order);
-    const customerSms = renderCustomerOrderStatusSms(
-      context,
-      event.previousStatus,
-      event.newStatus,
-      this.buildStoreOrderLookupUrl(order.orderNumber),
-    );
 
-    await this.deliverAll(
-      this.buildCustomerSmsTargets(order, customerSms),
-      {
-        eventType: 'order-status-changed-customer',
-        orderNumber: order.orderNumber,
-      },
-    );
+    if (isCustomerOrderStatusNotificationStatus(event.newStatus)) {
+      const customerSms = renderCustomerOrderStatusSms(
+        context,
+        event.previousStatus,
+        event.newStatus,
+        this.buildStoreOrderLookupUrl(order.orderNumber),
+      );
+
+      await this.deliverAll(
+        this.buildCustomerSmsTargets(order, customerSms),
+        {
+          eventType: 'order-status-changed-customer',
+          orderNumber: order.orderNumber,
+        },
+      );
+    }
 
     if (!this.isAdminOrderStatusSummaryEnabled() || !adminStatusSummaryStatuses.has(event.newStatus)) {
       return;
@@ -487,6 +498,10 @@ export class OrderNotificationsService {
       buyerPhone: order.contact?.buyerPhone ?? null,
       receiverName: order.contact?.receiverName ?? null,
       receiverPhone: order.contact?.receiverPhone ?? null,
+      depositBankName: order.deposit?.bankName ?? null,
+      depositAccountHolder: order.deposit?.accountHolder ?? null,
+      depositAccountNumber: order.deposit?.accountNumber ?? null,
+      depositDeadlineAt: order.depositDeadlineAt?.toISOString() ?? null,
       courierName: order.shipment?.courierName ?? null,
       trackingNumber: order.shipment?.trackingNumber ?? null,
       shipmentStatus:
@@ -528,6 +543,16 @@ export class OrderNotificationsService {
     }
 
     return `${baseUrl}/orders?orderNumber=${encodeURIComponent(orderNumber)}`;
+  }
+
+  // 내부 주문 ID로 연결되는 관리자 주문 상세 화면 주소다.
+  private buildAdminOrderDetailUrl(orderId: bigint): string | null {
+    const baseUrl = this.normalizeBaseUrl(this.configService.get<string>('ADMIN_WEB_BASE_URL'));
+    if (!baseUrl) {
+      return null;
+    }
+
+    return `${baseUrl}/admin/orders/${orderId.toString()}`;
   }
 
   private isAdminOrderStatusSummaryEnabled(): boolean {

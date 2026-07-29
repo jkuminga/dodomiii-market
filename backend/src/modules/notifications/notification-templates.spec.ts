@@ -2,7 +2,9 @@ import { describe, expect, it } from '@jest/globals';
 import type { OrderTemplateContext } from './notification-templates';
 import {
   notificationTemplateUtils,
+  isCustomerOrderStatusNotificationStatus,
   renderAdminNewOrderEmail,
+  renderAdminNewOrderSms,
   renderCustomerDepositRequestedSms,
   renderCustomerNewOrderSms,
   renderCustomerOrderStatusSms,
@@ -20,6 +22,10 @@ const baseOrder: OrderTemplateContext = {
   buyerPhone: '010-1234-5678',
   receiverName: '김수령',
   receiverPhone: '010-2222-3333',
+  depositBankName: '농협',
+  depositAccountHolder: '도도미마켓',
+  depositAccountNumber: '302-2133-9597-21',
+  depositDeadlineAt: '2026-04-25T14:59:59.000Z',
   courierName: null,
   trackingNumber: null,
   shipmentStatus: null,
@@ -75,17 +81,23 @@ describe('notification templates', () => {
 
     expect(message).toContain('[도도미마켓]');
     expect(message).toContain('◼︎주문 번호 : D20260424-0001');
-    expect(message).toContain('◼︎주문자 : 홍길동');
-    expect(message).toContain('◼︎결제 예정 금액 : 62,000원');
-    expect(message).toContain('◼︎주문이 생성되었습니다.');
+    expect(message).toContain('고객님의 소중한 주문이 접수되었습니다 💛');
+    expect(message).toContain('◼︎결제 금액 : 62,000원(배송비 포함)');
+    expect(message).toContain('◼︎입금 계좌 : 농협 302-2133-9597-21');
+    expect(message).toContain('(예금주 : 도도미마켓)');
+    expect(message).toContain('주문해주셔서 감사합니다 🎀');
   });
 
-  it('adds shipment details to customer status sms only when shipment data is available', () => {
-    const preparingMessage = renderCustomerOrderStatusSms(
+  it('adds the admin order detail URL to the new-order admin sms', () => {
+    const message = renderAdminNewOrderSms(
       baseOrder,
-      'PAYMENT_CONFIRMED',
-      'PREPARING',
+      'https://admin.example.test/admin/orders/123',
     );
+
+    expect(message).toContain('◼︎관리자 주문 페이지 : https://admin.example.test/admin/orders/123');
+  });
+
+  it('renders a customer status sms when the order is shipped', () => {
     const shippedMessage = renderCustomerOrderStatusSms(
       {
         ...baseOrder,
@@ -98,26 +110,35 @@ describe('notification templates', () => {
       'https://shop.example.test/orders/D20260424-0001',
     );
 
-    expect(preparingMessage).not.toContain('배송 상태');
-    expect(shippedMessage).toContain('◼︎배송 상태 : 배송 중');
-    expect(shippedMessage).toContain('◼︎CJ대한통운 1234567890');
+    expect(shippedMessage).toContain('고객님의 주문 상품이 오늘 출고되었습니다.');
+    expect(shippedMessage).toContain('◼︎주문 번호 : D20260424-0001');
     expect(shippedMessage).toContain('◼︎주문 조회 : https://shop.example.test/orders/D20260424-0001');
   });
 
-  it.each([
-    ['PENDING_PAYMENT', '입금 정보를 확인한 뒤 입금을 완료해 주세요.'],
-    ['PAYMENT_CONFIRMED', '입금이 확인되었습니다. 상품을 준비하겠습니다.'],
-    ['PREPARING', '주문하신 상품을 정성껏 준비하고 있습니다.'],
-    ['SHIPPED', '상품이 발송되었습니다. 배송 정보를 확인해 주세요.'],
-    ['DELIVERED', '주문하신 상품의 배송이 완료되었습니다.'],
-    ['CANCELLED', '주문이 취소되었습니다. 환불 안내를 확인해 주세요.'],
-    ['EXPIRED', '입금 기한이 지나 주문이 만료되었습니다.'],
-  ] as const)('renders the customer template for %s', (newStatus, expectedMessage) => {
-    const message = renderCustomerOrderStatusSms(baseOrder, 'PENDING_PAYMENT', newStatus);
-
-    expect(message).toContain(`◼︎(${newStatus} 상태로 변경되었습니다)`);
-    expect(message).toContain(`◼︎${expectedMessage}`);
+  it('limits customer status notifications to the configured target statuses', () => {
+    expect(isCustomerOrderStatusNotificationStatus('PENDING_PAYMENT')).toBe(false);
+    expect(isCustomerOrderStatusNotificationStatus('PAYMENT_CONFIRMED')).toBe(false);
+    expect(isCustomerOrderStatusNotificationStatus('PREPARING')).toBe(false);
+    expect(isCustomerOrderStatusNotificationStatus('SHIPPED')).toBe(true);
+    expect(isCustomerOrderStatusNotificationStatus('DELIVERED')).toBe(false);
+    expect(isCustomerOrderStatusNotificationStatus('CANCELLED')).toBe(true);
+    expect(isCustomerOrderStatusNotificationStatus('EXPIRED')).toBe(true);
   });
+
+  it.each(['CANCELLED', 'EXPIRED'] as const)(
+    'does not add an order lookup URL to the %s customer sms',
+    (newStatus) => {
+      const message = renderCustomerOrderStatusSms(
+        baseOrder,
+        'PENDING_PAYMENT',
+        newStatus,
+        'https://shop.example.test/orders/D20260424-0001',
+      );
+
+      expect(message).not.toContain('주문 조회');
+      expect(message).not.toContain('shop.example.test');
+    },
+  );
 
   it('exposes stable formatting helpers for shared status labels', () => {
     expect(notificationTemplateUtils.formatCurrency(1234567)).toBe('1,234,567원');

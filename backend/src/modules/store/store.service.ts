@@ -1600,14 +1600,14 @@ export class StoreService {
     }
 
     return {
-      bankName: this.configService.get<string>('ORDER_DEPOSIT_BANK_NAME', '국민은행'),
+      bankName: this.configService.get<string>('ORDER_DEPOSIT_BANK_NAME', '농협'),
       accountHolder: this.configService.get<string>(
         'ORDER_DEPOSIT_ACCOUNT_HOLDER',
         '도도미마켓',
       ),
       accountNumber: this.configService.get<string>(
         'ORDER_DEPOSIT_ACCOUNT_NUMBER',
-        '000-00-000000',
+        '302-2133-9597-21',
       ),
     };
   }

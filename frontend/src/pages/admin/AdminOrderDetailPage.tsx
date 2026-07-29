@@ -20,10 +20,13 @@ type StatusFormState = {
   orderStatus: StoreOrderStatus | '';
 };
 
+// 배송 폼에서 관리자가 선택할 수 있는 출고 단계다. READY는 주문 상태에서 파생된 표시값이라 선택지로 노출하지 않는다.
+type ShipmentStatusSelection = Exclude<StoreShipmentStatus, 'READY'> | '';
+
 type ShipmentFormState = {
   courierName: string;
   trackingNumber: string;
-  shipmentStatus: StoreShipmentStatus;
+  shipmentStatus: ShipmentStatusSelection;
 };
 
 const INITIAL_STATUS_FORM: StatusFormState = {
@@ -35,7 +38,7 @@ function createInitialShipmentForm(): ShipmentFormState {
   return {
     courierName: '',
     trackingNumber: '',
-    shipmentStatus: 'READY',
+    shipmentStatus: '',
   };
 }
 
@@ -102,7 +105,8 @@ export function AdminOrderDetailPage() {
     setShipmentForm({
       courierName: order.shipment.courierName ?? '',
       trackingNumber: order.shipment.trackingNumber ?? '',
-      shipmentStatus: order.shipment.shipmentStatus,
+      shipmentStatus:
+        order.shipment.shipmentStatus === 'READY' ? '' : order.shipment.shipmentStatus,
     });
   }, [order]);
 
@@ -156,10 +160,7 @@ export function AdminOrderDetailPage() {
       await apiClient.updateAdminOrderShipment(order.id, {
         courierName: shipmentForm.courierName.trim() || null,
         trackingNumber: shipmentForm.trackingNumber.trim() || null,
-        orderStatus:
-          shipmentForm.shipmentStatus === 'READY'
-            ? undefined
-            : shipmentForm.shipmentStatus,
+        orderStatus: shipmentForm.shipmentStatus || undefined,
       });
 
       await loadOrder();
@@ -593,11 +594,13 @@ export function AdminOrderDetailPage() {
                   onChange={(event) =>
                     setShipmentForm((current) => ({
                       ...current,
-                      shipmentStatus: event.target.value as StoreShipmentStatus,
+                      shipmentStatus: event.target.value as ShipmentStatusSelection,
                     }))
                   }
                 >
-                  <option value="READY">배송 준비 중</option>
+                  <option value="" disabled>
+                    선택하세요
+                  </option>
                   <option value="SHIPPED">배송 중</option>
                   <option value="DELIVERED">배송 완료</option>
                 </select>
