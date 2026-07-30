@@ -41,6 +41,7 @@ export default () => ({
   ORDER_DEPOSIT_ACCOUNT_HOLDER: process.env.ORDER_DEPOSIT_ACCOUNT_HOLDER ?? '도도미마켓',
   ORDER_DEPOSIT_ACCOUNT_NUMBER: process.env.ORDER_DEPOSIT_ACCOUNT_NUMBER ?? '302-2133-9597-21',
   ORDER_DEPOSIT_DEADLINE_DAYS: Number(process.env.ORDER_DEPOSIT_DEADLINE_DAYS ?? 1),
+  CRON_SECRET: process.env.CRON_SECRET ?? '',
   CUSTOM_CHECKOUT_BASE_URL:
     process.env.CUSTOM_CHECKOUT_BASE_URL ?? 'http://localhost:5173/custom-checkout',
   STORE_WEB_BASE_URL: process.env.STORE_WEB_BASE_URL ?? 'http://localhost:5173',

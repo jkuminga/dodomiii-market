@@ -87,6 +87,7 @@ describe('validateEnv', () => {
       CLOUDINARY_CLOUD_NAME: 'cloud',
       CLOUDINARY_API_KEY: 'api-key',
       CLOUDINARY_API_SECRET: 'api-secret',
+      CRON_SECRET: 'replace-with-a-long-random-cron-secret',
       ...overrides,
     };
   }

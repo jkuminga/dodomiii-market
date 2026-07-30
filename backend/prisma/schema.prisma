@@ -188,6 +188,7 @@ model Order {
   customOrderLinkUsed CustomOrderLink?     @relation("CustomOrderLinkUsedOrder")
 
   @@index([orderStatus, createdAt], map: "idx_orders_status_created_at")
+  @@index([orderStatus, depositDeadlineAt], map: "idx_orders_status_deposit_deadline")
   @@index([createdAt(sort: Desc), id(sort: Desc)], map: "idx_orders_created_id_desc")
   @@map("orders")
 }
