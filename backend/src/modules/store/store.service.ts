@@ -905,6 +905,7 @@ export class StoreService {
               resolvedItems,
               contact: dto.contact,
               refundPolicyConsent: dto.refundPolicyConsent,
+              depositorName: dto.depositorName,
               customerRequest: dto.customerRequest,
               pricing,
               now,
@@ -1418,6 +1419,7 @@ export class StoreService {
       resolvedItems: ResolvedOrderItem[];
       contact: CreateOrderContactDto;
       refundPolicyConsent: CreateRefundPolicyConsentDto;
+      depositorName?: string;
       customerRequest?: string;
       pricing: OrderPricingSnapshot;
       now: Date;
@@ -1499,6 +1501,7 @@ export class StoreService {
         accountHolder: depositInfo.accountHolder,
         accountNumber: depositInfo.accountNumber,
         expectedAmount: params.pricing.finalTotalPrice,
+        depositorName: params.depositorName ?? params.contact.buyerName,
         depositStatus: 'WAITING',
       },
     });

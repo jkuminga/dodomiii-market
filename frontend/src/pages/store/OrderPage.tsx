@@ -80,6 +80,8 @@ type ContactFormState = {
   buyerPhone: string;
   receiverName: string;
   receiverPhone: string;
+  // 실제 입금 시 사용할 예금주명이며 deposits.depositor_name에 저장된다.
+  depositorName: string;
   zipcode: string;
   address1: string;
   address2: string;
@@ -97,6 +99,7 @@ const INITIAL_CONTACT_FORM: ContactFormState = {
   buyerPhone: '',
   receiverName: '',
   receiverPhone: '',
+  depositorName: '',
   zipcode: '',
   address1: '',
   address2: '',
@@ -137,6 +140,7 @@ export function OrderPage() {
   const [error, setError] = useState('');
   const [contact, setContact] = useState<ContactFormState>(INITIAL_CONTACT_FORM);
   const [receiverSameAsBuyer, setReceiverSameAsBuyer] = useState(false);
+  const [depositorSameAsBuyer, setDepositorSameAsBuyer] = useState(false);
   const [selectedSingleOptionByGroup, setSelectedSingleOptionByGroup] = useState<Record<string, string>>({});
   const [selectedQuantityByOption, setSelectedQuantityByOption] = useState<Record<string, number>>({});
   const [expandedOptionGroups, setExpandedOptionGroups] = useState<Record<string, boolean>>({});
@@ -165,6 +169,7 @@ export function OrderPage() {
       setQuantity(1);
       setContact(INITIAL_CONTACT_FORM);
       setReceiverSameAsBuyer(false);
+      setDepositorSameAsBuyer(false);
       setSelectedAddress(null);
       setAddressSearchActive(false);
       setAddressLoading(false);
@@ -276,6 +281,17 @@ export function OrderPage() {
       receiverPhone: current.buyerPhone,
     }));
   }, [receiverSameAsBuyer, contact.buyerName, contact.buyerPhone]);
+
+  useEffect(() => {
+    if (!depositorSameAsBuyer) {
+      return;
+    }
+
+    setContact((current) => ({
+      ...current,
+      depositorName: current.buyerName,
+    }));
+  }, [depositorSameAsBuyer, contact.buyerName]);
 
   if (!productId) {
     return <Navigate to="/products" replace />;
@@ -456,6 +472,7 @@ export function OrderPage() {
           jibunAddress: selectedAddress?.jibunAddress || undefined,
         },
         refundPolicyConsent: buildRefundPolicyConsentPayload(),
+        depositorName: contact.depositorName.trim(),
         customerRequest: contact.customerRequest.trim() || undefined,
       });
 
@@ -934,6 +951,42 @@ export function OrderPage() {
             </label>
           </fieldset>
           <hr className="order-form-divider" />
+
+          <fieldset className="order-form-section">
+            <legend className="order-section-legend-inline">
+              <span>입금자 정보</span>
+              <label className="order-inline-checkbox">
+                <input
+                  type="checkbox"
+                  checked={depositorSameAsBuyer}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setDepositorSameAsBuyer(checked);
+                    if (checked) {
+                      setContact((current) => ({
+                        ...current,
+                        depositorName: current.buyerName,
+                      }));
+                    }
+                  }}
+                />
+                <span>주문인 정보와 동일</span>
+              </label>
+            </legend>
+
+            <label className="field">
+              <span>입금자명</span>
+              <input
+                value={contact.depositorName}
+                onChange={onContactChange('depositorName')}
+                placeholder="실제 입금자명"
+                disabled={depositorSameAsBuyer}
+                required
+              />
+            </label>
+          </fieldset>
+          <hr className="order-form-divider" />
+
           <fieldset className="order-form-section">
             <legend>배송지 정보</legend>
 
@@ -999,7 +1052,7 @@ export function OrderPage() {
               상품 상세로
             </Link>
             <button className="button" type="submit" disabled={isSubmitDisabled}>
-              {product.isSoldOut ? '품절 상품' : submitting ? '주문 생성 중...' : '결제하기'}
+              {product.isSoldOut ? '품절 상품' : submitting ? '주문 생성 중...' : '주문하기'}
             </button>
           </div>
         </section>

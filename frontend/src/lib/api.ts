@@ -707,6 +707,8 @@ export type StoreOrderCreateRequest = {
     agreed: true;
     version: string;
   };
+  // 주문 생성 때 확정하는 실제 입금자명이다.
+  depositorName?: string;
   customerRequest?: string;
 };
 

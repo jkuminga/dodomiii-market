@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
@@ -128,6 +128,13 @@ export class CreateOrderDto {
   @ValidateNested()
   @Type(() => CreateRefundPolicyConsentDto)
   refundPolicyConsent!: CreateRefundPolicyConsentDto;
+
+  // 주문 생성 때 입력한 실제 입금자명이며 deposits.depositor_name에 기록한다.
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @MaxLength(100)
+  depositorName?: string;
 
   @IsOptional()
   @IsString()
