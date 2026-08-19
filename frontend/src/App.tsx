@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 
+import privacyPolicyPdf from './assets/documents/도도미마켓_개인정보처리방침.pdf';
 import termsOfUsePdf from './assets/documents/terms_of_use.pdf';
 import logoMain from './assets/images/Hero_image.png';
 import { LoadingScreen } from './components/common/LoadingScreen';
@@ -628,7 +629,7 @@ function HomePage({ categorySectionReplacement, heroLayout = 'default' }: HomePa
 
           <nav className="landing-footer-mobile-links" aria-label="도도미마켓 정책 문서">
             <Link to="/legal/terms">이용약관</Link>
-            <Link to="/legal/privacy">개인정보취급방침</Link>
+            <Link to="/legal/privacy">개인정보처리방침</Link>
           </nav>
         </div>
       </footer>
@@ -847,9 +848,9 @@ const LEGAL_DOCUMENTS = {
     pdfUrl: termsOfUsePdf,
   },
   privacy: {
-    title: '개인정보취급방침',
-    description: '도도미마켓 개인정보취급방침 문서를 준비 중입니다.',
-    pdfUrl: null,
+    title: '개인정보처리방침',
+    description: '도도미마켓 개인정보처리방침 문서입니다.',
+    pdfUrl: privacyPolicyPdf,
   },
   guide: {
     title: '이용안내',
