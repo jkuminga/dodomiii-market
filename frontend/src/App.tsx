@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 
-import privacyPolicyPdf from './assets/documents/도도미마켓_개인정보처리방침.pdf';
+import privacyPolicyPdf from './assets/documents/privacy_policy.pdf';
 import termsOfUsePdf from './assets/documents/terms_of_use.pdf';
 import logoMain from './assets/images/Hero_image.png';
 import { LoadingScreen } from './components/common/LoadingScreen';
