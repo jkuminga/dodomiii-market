@@ -1619,6 +1619,11 @@ export const apiClient = {
     return normalizeAdminOrderDetail(result);
   },
 
+  deleteAdminOrder: (orderId: string | number) =>
+    request<{ deleted: true; orderId: number; orderNumber: string }>(`/admin/orders/${orderId}`, {
+      method: 'DELETE',
+    }),
+
   updateAdminOrderStatus: (orderId: string | number, payload: AdminOrderStatusUpdatePayload) =>
     request<{ id?: number; orderId?: number; updatedAt?: string }>(`/admin/orders/${orderId}/status`, {
       method: 'PATCH',

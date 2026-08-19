@@ -293,6 +293,37 @@ export class AdminOrdersService {
     return this.mapOrderDetail(order);
   }
 
+  async deleteOrder(
+    orderId: number,
+  ): Promise<{ deleted: true; orderId: number; orderNumber: string }> {
+    try {
+      const deletedOrder = await this.prisma.order.delete({
+        where: {
+          id: BigInt(orderId),
+        },
+        select: {
+          id: true,
+          orderNumber: true,
+        },
+      });
+
+      return {
+        deleted: true,
+        orderId: Number(deletedOrder.id),
+        orderNumber: deletedOrder.orderNumber,
+      };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw this.createOrderNotFoundException();
+      }
+
+      throw error;
+    }
+  }
+
   async updateOrderStatus(
     orderId: number,
     adminId: number,

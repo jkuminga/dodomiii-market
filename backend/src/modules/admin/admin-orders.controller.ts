@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -38,6 +39,16 @@ export class AdminOrdersController {
   @Get(':orderId')
   async getOrder(@Param() params: AdminOrderIdParamDto) {
     const data = await this.adminOrdersService.getOrder(params.orderId);
+
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  @Delete(':orderId')
+  async deleteOrder(@Param() params: AdminOrderIdParamDto) {
+    const data = await this.adminOrdersService.deleteOrder(params.orderId);
 
     return {
       success: true,

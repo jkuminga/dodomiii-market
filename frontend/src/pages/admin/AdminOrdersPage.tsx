@@ -58,6 +58,8 @@ export function AdminOrdersPage() {
   const [meta, setMeta] = useState<PaginationMeta>(DEFAULT_META);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pendingDeleteOrder, setPendingDeleteOrder] = useState<AdminOrderListItem | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const keyword = searchParams.get('keyword') ?? searchParams.get('q') ?? '';
   const orderStatusParam = searchParams.get('orderStatus') ?? 'all';
@@ -87,6 +89,22 @@ export function AdminOrdersPage() {
   useEffect(() => {
     void loadOrders();
   }, [keyword, orderStatusParam, page]);
+
+  useEffect(() => {
+    if (!pendingDeleteOrder) {
+      return undefined;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && deletingId === null) {
+        setPendingDeleteOrder(null);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [deletingId, pendingDeleteOrder]);
 
   const onFilterSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -124,6 +142,37 @@ export function AdminOrdersPage() {
 
     next.set('page', '1');
     setSearchParams(next);
+  };
+
+  const onConfirmDelete = async () => {
+    if (!pendingDeleteOrder) {
+      return;
+    }
+
+    const orderToDelete = pendingDeleteOrder;
+    setDeletingId(orderToDelete.id);
+    setError('');
+
+    try {
+      await apiClient.deleteAdminOrder(orderToDelete.id);
+      setPendingDeleteOrder(null);
+      showToast(`주문번호 ${orderToDelete.orderNumber} 주문을 삭제했습니다.`);
+
+      if (orders.length === 1 && page > 1) {
+        const next = new URLSearchParams(searchParams);
+        next.set('page', String(page - 1));
+        setSearchParams(next);
+      } else {
+        await loadOrders();
+      }
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : '주문 삭제에 실패했습니다.';
+      setPendingDeleteOrder(null);
+      setError(message);
+      showToast(message, 'error');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -234,29 +283,44 @@ export function AdminOrdersPage() {
           <>
             <div className="admin-list-grid">
               {orders.map((order) => (
-                <Link className="admin-list-card admin-order-list-card" key={order.id} to={`/admin/orders/${order.id}`}>
-                  <div className="admin-list-card-head">
-                    <div>
-                      <strong>
-                        {order.buyerName} · {formatAdminPhone(order.buyerPhone)}
-                      </strong>
-                      <p>
-                        수령인 {order.receiverName} · {formatAdminPhone(order.receiverPhone)}
-                      </p>
+                <article className="admin-list-card admin-order-list-card" key={order.id}>
+                  <Link className="admin-order-card-link" to={`/admin/orders/${order.id}`}>
+                    <div className="admin-list-card-head">
+                      <div>
+                        <strong>
+                          {order.buyerName} · {formatAdminPhone(order.buyerPhone)}
+                        </strong>
+                        <p>
+                          수령인 {order.receiverName} · {formatAdminPhone(order.receiverPhone)}
+                        </p>
+                      </div>
                     </div>
+
+                    <div className="admin-product-summary">
+                      <span>{formatCurrency(order.finalTotalPrice)}</span>
+                      <span>상품 {order.itemCount}건</span>
+                    </div>
+
+                    <div className="admin-meta-row">
+                      <span>주문번호 {order.orderNumber}</span>
+                      <span>주문 생성 {formatAdminDateTime(order.createdAt)}</span>
+                    </div>
+                  </Link>
+
+                  <div className="admin-order-card-toolbar">
                     <span className="status-pill">{getOrderStatusLabel(order.orderStatus)}</span>
+                    <button
+                      className="admin-order-delete-button"
+                      type="button"
+                      aria-label={`주문번호 ${order.orderNumber} 삭제`}
+                      title="주문 삭제"
+                      onClick={() => setPendingDeleteOrder(order)}
+                      disabled={deletingId !== null}
+                    >
+                      <TrashIcon />
+                    </button>
                   </div>
-
-                  <div className="admin-product-summary">
-                    <span>{formatCurrency(order.finalTotalPrice)}</span>
-                    <span>상품 {order.itemCount}건</span>
-                  </div>
-
-                  <div className="admin-meta-row">
-                    <span>주문번호 {order.orderNumber}</span>
-                    <span>주문 생성 {formatAdminDateTime(order.createdAt)}</span>
-                  </div>
-                </Link>
+                </article>
               ))}
             </div>
 
@@ -279,6 +343,64 @@ export function AdminOrdersPage() {
           </>
         ) : null}
       </section>
+
+      {pendingDeleteOrder ? (
+        <div
+          className="admin-order-delete-overlay"
+          role="presentation"
+          onClick={deletingId === null ? () => setPendingDeleteOrder(null) : undefined}
+        >
+          <section
+            className="admin-order-delete-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-order-delete-title"
+            aria-describedby="admin-order-delete-description"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="admin-order-delete-copy">
+              <p className="section-kicker">Delete Order</p>
+              <h2 className="section-subtitle" id="admin-order-delete-title">
+                진짜 삭제하시겠습니까?
+              </h2>
+              <p className="feedback-copy" id="admin-order-delete-description">
+                주문번호 {pendingDeleteOrder.orderNumber}의 주문 데이터가 DB에서 영구적으로 삭제됩니다.
+              </p>
+            </div>
+
+            <div className="admin-order-delete-actions">
+              <button
+                className="button button-secondary"
+                type="button"
+                autoFocus
+                onClick={() => setPendingDeleteOrder(null)}
+                disabled={deletingId !== null}
+              >
+                아니오
+              </button>
+              <button
+                className="button admin-order-delete-confirm"
+                type="button"
+                onClick={() => void onConfirmDelete()}
+                disabled={deletingId !== null}
+              >
+                {deletingId !== null ? '삭제 중...' : '예'}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </section>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M4 7h16" />
+      <path d="M9 7V4h6v3" />
+      <path d="m6.5 7 1 13h9l1-13" />
+      <path d="M10 11v5M14 11v5" />
+    </svg>
   );
 }
