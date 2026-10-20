@@ -31,6 +31,7 @@ import { AdminAccountFormPage } from './pages/admin/AdminAccountFormPage';
 import { AdminAccountsPage } from './pages/admin/AdminAccountsPage';
 import { AdminCustomOrdersPage } from './pages/admin/AdminCustomOrdersPage';
 import { AdminHomePage } from './pages/admin/AdminHomePage';
+import { AdminShippingSettingsPage } from './pages/admin/AdminShippingSettingsPage';
 import { AdminHomeItemEditorPage } from './pages/admin/AdminHomeItemEditorPage';
 import { AdminHomeItemsPage } from './pages/admin/AdminHomeItemsPage';
 import { AdminHomePopupEditorPage } from './pages/admin/AdminHomePopupEditorPage';
@@ -1111,6 +1112,7 @@ function AppFrame() {
           <Route path="notices/new" element={<AdminNoticeEditorPage />} />
           <Route path="notices/:noticeId" element={<AdminNoticeEditorPage />} />
           <Route path="home" element={<AdminHomePage />} />
+          <Route path="shipping-settings" element={<AdminShippingSettingsPage />} />
           <Route path="home-items" element={<AdminHomeItemsPage />} />
           <Route path="home-items/new" element={<AdminHomeItemEditorPage />} />
           <Route path="home-items/:itemId" element={<AdminHomeItemEditorPage />} />

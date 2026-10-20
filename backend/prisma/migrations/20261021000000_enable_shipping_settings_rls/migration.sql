@@ -1,0 +1,1 @@
+ALTER TABLE "shipping_settings" ENABLE ROW LEVEL SECURITY;

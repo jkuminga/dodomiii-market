@@ -55,6 +55,12 @@ const adminPrimaryNavItems: AdminNavItem[] = [
     icon: HomeScreenIcon,
   },
   {
+    label: '배송비 설정',
+    description: '기본 배송비와 무료배송 기준 관리',
+    to: '/admin/shipping-settings',
+    icon: ShippingIcon,
+  },
+  {
     label: '홈 아이템',
     description: '홈 NEW/BEST 상품 노출 관리',
     to: '/admin/home-items',
@@ -135,6 +141,17 @@ function HomeScreenIcon(props: AdminIconProps) {
       <path d="M5 7.5A2.5 2.5 0 0 1 7.5 5h9A2.5 2.5 0 0 1 19 7.5v8A2.5 2.5 0 0 1 16.5 18h-9A2.5 2.5 0 0 1 5 15.5z" />
       <path d="M8 14l2.2-2.2 1.5 1.5 2.8-3.1L16 12" />
       <path d="M8 8.5h4" />
+    </SidebarIcon>
+  );
+}
+
+function ShippingIcon(props: AdminIconProps) {
+  return (
+    <SidebarIcon {...props}>
+      <path d="M3.5 7h11v10h-11z" />
+      <path d="M14.5 10h3l3 3v4h-6z" />
+      <circle cx="7" cy="18" r="1.5" />
+      <circle cx="17" cy="18" r="1.5" />
     </SidebarIcon>
   );
 }

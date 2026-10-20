@@ -5,7 +5,6 @@ import { AdminFloatingSubmitButton } from '../../components/admin/AdminFloatingS
 import { LoadingScreen } from '../../components/common/LoadingScreen';
 import {
   AdminHomeHero,
-  AdminShippingSettings,
   AdminStorefrontSettings,
   StoreWebFontFamily,
   StoreWebFontWeightPreset,
@@ -29,14 +28,6 @@ type StorefrontSettingsFormState = {
   userWebFontSize: UserWebFontSize;
   userWebFontFamily: StoreWebFontFamily;
   userWebFontWeightPreset: StoreWebFontWeightPreset;
-};
-
-type ShippingSettingsFormState = {
-  baseShippingFee: string;
-  jejuAdditionalFee: string;
-  islandAdditionalFee: string;
-  freeShippingEnabled: boolean;
-  freeShippingThreshold: string;
 };
 
 const USER_WEB_FONT_SIZE_OPTIONS: Array<{
@@ -66,62 +57,42 @@ function toStorefrontSettingsFormState(settings: AdminStorefrontSettings | null)
   };
 }
 
-function toShippingSettingsFormState(settings: AdminShippingSettings | null): ShippingSettingsFormState {
-  return {
-    baseShippingFee: String(settings?.baseShippingFee ?? 3000),
-    jejuAdditionalFee: String(settings?.jejuAdditionalFee ?? 3000),
-    islandAdditionalFee: String(settings?.islandAdditionalFee ?? 5000),
-    freeShippingEnabled: settings?.freeShippingEnabled ?? true,
-    freeShippingThreshold: String(settings?.freeShippingThreshold ?? 10000),
-  };
-}
-
 export function AdminHomePage() {
   const { showToast } = useOutletContext<AdminLayoutContext>();
 
   const [hero, setHero] = useState<AdminHomeHero | null>(null);
   const [storefrontSettings, setStorefrontSettings] = useState<AdminStorefrontSettings | null>(null);
-  const [shippingSettings, setShippingSettings] = useState<AdminShippingSettings | null>(null);
   const [heroForm, setHeroForm] = useState<HeroFormState>(toHeroFormState(null));
   const [storefrontSettingsForm, setStorefrontSettingsForm] = useState<StorefrontSettingsFormState>(toStorefrontSettingsFormState(null));
-  const [shippingSettingsForm, setShippingSettingsForm] = useState<ShippingSettingsFormState>(toShippingSettingsFormState(null));
   const [loading, setLoading] = useState(true);
   const [heroSaving, setHeroSaving] = useState(false);
   const [storefrontSettingsSaving, setStorefrontSettingsSaving] = useState(false);
-  const [shippingSettingsSaving, setShippingSettingsSaving] = useState(false);
   const [heroSaveSuccess, setHeroSaveSuccess] = useState(false);
   const [storefrontSettingsSaveSuccess, setStorefrontSettingsSaveSuccess] = useState(false);
-  const [shippingSettingsSaveSuccess, setShippingSettingsSaveSuccess] = useState(false);
   const [heroUploading, setHeroUploading] = useState(false);
   const [heroError, setHeroError] = useState('');
   const [storefrontSettingsError, setStorefrontSettingsError] = useState('');
-  const [shippingSettingsError, setShippingSettingsError] = useState('');
   const [selectedHeroFile, setSelectedHeroFile] = useState<File | null>(null);
 
   const loadHomeSettings = async () => {
     setLoading(true);
     setHeroError('');
     setStorefrontSettingsError('');
-    setShippingSettingsError('');
 
     try {
-      const [heroResult, storefrontSettingsResult, shippingSettingsResult] = await Promise.all([
+      const [heroResult, storefrontSettingsResult] = await Promise.all([
         apiClient.getAdminHomeHero(),
         apiClient.getAdminStorefrontSettings(),
-        apiClient.getAdminShippingSettings(),
       ]);
 
       setHero(heroResult);
       setHeroForm(toHeroFormState(heroResult));
       setStorefrontSettings(storefrontSettingsResult);
       setStorefrontSettingsForm(toStorefrontSettingsFormState(storefrontSettingsResult));
-      setShippingSettings(shippingSettingsResult);
-      setShippingSettingsForm(toShippingSettingsFormState(shippingSettingsResult));
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : '홈 화면 설정 정보를 불러오지 못했습니다.';
       setHeroError(message);
       setStorefrontSettingsError(message);
-      setShippingSettingsError(message);
     } finally {
       setLoading(false);
     }
@@ -161,17 +132,6 @@ export function AdminHomePage() {
 
     if (storefrontSettingsError !== '') {
       setStorefrontSettingsError('');
-    }
-  };
-
-  const updateShippingSettingsField = <Key extends keyof ShippingSettingsFormState>(
-    key: Key,
-    value: ShippingSettingsFormState[Key],
-  ) => {
-    setShippingSettingsForm((current) => ({ ...current, [key]: value }));
-
-    if (shippingSettingsError !== '') {
-      setShippingSettingsError('');
     }
   };
 
@@ -276,51 +236,6 @@ export function AdminHomePage() {
     }
   };
 
-  const onSubmitShippingSettings = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const baseShippingFee = Number(shippingSettingsForm.baseShippingFee);
-    const jejuAdditionalFee = Number(shippingSettingsForm.jejuAdditionalFee);
-    const islandAdditionalFee = Number(shippingSettingsForm.islandAdditionalFee);
-    const freeShippingThreshold = Number(shippingSettingsForm.freeShippingThreshold);
-
-    if (![baseShippingFee, jejuAdditionalFee, islandAdditionalFee, freeShippingThreshold].every((value) => Number.isFinite(value) && value >= 0)) {
-      setShippingSettingsError('배송비와 기준 금액은 0원 이상의 숫자로 입력해주세요.');
-      return;
-    }
-
-    if (shippingSettingsForm.freeShippingEnabled && freeShippingThreshold <= 0) {
-      setShippingSettingsError('무료배송을 활성화할 때는 기준 금액을 1원 이상 입력해주세요.');
-      return;
-    }
-
-    setShippingSettingsSaving(true);
-    setShippingSettingsSaveSuccess(false);
-    setShippingSettingsError('');
-
-    try {
-      const result = await apiClient.updateAdminShippingSettings({
-        baseShippingFee,
-        jejuAdditionalFee,
-        islandAdditionalFee,
-        freeShippingEnabled: shippingSettingsForm.freeShippingEnabled,
-        freeShippingThreshold,
-      });
-
-      setShippingSettings(result);
-      setShippingSettingsForm(toShippingSettingsFormState(result));
-      showToast('배송비 설정을 저장했습니다.');
-      setShippingSettingsSaveSuccess(true);
-      await new Promise((resolve) => window.setTimeout(resolve, FLOATING_SUBMIT_SUCCESS_MS));
-    } catch (caught) {
-      setShippingSettingsSaveSuccess(false);
-      setShippingSettingsError(caught instanceof Error ? caught.message : '배송비 설정 저장에 실패했습니다.');
-    } finally {
-      setShippingSettingsSaving(false);
-      setShippingSettingsSaveSuccess(false);
-    }
-  };
-
   const selectedFontSizeOption =
     USER_WEB_FONT_SIZE_OPTIONS.find((option) => option.value === storefrontSettingsForm.userWebFontSize) ??
     USER_WEB_FONT_SIZE_OPTIONS[2];
@@ -350,7 +265,7 @@ export function AdminHomePage() {
           </div>
           <div className="admin-stat-card">
             <span>최근 수정</span>
-            <strong>{formatAdminDateTime(hero?.updatedAt ?? shippingSettings?.updatedAt ?? storefrontSettings?.updatedAt)}</strong>
+            <strong>{formatAdminDateTime(hero?.updatedAt ?? storefrontSettings?.updatedAt)}</strong>
           </div>
           <div className="admin-stat-card">
             <span>사용자 웹 글자</span>
@@ -493,101 +408,6 @@ export function AdminHomePage() {
               </div>
             </div>
           </>
-        )}
-      </form>
-
-      <form
-        className="surface-card admin-card-stack admin-home-section-card admin-storefront-settings-form"
-        onSubmit={onSubmitShippingSettings}
-        aria-busy={loading || shippingSettingsSaving}
-      >
-        <AdminFloatingSubmitButton
-          busy={shippingSettingsSaving}
-          busyLabel="저장 중..."
-          disabled={shippingSettingsSaving || loading}
-          label="배송비 설정 저장"
-          success={shippingSettingsSaveSuccess}
-        />
-        <div className="admin-section-head">
-          <div>
-            <p className="section-kicker">Shipping Policy</p>
-            <h3 className="section-subtitle">배송비 설정</h3>
-            <p className="section-copy section-copy-compact">
-              무료배송 기준은 할인·옵션이 반영된 최종 상품 금액이며, 제주·도서산간 추가금은 무료배송 이후에도 유지됩니다.
-            </p>
-          </div>
-          <button className="button" type="submit" disabled={shippingSettingsSaving || loading}>
-            {shippingSettingsSaving ? '저장 중...' : '저장'}
-          </button>
-        </div>
-
-        {shippingSettingsError !== '' ? (
-          <p className="feedback-copy is-error" role="alert">
-            {shippingSettingsError}
-          </p>
-        ) : null}
-
-        {loading ? (
-          <LoadingScreen mode="inline" title="배송비 설정 로딩 중" message="배송 정책을 불러오고 있습니다." />
-        ) : (
-          <div className="admin-field-grid">
-            <label className="field">
-              <span>기본 배송비 (원)</span>
-              <input
-                type="number"
-                min="0"
-                step="100"
-                value={shippingSettingsForm.baseShippingFee}
-                onChange={(event) => updateShippingSettingsField('baseShippingFee', event.target.value)}
-                required
-              />
-            </label>
-
-            <label className="field">
-              <span>제주도 추가금 (원)</span>
-              <input
-                type="number"
-                min="0"
-                step="100"
-                value={shippingSettingsForm.jejuAdditionalFee}
-                onChange={(event) => updateShippingSettingsField('jejuAdditionalFee', event.target.value)}
-                required
-              />
-            </label>
-
-            <label className="field">
-              <span>도서산간 추가금 (원)</span>
-              <input
-                type="number"
-                min="0"
-                step="100"
-                value={shippingSettingsForm.islandAdditionalFee}
-                onChange={(event) => updateShippingSettingsField('islandAdditionalFee', event.target.value)}
-                required
-              />
-            </label>
-
-            <label className="field">
-              <span>무료배송 기준 금액 (원)</span>
-              <input
-                type="number"
-                min="0"
-                step="100"
-                value={shippingSettingsForm.freeShippingThreshold}
-                onChange={(event) => updateShippingSettingsField('freeShippingThreshold', event.target.value)}
-                required
-              />
-            </label>
-
-            <label className="order-inline-checkbox" style={{ gridColumn: '1 / -1' }}>
-              <input
-                type="checkbox"
-                checked={shippingSettingsForm.freeShippingEnabled}
-                onChange={(event) => updateShippingSettingsField('freeShippingEnabled', event.target.checked)}
-              />
-              <span>무료배송 정책 활성화</span>
-            </label>
-          </div>
         )}
       </form>
 
