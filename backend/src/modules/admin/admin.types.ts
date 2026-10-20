@@ -4,6 +4,7 @@ import type {
   HomeItemSection,
   OrderStatus,
   ProductOptionSelectionType,
+  ShippingRegion,
   UserWebFontSize,
 } from '@prisma/client';
 
@@ -179,6 +180,8 @@ export type AdminOrderContactResponse = {
   zipcode: string;
   address1: string;
   address2: string | null;
+  // 주문자가 도서산간 지역이라고 직접 표시했는지 저장한 값이다.
+  isRemoteArea: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -229,6 +232,7 @@ export type AdminOrderDetailResponse = {
   orderId: number;
   orderNumber: string;
   orderStatus: OrderStatus;
+  shippingRegion: ShippingRegion;
   customerRequest: string | null;
   refundPolicyConsent: unknown | null;
   pricing: {
@@ -335,6 +339,17 @@ export type AdminStorefrontSettingsResponse = {
   userWebFontSize: UserWebFontSize;
   userWebFontFamily: StoreWebFontFamily;
   userWebFontWeightPreset: StoreWebFontWeightPreset;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminShippingSettingsResponse = {
+  key: string;
+  baseShippingFee: number;
+  jejuAdditionalFee: number;
+  islandAdditionalFee: number;
+  freeShippingEnabled: boolean;
+  freeShippingThreshold: number;
   createdAt: string;
   updatedAt: string;
 };

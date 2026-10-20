@@ -375,6 +375,17 @@ export function AdminOrderDetailPage() {
                 <span>배송지</span>
                 <strong>{formatAddress(order)}</strong>
               </div>
+              <div className="admin-summary-item admin-summary-item-span-2">
+                <span>배송 지역 / 추가금</span>
+                <strong>
+                  {order.shippingRegion === 'JEJU'
+                    ? '제주도 추가금 적용'
+                    : order.shippingRegion === 'ISLAND'
+                      ? '도서산간 추가금 적용'
+                      : '일반 지역'}
+                  {order.contact.isRemoteArea ? ' (주문자 체크)' : ''}
+                </strong>
+              </div>
             </div>
           </section>
 

@@ -48,6 +48,12 @@ enum HomeItemSection {
   BEST
 }
 
+enum ShippingRegion {
+  NORMAL
+  JEJU
+  ISLAND
+}
+
 model Category {
   id              BigInt   @id @default(autoincrement())
   parentId        BigInt?  @map("parent_id")
@@ -169,6 +175,7 @@ model Order {
   orderStatus         OrderStatus @default(PENDING_PAYMENT) @map("order_status")
   totalProductPrice   Int         @default(0) @map("total_product_price")
   shippingFee         Int         @default(0) @map("shipping_fee")
+  shippingRegion      ShippingRegion @default(NORMAL) @map("shipping_region")
   finalTotalPrice     Int         @default(0) @map("final_total_price")
   customerRequest     String?     @map("customer_request") @db.VarChar(500)
   refundPolicyConsent Json?       @map("refund_policy_consent")
@@ -246,6 +253,7 @@ model OrderContact {
   zipcode       String   @db.VarChar(20)
   address1      String   @db.VarChar(255)
   address2      String?  @db.VarChar(255)
+  isRemoteArea  Boolean  @default(false) @map("is_remote_area")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -380,6 +388,19 @@ model StorefrontSetting {
   updatedAt               DateTime        @updatedAt @map("updated_at")
 
   @@map("storefront_settings")
+}
+
+model ShippingSetting {
+  key                    String   @id @default("default") @db.VarChar(30)
+  baseShippingFee        Int      @default(3000) @map("base_shipping_fee")
+  jejuAdditionalFee      Int      @default(3000) @map("jeju_additional_fee")
+  islandAdditionalFee    Int      @default(5000) @map("island_additional_fee")
+  freeShippingEnabled    Boolean  @default(true) @map("free_shipping_enabled")
+  freeShippingThreshold  Int      @default(10000) @map("free_shipping_threshold")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("shipping_settings")
 }
 
 model Notice {

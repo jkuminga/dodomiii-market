@@ -5325,6 +5325,83 @@ img {
   font-size: 0.76rem;
 }
 
+.order-shipping-summary {
+  display: grid;
+  gap: 8px;
+}
+
+.order-shipping-breakdown {
+  display: grid;
+  gap: 7px;
+  margin-left: 3px;
+  padding-left: 12px;
+  border-left: 2px solid #dbe8df;
+}
+
+.order-shipping-breakdown-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.order-shipping-breakdown-row > span:first-child {
+  min-width: 0;
+}
+
+.order-shipping-breakdown-row strong {
+  flex: none;
+  color: var(--text);
+  font-size: 0.79rem;
+  text-align: right;
+}
+
+.order-shipping-breakdown-amount {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 3px 6px;
+  text-align: right;
+}
+
+.order-shipping-breakdown-amount del {
+  color: #978c88;
+  font-size: 0.73rem;
+  text-decoration-thickness: 1.5px;
+}
+
+.order-shipping-breakdown-amount strong.is-discounted {
+  color: #247a49;
+  font-weight: 800;
+}
+
+.order-shipping-free-badge,
+.order-shipping-auto-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #e6f4e9;
+  color: #247a49;
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.order-shipping-auto-badge {
+  margin-left: 5px;
+}
+
+.order-shipping-breakdown-row.is-additional,
+.order-shipping-breakdown-row.is-additional strong {
+  color: #247a49;
+}
+
 .order-summary-row.is-total {
   padding-top: 10px;
   border-top: 1px solid rgb(var(--primary-rgb) / 0.12);
@@ -5390,6 +5467,167 @@ img {
   width: 15px;
   height: 15px;
   accent-color: var(--primary);
+}
+
+.order-remote-area {
+  --remote-green: #247a49;
+  --remote-green-border: #a9dabb;
+  --remote-green-soft: #eef8f1;
+  overflow: hidden;
+  margin-top: 4px;
+  border: 1px solid #d5e5d9;
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.order-remote-area.is-jeju {
+  border-color: var(--remote-green-border);
+  box-shadow: 0 0 0 2px rgba(36, 122, 73, 0.07);
+}
+
+.order-remote-area-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  min-height: 60px;
+  padding: 12px 14px;
+}
+
+.order-remote-area-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: 0.94rem;
+  font-weight: 750;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.order-remote-area.is-disabled .order-remote-area-label {
+  cursor: not-allowed;
+}
+
+.order-remote-area-checkbox {
+  position: relative;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  appearance: none;
+  border: 2px solid #a9a3a0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: inherit;
+}
+
+.order-remote-area-checkbox:checked {
+  border-color: var(--remote-green);
+  background: var(--remote-green);
+}
+
+.order-remote-area-checkbox:checked::after {
+  position: absolute;
+  top: 3px;
+  left: 7px;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  content: '';
+}
+
+.order-remote-area-checkbox:focus-visible {
+  outline: 3px solid rgba(36, 122, 73, 0.35);
+  outline-offset: 3px;
+}
+
+.order-remote-area-checkbox:disabled {
+  opacity: 1;
+}
+
+.order-remote-area-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 5px 10px;
+  border: 1px solid var(--remote-green-border);
+  border-radius: 999px;
+  background: var(--remote-green-soft);
+  color: #1c6840;
+  font-size: 0.76rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.order-remote-area-pill > span {
+  flex: none;
+}
+
+.order-remote-area-lock {
+  display: inline-flex;
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: #e8f2eb;
+  color: #4f7860;
+}
+
+.order-remote-area-lock svg {
+  width: 17px;
+  height: 17px;
+}
+
+.order-remote-area-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-top: 1px solid #e1ece4;
+  background: #f7fbf8;
+}
+
+.order-remote-area.is-jeju .order-remote-area-note {
+  border-top-color: #dceee2;
+}
+
+.order-remote-area-info-icon {
+  display: inline-flex;
+  flex: 0 0 18px;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border: 1.5px solid var(--remote-green);
+  border-radius: 50%;
+  color: var(--remote-green);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.order-remote-area-note p {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.83rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.order-remote-area-note small {
+  display: block;
+  margin-top: 3px;
+  color: #587364;
+  font-size: 0.76rem;
+  line-height: 1.5;
 }
 
 .order-section-legend-inline {
@@ -6438,16 +6676,16 @@ img {
 
 .fixed-product-total .total-label {
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
 
 .fixed-product-total .total-amount {
-  font-size: 1.15rem;
+  font-size: clamp(1.15rem, 4vw, 1.3rem);
   color: var(--primary-deep);
-  line-height: 1;
+  line-height: 1.12;
 }
 
 .detail-toggle-icon {
@@ -6500,14 +6738,14 @@ img {
 
 .fixed-product-bar.is-expanded .price-breakdown-layer {
   bottom: 100%;
-  max-height: 500px;
+  max-height: min(70vh, 600px);
+  overflow-y: auto;
 }
 
 .price-breakdown-content {
-  padding: 16px 20px 26px;
-  /* Greatly increased bottom padding */
+  padding: 16px 20px 12px;
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .breakdown-row {
@@ -6515,8 +6753,71 @@ img {
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
-  font-size: 0.8rem;
+  font-size: 0.83rem;
   padding: 0;
+}
+
+.detail-shipping-discount {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 3px 6px;
+  text-align: right;
+}
+
+.detail-shipping-discount del {
+  color: #978c88;
+  font-size: 0.76rem;
+  text-decoration-thickness: 1.5px;
+}
+
+.detail-shipping-discount strong {
+  color: #247a49;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.detail-shipping-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 20px 18px;
+  padding: 12px 13px;
+  border: 1px solid #dce9df;
+  border-radius: 14px;
+  background: #f5f8f5;
+}
+
+.detail-shipping-notice-icon {
+  display: inline-flex;
+  flex: 0 0 18px;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border: 1.5px solid #5f8e70;
+  border-radius: 50%;
+  color: #4d7d5e;
+  font-size: 0.69rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.detail-shipping-notice p {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.detail-shipping-notice strong {
+  color: var(--text);
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .breakdown-row>span {
@@ -6531,6 +6832,10 @@ img {
   color: var(--primary-deep);
   font-weight: 700;
   white-space: nowrap;
+}
+
+.price-breakdown-content .breakdown-row>strong {
+  color: var(--text);
 }
 
 .stacked-card {
@@ -10861,10 +11166,21 @@ button.admin-list-card {
     border-top: 1px dashed rgb(var(--primary-rgb) / 0.15);
     z-index: 1;
     backdrop-filter: none;
+    overflow: visible;
   }
 
   .app-shell.is-store.is-store-desktop .price-breakdown-content {
     padding: 0;
+    gap: 11px;
+  }
+
+  .app-shell.is-store.is-store-desktop .detail-shipping-notice {
+    margin: 16px 0 0;
+    padding: 12px 13px;
+  }
+
+  .app-shell.is-store.is-store-desktop .detail-shipping-notice p {
+    font-size: 0.82rem;
   }
 
   .app-shell.is-store.is-store-desktop .detail-toggle-icon {
@@ -10886,12 +11202,12 @@ button.admin-list-card {
   }
 
   .app-shell.is-store.is-store-desktop .total-label {
-    font-size: 0.8rem;
+    font-size: 0.84rem;
     opacity: 0.8;
   }
 
   .app-shell.is-store.is-store-desktop .fixed-product-total .total-amount {
-    font-size: 1.45rem;
+    font-size: 1.55rem;
     letter-spacing: -0.02em;
     line-height: 1;
   }
@@ -10905,8 +11221,8 @@ button.admin-list-card {
     flex: 0 0 auto;
     width: auto;
     padding: 0 10px;
-    min-height: 38px;
-    font-size: 0.8rem;
+    min-height: 40px;
+    font-size: 0.82rem;
     white-space: nowrap;
   }
 

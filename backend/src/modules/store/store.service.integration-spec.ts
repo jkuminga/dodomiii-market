@@ -9,7 +9,7 @@ import { StoreCacheService } from './store-cache.service';
 import { StoreService } from './store.service';
 
 const TEST_PREFIX = '[TEST] StoreService integration';
-const SHIPPING_FEE = 3000;
+const SHIPPING_FEE = 0;
 const DEPOSIT_DEADLINE_DAYS = 1;
 
 jest.setTimeout(30_000);
@@ -25,7 +25,6 @@ describe('StoreService integration', () => {
   const configService = {
     get: jest.fn((key: string, defaultValue?: unknown) => {
       const values: Record<string, unknown> = {
-        ORDER_SHIPPING_FEE: SHIPPING_FEE,
         ORDER_DEPOSIT_DEADLINE_DAYS: DEPOSIT_DEADLINE_DAYS,
         ORDER_DEPOSIT_BANK_NAME: '테스트은행',
         ORDER_DEPOSIT_ACCOUNT_HOLDER: '테스트예금주',
@@ -121,10 +120,10 @@ describe('StoreService integration', () => {
     expect(result.pricing).toEqual({
       totalProductPrice: 24000,
       shippingFee: SHIPPING_FEE,
-      finalTotalPrice: 27000,
+      finalTotalPrice: 24000,
     });
     expect(result.depositInfo).toMatchObject({
-      expectedAmount: 27000,
+      expectedAmount: 24000,
       depositStatus: DepositStatus.WAITING,
     });
     expect(result.depositInfo.depositDeadlineAt).toEqual(expect.any(String));
@@ -151,7 +150,7 @@ describe('StoreService integration', () => {
       orderStatus: 'PENDING_PAYMENT',
       totalProductPrice: 24000,
       shippingFee: SHIPPING_FEE,
-      finalTotalPrice: 27000,
+      finalTotalPrice: 24000,
       customerRequest: '문 앞에 놓아주세요',
     });
     expect(order?.refundPolicyConsent).toMatchObject({
@@ -190,7 +189,7 @@ describe('StoreService integration', () => {
       address2: '101호',
     });
     expect(order?.deposit).toMatchObject({
-      expectedAmount: 27000,
+      expectedAmount: 24000,
       depositStatus: DepositStatus.WAITING,
     });
   });

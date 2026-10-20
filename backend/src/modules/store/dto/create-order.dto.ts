@@ -100,6 +100,15 @@ export class CreateOrderContactDto {
   @IsString()
   @MaxLength(255)
   address2?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  sido?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isRemoteArea?: boolean;
 }
 
 export class CreateRefundPolicyConsentDto {

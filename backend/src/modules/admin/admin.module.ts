@@ -16,6 +16,7 @@ import { AdminOrdersController } from './admin-orders.controller';
 import { AdminOrdersService } from './admin-orders.service';
 import { AdminProductsController } from './admin-products.controller';
 import { AdminService } from './admin.service';
+import { AdminShippingSettingsController } from './admin-shipping-settings.controller';
 
 @Module({
   imports: [StoreModule, NotificationsModule],
@@ -29,6 +30,7 @@ import { AdminService } from './admin.service';
     AdminHomePopupController,
     AdminMediaController,
     AdminNoticesController,
+    AdminShippingSettingsController,
   ],
   providers: [
     AdminService,

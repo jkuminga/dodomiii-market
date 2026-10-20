@@ -2,16 +2,20 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 're
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { LoadingScreen } from '../../components/common/LoadingScreen';
+import { RemoteAreaField } from '../../components/store/RemoteAreaField';
 import { RefundPolicyConsentDialog } from '../../components/store/RefundPolicyConsentDialog';
+import { ShippingFeeSummary } from '../../components/store/ShippingFeeSummary';
 import { apiClient, ProductDetail } from '../../lib/api';
 import { calculateDiscountedPrice, formatDiscountRate } from '../../lib/productPricing';
 import { buildRefundPolicyConsentPayload } from '../../lib/refundPolicyConsent';
+import { calculateShippingFeeBreakdown, JEJU_SIDO, resolveShippingRegion } from '../../lib/shipping';
 
 type KakaoPostcodeAddressData = {
   zonecode: string;
   roadAddress: string;
   jibunAddress: string;
   address: string;
+  sido: string;
   userSelectedType: 'R' | 'J';
 };
 
@@ -85,6 +89,8 @@ type ContactFormState = {
   zipcode: string;
   address1: string;
   address2: string;
+  sido: string;
+  isRemoteArea: boolean;
   customerRequest: string;
 };
 
@@ -103,6 +109,8 @@ const INITIAL_CONTACT_FORM: ContactFormState = {
   zipcode: '',
   address1: '',
   address2: '',
+  sido: '',
+  isRemoteArea: false,
   customerRequest: '',
 };
 
@@ -153,7 +161,27 @@ export function OrderPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [refundConsentOpen, setRefundConsentOpen] = useState(false);
+  const [shippingSettings, setShippingSettings] = useState<Awaited<ReturnType<typeof apiClient.getShippingSettings>> | null>(null);
   const optionGroupRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void apiClient
+      .getShippingSettings()
+      .then((result) => {
+        if (!cancelled) {
+          setShippingSettings(result);
+        }
+      })
+      .catch(() => {
+        // 화면은 기본 설정으로 표시하고, 주문 생성 시 서버 설정을 최종 기준으로 사용합니다.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!productId) {
@@ -323,7 +351,10 @@ export function OrderPage() {
     ? discountedBasePrice + selectedOptionExtraTotal
     : 0;
   const estimatedProductPrice = estimatedUnitPrice * quantity;
-  const estimatedSubtotal = estimatedProductPrice + 3000;
+  const shippingRegion = resolveShippingRegion(contact.sido, contact.isRemoteArea);
+  const shippingBreakdown = calculateShippingFeeBreakdown(estimatedProductPrice, shippingSettings, shippingRegion);
+  const shippingFee = shippingBreakdown.shippingFee;
+  const estimatedSubtotal = estimatedProductPrice + shippingFee;
   const requiresOptionSelection =
     optionGroups.length > 0 &&
     optionGroups.some((group) => {
@@ -410,6 +441,9 @@ export function OrderPage() {
             ...current,
             zipcode: data.zonecode.trim(),
             address1: resolvedAddress,
+            address2: '',
+            sido: data.sido?.trim() ?? '',
+            isRemoteArea: false,
           }));
           setSelectedAddress({
             userSelectedType: selectedType,
@@ -470,6 +504,8 @@ export function OrderPage() {
           userSelectedType: selectedAddress?.userSelectedType,
           roadAddress: selectedAddress?.roadAddress || undefined,
           jibunAddress: selectedAddress?.jibunAddress || undefined,
+          sido: contact.sido.trim() || undefined,
+          isRemoteArea: contact.isRemoteArea,
         },
         refundPolicyConsent: buildRefundPolicyConsentPayload(),
         depositorName: contact.depositorName.trim(),
@@ -589,10 +625,7 @@ export function OrderPage() {
             <span>상품 수량</span>
             <strong>{quantity}개</strong>
           </div>
-          <div className="order-summary-row">
-            <span>배송비</span>
-            <strong>{formatCurrency(3000)}</strong>
-          </div>
+          <ShippingFeeSummary breakdown={shippingBreakdown} />
           {selectedOptions.length > 0 ? (
             <div className="order-summary-row" style={{ alignItems: 'flex-start' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -1024,6 +1057,15 @@ export function OrderPage() {
                 disabled={!hasSelectedAddress}
               />
             </label>
+
+            <RemoteAreaField
+              checked={contact.isRemoteArea}
+              hasSelectedAddress={hasSelectedAddress}
+              isJeju={contact.sido.trim() === JEJU_SIDO}
+              jejuAdditionalFee={shippingSettings?.jejuAdditionalFee ?? 3000}
+              islandAdditionalFee={shippingSettings?.islandAdditionalFee ?? 5000}
+              onChange={(checked) => setContact((current) => ({ ...current, isRemoteArea: checked }))}
+            />
           </fieldset>
           <hr className="order-form-divider" />
 

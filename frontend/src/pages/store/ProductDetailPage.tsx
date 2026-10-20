@@ -7,6 +7,7 @@ import { ProductContentRenderer } from '../../components/store/ProductContentRen
 import { apiClient, ProductDetail } from '../../lib/api';
 import { addCartItem } from '../../lib/cart';
 import { calculateDiscountedPrice, formatDiscountRate } from '../../lib/productPricing';
+import { calculateShippingFeeBreakdown } from '../../lib/shipping';
 
 function formatCurrency(value: number): string {
   return `${value.toLocaleString('ko-KR')}원`;
@@ -32,6 +33,7 @@ export function ProductDetailPage() {
   const [productQuantity, setProductQuantity] = useState(1);
   const [showPriceDetails, setShowPriceDetails] = useState(false);
   const [showCartAddedPopup, setShowCartAddedPopup] = useState(false);
+  const [shippingSettings, setShippingSettings] = useState<Awaited<ReturnType<typeof apiClient.getShippingSettings>> | null>(null);
   const optionGroupRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Carousel Dragging State
@@ -81,6 +83,25 @@ export function ProductDetailPage() {
       cancelled = true;
     };
   }, [productId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void apiClient
+      .getShippingSettings()
+      .then((result) => {
+        if (!cancelled) {
+          setShippingSettings(result);
+        }
+      })
+      .catch(() => {
+        // 화면은 기본 설정으로 표시하고, 주문 생성 시 서버 설정을 최종 기준으로 사용합니다.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const optionGroups = useMemo(
     () =>
@@ -245,7 +266,10 @@ export function ProductDetailPage() {
   const discountedBasePrice = calculateDiscountedPrice(product.basePrice, product.discountRate);
   const hasDiscount = product.discountRate > 0 && discountedBasePrice < product.basePrice;
   const selectedUnitPrice = discountedBasePrice + selectedOptionExtraTotal;
-  const selectedTotalPrice = selectedUnitPrice * productQuantity + 3000;
+  const selectedProductPrice = selectedUnitPrice * productQuantity;
+  const shippingBreakdown = calculateShippingFeeBreakdown(selectedProductPrice, shippingSettings, 'NORMAL');
+  const shippingFee = shippingBreakdown.shippingFee;
+  const selectedTotalPrice = selectedProductPrice + shippingFee;
   const missingRequiredGroupIds = optionGroups
     .filter((group) => {
       if (!group.isRequired) {
@@ -752,11 +776,19 @@ export function ProductDetailPage() {
                 </div>
                 <div className="breakdown-row">
                   <span>상품 수량</span>
-                  <strong style={{ color: 'black' }}>{productQuantity}개</strong>
+                  <strong>{productQuantity}개</strong>
                 </div>
                 <div className="breakdown-row">
                   <span>배송비</span>
-                  <strong style={{color:'black'}}>{formatCurrency(3000)}</strong>
+                  {shippingBreakdown.baseShippingDiscounted ? (
+                    <div className="detail-shipping-discount">
+                      <del>{formatCurrency(shippingBreakdown.originalBaseShippingFee)}</del>
+                      <strong>{formatCurrency(shippingFee)}</strong>
+                      <em className="order-shipping-free-badge">무료배송</em>
+                    </div>
+                  ) : (
+                    <strong>{formatCurrency(shippingFee)}</strong>
+                  )}
                 </div>
                 {selectedOptions.map((entry) => (
                   <div className="breakdown-row" key={`${entry.group.id}-${entry.option.id}`}>
@@ -768,6 +800,13 @@ export function ProductDetailPage() {
                   </div>
                 ))}
               </div>
+              <aside className="detail-shipping-notice" aria-label="지역별 추가 배송비 안내">
+                <span className="detail-shipping-notice-icon" aria-hidden="true">i</span>
+                <p>
+                  추가 배송비: 제주도 <strong>{formatCurrency(shippingSettings?.jejuAdditionalFee ?? 3000)}</strong> · 도서산간{' '}
+                  <strong>{formatCurrency(shippingSettings?.islandAdditionalFee ?? 5000)}</strong>
+                </p>
+              </aside>
             </div>
           </div>
         </div>

@@ -22,6 +22,7 @@ import type {
   AdminNoticeListItemResponse,
   AdminProductDetailResponse,
   AdminProductListItemResponse,
+  AdminShippingSettingsResponse,
   NoticeContentBlockResponse,
   NoticeContentResponse,
   ProductContentBlockResponse,
@@ -36,6 +37,7 @@ import { GetAdminNoticesQueryDto } from './dto/get-admin-notices.query.dto';
 import { UpdateAdminHomeItemDto } from './dto/update-admin-home-item.dto';
 import { UpdateAdminHomePopupDto } from './dto/update-admin-home-popup.dto';
 import { UpdateAdminStorefrontSettingsDto } from './dto/update-admin-storefront-settings.dto';
+import { UpdateAdminShippingSettingsDto } from './dto/update-admin-shipping-settings.dto';
 import { CreateAdminProductDto } from './dto/create-admin-product.dto';
 import { GetAdminProductsQueryDto } from './dto/get-admin-products.query.dto';
 import { UpdateAdminCategoryDto } from './dto/update-admin-category.dto';
@@ -446,6 +448,47 @@ export class AdminService {
 
     this.storeCache.invalidateByPrefix('store:settings:');
     return this.mapStorefrontSettings(result);
+  }
+
+  async getShippingSettings(): Promise<AdminShippingSettingsResponse> {
+    const settings = await this.prisma.shippingSetting.upsert({
+      where: { key: 'default' },
+      create: { key: 'default' },
+      update: {},
+    });
+
+    return this.mapShippingSettings(settings);
+  }
+
+  async updateShippingSettings(dto: UpdateAdminShippingSettingsDto): Promise<AdminShippingSettingsResponse> {
+    if (dto.freeShippingEnabled && dto.freeShippingThreshold <= 0) {
+      throw new BadRequestException({
+        code: 'INVALID_SHIPPING_SETTINGS',
+        message: '무료배송을 활성화할 때 기준 금액은 0보다 커야 합니다.',
+      });
+    }
+
+    const result = await this.prisma.shippingSetting.upsert({
+      where: { key: 'default' },
+      create: {
+        key: 'default',
+        baseShippingFee: dto.baseShippingFee,
+        jejuAdditionalFee: dto.jejuAdditionalFee,
+        islandAdditionalFee: dto.islandAdditionalFee,
+        freeShippingEnabled: dto.freeShippingEnabled,
+        freeShippingThreshold: dto.freeShippingThreshold,
+      },
+      update: {
+        baseShippingFee: dto.baseShippingFee,
+        jejuAdditionalFee: dto.jejuAdditionalFee,
+        islandAdditionalFee: dto.islandAdditionalFee,
+        freeShippingEnabled: dto.freeShippingEnabled,
+        freeShippingThreshold: dto.freeShippingThreshold,
+      },
+    });
+
+    this.storeCache.invalidateByPrefix('store:shipping-settings:');
+    return this.mapShippingSettings(result);
   }
 
   async getNotices(query: GetAdminNoticesQueryDto) {
@@ -2009,6 +2052,28 @@ export class AdminService {
       userWebFontSize: settings.userWebFontSize,
       userWebFontFamily: settings.userWebFontFamily as AdminStorefrontSettingsResponse['userWebFontFamily'],
       userWebFontWeightPreset: settings.userWebFontWeightPreset as AdminStorefrontSettingsResponse['userWebFontWeightPreset'],
+      createdAt: settings.createdAt.toISOString(),
+      updatedAt: settings.updatedAt.toISOString(),
+    };
+  }
+
+  private mapShippingSettings(settings: {
+    key: string;
+    baseShippingFee: number;
+    jejuAdditionalFee: number;
+    islandAdditionalFee: number;
+    freeShippingEnabled: boolean;
+    freeShippingThreshold: number;
+    createdAt: Date;
+    updatedAt: Date;
+  }): AdminShippingSettingsResponse {
+    return {
+      key: settings.key,
+      baseShippingFee: settings.baseShippingFee,
+      jejuAdditionalFee: settings.jejuAdditionalFee,
+      islandAdditionalFee: settings.islandAdditionalFee,
+      freeShippingEnabled: settings.freeShippingEnabled,
+      freeShippingThreshold: settings.freeShippingThreshold,
       createdAt: settings.createdAt.toISOString(),
       updatedAt: settings.updatedAt.toISOString(),
     };

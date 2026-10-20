@@ -164,6 +164,15 @@ export type StorefrontSettingsResponse = {
   updatedAt: string;
 };
 
+export type ShippingSettingsResponse = {
+  baseShippingFee: number;
+  jejuAdditionalFee: number;
+  islandAdditionalFee: number;
+  freeShippingEnabled: boolean;
+  freeShippingThreshold: number;
+  updatedAt: string;
+};
+
 export type StoreProductContentBlock =
   | {
       type: 'paragraph';

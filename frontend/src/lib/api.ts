@@ -396,6 +396,17 @@ export type AdminStorefrontSettings = {
   updatedAt: string;
 };
 
+export type AdminShippingSettings = {
+  key: string;
+  baseShippingFee: number;
+  jejuAdditionalFee: number;
+  islandAdditionalFee: number;
+  freeShippingEnabled: boolean;
+  freeShippingThreshold: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AdminHomePopupPayload = {
   popupId?: number;
   title?: string | null;
@@ -600,6 +611,15 @@ export type StorefrontSettings = {
   updatedAt: string;
 };
 
+export type ShippingSettings = {
+  baseShippingFee: number;
+  jejuAdditionalFee: number;
+  islandAdditionalFee: number;
+  freeShippingEnabled: boolean;
+  freeShippingThreshold: number;
+  updatedAt: string;
+};
+
 export type AdminProductDetail = {
   id: number;
   categories: Array<{
@@ -702,6 +722,8 @@ export type StoreOrderCreateRequest = {
     userSelectedType?: 'R' | 'J';
     roadAddress?: string;
     jibunAddress?: string;
+    sido?: string;
+    isRemoteArea?: boolean;
   };
   refundPolicyConsent: {
     agreed: true;
@@ -920,6 +942,7 @@ export type AdminOrderDetail = {
   id: number;
   orderNumber: string;
   orderStatus: StoreOrderStatus;
+  shippingRegion: 'NORMAL' | 'JEJU' | 'ISLAND';
   customerRequest: string | null;
   refundPolicyConsent: {
     agreed: boolean;
@@ -945,6 +968,7 @@ export type AdminOrderDetail = {
     zipcode: string;
     address1: string;
     address2: string | null;
+    isRemoteArea: boolean;
   };
   pricing: {
     totalProductPrice: number;
@@ -1013,6 +1037,7 @@ type AdminOrderDetailResponse = {
   orderId?: number | string;
   orderNumber?: string | null;
   orderStatus?: StoreOrderStatus;
+  shippingRegion?: 'NORMAL' | 'JEJU' | 'ISLAND';
   customerRequest?: string | null;
   refundPolicyConsent?: unknown;
   items?: Array<{
@@ -1033,6 +1058,7 @@ type AdminOrderDetailResponse = {
     zipcode?: string | null;
     address1?: string | null;
     address2?: string | null;
+    isRemoteArea?: boolean;
   } | null;
   pricing?: {
     totalProductPrice?: number | null;
@@ -1221,6 +1247,7 @@ function normalizeAdminOrderDetail(raw: AdminOrderDetailResponse): AdminOrderDet
     id,
     orderNumber: raw.orderNumber?.trim() || `주문 #${id}`,
     orderStatus: normalizeOrderStatus(raw.orderStatus),
+    shippingRegion: raw.shippingRegion === 'JEJU' || raw.shippingRegion === 'ISLAND' ? raw.shippingRegion : 'NORMAL',
     customerRequest: raw.customerRequest ?? null,
     refundPolicyConsent: normalizeRefundPolicyConsent(raw.refundPolicyConsent),
     items: Array.isArray(raw.items)
@@ -1246,6 +1273,7 @@ function normalizeAdminOrderDetail(raw: AdminOrderDetailResponse): AdminOrderDet
       zipcode: raw.contact?.zipcode?.trim() || '',
       address1: raw.contact?.address1?.trim() || '',
       address2: raw.contact?.address2?.trim() || null,
+      isRemoteArea: raw.contact?.isRemoteArea === true,
     },
     pricing: {
       totalProductPrice: normalizeNumber(raw.pricing?.totalProductPrice, 0),
@@ -1412,6 +1440,8 @@ export const apiClient = {
 
   getStorefrontSettings: () => request<StorefrontSettings>('/store/settings'),
 
+  getShippingSettings: () => request<ShippingSettings>('/store/shipping-settings'),
+
   getProducts: (query: { categorySlug?: string; q?: string; sort?: string; page?: number; size?: number }) =>
     request<{ items: ProductListItem[] } & { meta?: unknown }>(
       `/store/products${buildQueryString({
@@ -1489,6 +1519,8 @@ export const apiClient = {
 
   getAdminStorefrontSettings: () => request<AdminStorefrontSettings>('/admin/home-popup/storefront-settings'),
 
+  getAdminShippingSettings: () => request<AdminShippingSettings>('/admin/shipping-settings'),
+
   upsertAdminHomePopup: (payload: AdminHomePopupPayload) =>
     request<AdminHomePopup>('/admin/home-popup', {
       method: 'PUT',
@@ -1513,6 +1545,18 @@ export const apiClient = {
     userWebFontWeightPreset: StoreWebFontWeightPreset;
   }) =>
     request<AdminStorefrontSettings>('/admin/home-popup/storefront-settings', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  updateAdminShippingSettings: (payload: {
+    baseShippingFee: number;
+    jejuAdditionalFee: number;
+    islandAdditionalFee: number;
+    freeShippingEnabled: boolean;
+    freeShippingThreshold: number;
+  }) =>
+    request<AdminShippingSettings>('/admin/shipping-settings', {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),

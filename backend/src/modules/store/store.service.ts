@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
-import { DepositStatus, HomeItemSection, Prisma } from '@prisma/client';
+import { DepositStatus, HomeItemSection, Prisma, ShippingRegion } from '@prisma/client';
 
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OrderNotificationsService } from '../notifications/order-notifications.service';
@@ -29,6 +29,7 @@ import {
   StoreHomePopupListResponse,
   StoreHomePopupResponse,
   StorefrontSettingsResponse,
+  ShippingSettingsResponse,
   StoreNoticeContentBlock,
   StoreNoticeDetailResponse,
   StoreNoticeListItemResponse,
@@ -57,6 +58,11 @@ import {
   type OrderPricingSnapshot,
 } from './domain/order-pricing';
 import { buildTrackingEvents, getShipmentSnapshot } from './domain/order-tracking';
+import {
+  calculateShippingPricing,
+  resolveShippingRegion,
+  type ShippingFeeSettings,
+} from './domain/shipping-fee';
 import { normalizeOrderContactAddress } from './utils/order-contact.util';
 import { StoreCacheService } from './store-cache.service';
 
@@ -176,6 +182,7 @@ const STORE_HOME_ITEM_CACHE_TTL_MS = 30 * 1000;
 const STORE_PRODUCTS_CACHE_TTL_MS = 20 * 1000;
 const STORE_PRODUCT_DETAIL_CACHE_TTL_MS = 20 * 1000;
 const STORE_NOTICE_CACHE_TTL_MS = 60 * 1000;
+const STORE_SHIPPING_SETTINGS_CACHE_TTL_MS = 30 * 1000;
 const STORE_HOME_ITEM_SECTION_TAKE: Partial<Record<HomeItemSection, number>> = {
   [HomeItemSection.NEW_ARRIVAL]: 1,
 };
@@ -504,6 +511,21 @@ export class StoreService {
         userWebFontSize: settings.userWebFontSize,
         userWebFontFamily: settings.userWebFontFamily as StorefrontSettingsResponse['userWebFontFamily'],
         userWebFontWeightPreset: settings.userWebFontWeightPreset as StorefrontSettingsResponse['userWebFontWeightPreset'],
+        updatedAt: settings.updatedAt.toISOString(),
+      };
+    });
+  }
+
+  async getShippingSettings(): Promise<ShippingSettingsResponse> {
+    return this.storeCache.getOrSet('store:shipping-settings:v1', STORE_SHIPPING_SETTINGS_CACHE_TTL_MS, async () => {
+      const settings = await this.getShippingSetting();
+
+      return {
+        baseShippingFee: settings.baseShippingFee,
+        jejuAdditionalFee: settings.jejuAdditionalFee,
+        islandAdditionalFee: settings.islandAdditionalFee,
+        freeShippingEnabled: settings.freeShippingEnabled,
+        freeShippingThreshold: settings.freeShippingThreshold,
         updatedAt: settings.updatedAt.toISOString(),
       };
     });
@@ -898,7 +920,15 @@ export class StoreService {
             const now = new Date();
             const orderNumber = await this.generateOrderNumber(tx, now);
             const resolvedItems = await this.resolveOrderItems(tx, dto.items);
-            const pricing = buildOrderPricingFromItems(resolvedItems, this.getShippingFee());
+            const shippingSettings = await this.getShippingSetting(tx);
+            const totalProductPrice = resolvedItems.reduce((sum, item) => sum + item.lineTotalPrice, 0);
+            const shippingRegion = resolveShippingRegion(dto.contact.sido, dto.contact.isRemoteArea ?? false);
+            const shippingPricing = calculateShippingPricing(
+              totalProductPrice,
+              shippingSettings,
+              shippingRegion,
+            );
+            const pricing = buildOrderPricingFromItems(resolvedItems, shippingPricing.shippingFee);
 
             return this.createOrderRecord(tx, {
               orderNumber,
@@ -908,6 +938,7 @@ export class StoreService {
               depositorName: dto.depositorName,
               customerRequest: dto.customerRequest,
               pricing,
+              shippingRegion: shippingPricing.region,
               now,
             });
           },
@@ -1035,6 +1066,7 @@ export class StoreService {
                 shippingFee: link.shippingFee,
                 finalTotalPrice: link.finalTotalPrice,
               },
+              shippingRegion: ShippingRegion.NORMAL,
               now,
             });
 
@@ -1422,6 +1454,7 @@ export class StoreService {
       depositorName?: string;
       customerRequest?: string;
       pricing: OrderPricingSnapshot;
+      shippingRegion: ShippingRegion;
       now: Date;
     },
   ): Promise<StoreCreatedOrderResponse> {
@@ -1439,6 +1472,7 @@ export class StoreService {
         orderStatus: 'PENDING_PAYMENT',
         totalProductPrice: params.pricing.totalProductPrice,
         shippingFee: params.pricing.shippingFee,
+        shippingRegion: params.shippingRegion,
         finalTotalPrice: params.pricing.finalTotalPrice,
         customerRequest: params.customerRequest ?? null,
         refundPolicyConsent,
@@ -1491,6 +1525,7 @@ export class StoreService {
         zipcode: params.contact.zipcode,
         address1: normalizedContactAddress.address1,
         address2: normalizedContactAddress.address2,
+        isRemoteArea: params.contact.isRemoteArea ?? false,
       },
     });
 
@@ -1569,8 +1604,14 @@ export class StoreService {
     };
   }
 
-  private getShippingFee(): number {
-    return Number(this.configService.get<number>('ORDER_SHIPPING_FEE', 3000));
+  private async getShippingSetting(
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
+  ): Promise<ShippingFeeSettings & { key: string; createdAt: Date; updatedAt: Date }> {
+    return client.shippingSetting.upsert({
+      where: { key: 'default' },
+      create: { key: 'default' },
+      update: {},
+    });
   }
 
   private async getDepositAccountInfo(client: Prisma.TransactionClient = this.prisma): Promise<DepositAccountInfo> {
