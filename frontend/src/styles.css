@@ -5325,12 +5325,14 @@ img {
   font-size: 0.76rem;
 }
 
-.order-shipping-summary {
+.order-shipping-summary,
+.order-option-summary {
   display: grid;
   gap: 8px;
 }
 
-.order-shipping-breakdown {
+.order-shipping-breakdown,
+.order-option-breakdown {
   display: grid;
   gap: 7px;
   margin-left: 3px;
@@ -5338,7 +5340,8 @@ img {
   border-left: 2px solid #dbe8df;
 }
 
-.order-shipping-breakdown-row {
+.order-shipping-breakdown-row,
+.order-option-breakdown-row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -5348,11 +5351,14 @@ img {
   line-height: 1.45;
 }
 
-.order-shipping-breakdown-row > span:first-child {
+.order-shipping-breakdown-row > span:first-child,
+.order-option-breakdown-row > span:first-child {
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-.order-shipping-breakdown-row strong {
+.order-shipping-breakdown-row strong,
+.order-option-breakdown-row strong {
   flex: none;
   color: var(--text);
   font-size: 0.79rem;

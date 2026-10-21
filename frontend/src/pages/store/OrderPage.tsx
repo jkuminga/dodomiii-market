@@ -627,21 +627,26 @@ export function OrderPage() {
           </div>
           <ShippingFeeSummary breakdown={shippingBreakdown} />
           {selectedOptions.length > 0 ? (
-            <div className="order-summary-row" style={{ alignItems: 'flex-start' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div className="order-option-summary">
+              <div className="order-summary-row">
                 <span>선택 옵션</span>
+                <strong>
+                  {selectedOptionExtraTotal > 0 ? '+' : ''}{formatCurrency(selectedOptionExtraTotal * quantity)}
+                </strong>
+              </div>
+              <div className="order-option-breakdown" role="group" aria-label="선택 옵션 세부 내역">
                 {selectedOptions.map((entry) => (
-                  <small key={`${entry.group.id}-${entry.option.id}`} style={{ color: 'var(--text-muted, #666)' }}>
-                    {entry.group.name} / {entry.option.name}
-                    {entry.quantity > 1 ? ` x${entry.quantity}` : ''}
-                  </small>
+                  <div className="order-option-breakdown-row" key={`${entry.group.id}-${entry.option.id}`}>
+                    <span>
+                      {entry.group.name} / {entry.option.name}
+                      {entry.quantity * quantity > 1 ? ` ×${entry.quantity * quantity}` : ''}
+                    </span>
+                    <strong>
+                      {entry.option.extraPrice > 0 ? '+' : ''}{formatCurrency(entry.option.extraPrice * entry.quantity * quantity)}
+                    </strong>
+                  </div>
                 ))}
               </div>
-              <strong>
-                {selectedOptionExtraTotal > 0
-                  ? `+${formatCurrency(selectedOptionExtraTotal * quantity)}`
-                  : '추가 금액 없음'}
-              </strong>
             </div>
           ) : null}
           
